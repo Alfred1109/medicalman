@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 帮助与反馈</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .help-title {
+            margin-bottom: 0;
+        }
+        
+        .help-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .help-tab {
+            padding: var(--spacing-md) var(--spacing-lg);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-fast);
+        }
+        
+        .help-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .help-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .help-section {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .help-section-title {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .faq-item {
+            margin-bottom: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+        }
+        
+        .faq-question {
+            padding: var(--spacing-md);
+            background-color: var(--light-bg);
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .faq-question:hover {
+            background-color: var(--primary-color-light);
+        }
+        
+        .faq-answer {
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--border-color);
+            display: none;
+        }
+        
+        .faq-answer.active {
+            display: block;
+        }
+        
+        .feedback-form {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+        
+        .form-label {
+            font-weight: 500;
+        }
+        
+        .form-control {
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px var(--primary-color-light);
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-logo-text {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: var(--spacing-sm);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .contact-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+        }
+        
+        .contact-details {
+            flex: 1;
+        }
+        
+        .contact-label {
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .contact-value {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item active">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="help-header">
+                <h2 class="help-title">帮助与反馈</h2>
+            </div>
+            
+            <div class="help-tabs">
+                <div class="help-tab active">常见问题</div>
+                <div class="help-tab">使用指南</div>
+                <div class="help-tab">提交反馈</div>
+                <div class="help-tab">联系我们</div>
+            </div>
+            
+            <div class="help-section">
+                <h3 class="help-section-title">常见问题</h3>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        如何查看特定时间段的运营数据？
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        在仪表盘页面顶部，您可以找到日期选择器。点击日期选择器，选择您需要查看的时间范围，系统将自动更新所有图表和数据，显示所选时间段内的运营指标。
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        如何导出分析报告？
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        在多维度分析页面，每个图表右上角都有导出按钮。点击该按钮，可以选择导出为图片、PDF或Excel格式。如果您需要导出整个页面的报告，可以在页面顶部找到"导出报告"按钮。
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        如何设置预警规则？
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        在预警通知页面，点击"添加预警规则"按钮。在弹出的表单中，选择您需要监控的指标，设置触发条件和阈值，然后选择通知方式。设置完成后点击保存，系统将根据您的设置自动监控相关指标并在条件满足时发送通知。
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        智能问答功能如何使用？
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        在智能问答页面，您可以直接在输入框中输入您的问题，例如"上个月门诊量最高的是哪一天"或"住院患者平均住院天数是多少"。系统将分析您的问题并给出相应的回答，同时可能会展示相关的图表和数据。
+                    </div>
+                </div>
+            </div>
+            
+            <div class="help-section" style="display: none;">
+                <h3 class="help-section-title">使用指南</h3>
+                
+                <div class="card">
+                    <p>详细的使用指南正在编写中，敬请期待...</p>
+                    <p>您可以通过以下链接下载系统操作手册：</p>
+                    <a href="#" class="btn btn-outline"><i class="fas fa-download"></i> 下载操作手册 (PDF)</a>
+                </div>
+            </div>
+            
+            <div class="help-section" style="display: none;">
+                <h3 class="help-section-title">提交反馈</h3>
+                
+                <div class="card">
+                    <form class="feedback-form">
+                        <div class="form-group">
+                            <label class="form-label">反馈类型</label>
+                            <select class="form-control">
+                                <option>功能建议</option>
+                                <option>问题报告</option>
+                                <option>使用困难</option>
+                                <option>其他</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">标题</label>
+                            <input type="text" class="form-control" placeholder="请简要描述您的反馈">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">详细描述</label>
+                            <textarea class="form-control" placeholder="请详细描述您的反馈内容，如果是问题报告，请包含复现步骤"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">联系方式（选填）</label>
+                            <input type="text" class="form-control" placeholder="邮箱或电话，方便我们联系您">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">提交反馈</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="help-section" style="display: none;">
+                <h3 class="help-section-title">联系我们</h3>
+                
+                <div class="card">
+                    <p>如果您有任何问题或需要技术支持，请通过以下方式联系我们：</p>
+                    
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="contact-details">
+                                <div class="contact-label">电子邮件</div>
+                                <div class="contact-value">support@hospital-analytics.com</div>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="contact-details">
+                                <div class="contact-label">技术支持热线</div>
+                                <div class="contact-value">400-123-4567（工作日 9:00-18:00）</div>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="contact-details">
+                                <div class="contact-label">在线客服</div>
+                                <div class="contact-value">
+                                    <button class="btn btn-sm btn-outline">开始在线对话</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
+    <script>
+        // 移动菜单切换
+        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // 高亮当前活动的菜单项
+        document.querySelectorAll('.menu-item').forEach(item => {
+            const link = item.querySelector('a');
+            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // FAQ 问题切换
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const isActive = answer.classList.contains('active');
+                
+                // 关闭所有其他答案
+                document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('active'));
+                document.querySelectorAll('.faq-question i').forEach(i => i.className = 'fas fa-chevron-down');
+                
+                // 切换当前答案
+                if (!isActive) {
+                    answer.classList.add('active');
+                    this.querySelector('i').className = 'fas fa-chevron-up';
+                }
+            });
+        });
+        
+        // 帮助选项卡切换
+        document.querySelectorAll('.help-tab').forEach((tab, index) => {
+            tab.addEventListener('click', function() {
+                // 更新选项卡状态
+                document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 更新内容区域
+                document.querySelectorAll('.help-section').forEach((section, i) => {
+                    if (i === index) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

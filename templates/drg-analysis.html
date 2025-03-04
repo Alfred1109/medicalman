@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - DRG分析</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .drg-container {
+            padding: var(--spacing-md);
+        }
+        
+        .drg-header {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .drg-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .drg-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .drg-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .drg-card {
+            background-color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .card-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+        
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .card-change {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: var(--font-size-sm);
+        }
+        
+        .change-up {
+            color: var(--danger-color);
+        }
+        
+        .change-down {
+            color: var(--success-color);
+        }
+        
+        .drg-charts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .chart-container {
+            background-color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .chart-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+        
+        .drg-table {
+            background-color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .table-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: var(--spacing-sm);
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            background-color: var(--light-bg);
+        }
+        
+        tr:hover {
+            background-color: var(--light-bg);
+        }
+        
+        .drg-info {
+            background-color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .info-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+        
+        .info-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 1024px) {
+            .drg-charts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item active">
+                <a href="{{ url_for('drg_analysis') }}"><i class="fas fa-file-medical-alt"></i> DRG分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="drg-container">
+                <div class="drg-header">
+                    <h1 class="drg-title">DRG分析</h1>
+                    <p class="text-secondary">分析医院DRG相关指标和绩效</p>
+                </div>
+                
+                <div class="drg-info">
+                    <h3 class="info-title">DRG运营管理概述</h3>
+                    <div class="info-content">
+                        <p>DRG（Diagnosis-Related Group，疾病诊断相关分组）是一种病例分组方法，用于医疗保险支付和医院管理。在医保支付方式转向DRG支付的背景下，医院需要有效管理成本，最大化医保基金留用。</p>
+                        <p>本页面提供了科室总体盈亏情况、核心病种组分析、高低倍率病案占比、RW区间分布、CMI和结余象限分析等多维度的DRG运营数据，帮助临床科主任建立病种精算思维，提升科室精细化管理水平和运营效率。</p>
+                    </div>
+                </div>
+                
+                <div class="drg-filters">
+                    <div class="filter-group">
+                        <label class="filter-label">时间范围</label>
+                        <select class="filter-input" id="timeRange">
+                            <option value="7">最近7天</option>
+                            <option value="30" selected>最近30天</option>
+                            <option value="90">最近90天</option>
+                            <option value="365">最近一年</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">科室</label>
+                        <select class="filter-input" id="department">
+                            <option value="">全部科室</option>
+                            <!-- 科室选项将通过JavaScript动态添加 -->
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">DRG组</label>
+                        <select class="filter-input" id="drgGroup">
+                            <option value="">全部DRG组</option>
+                            <!-- DRG组选项将通过JavaScript动态添加 -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="drg-cards">
+                    <div class="drg-card">
+                        <div class="card-title">CMI值</div>
+                        <div class="card-value" id="cmi-value">1.25</div>
+                        <div class="card-change">
+                            <i class="fas fa-arrow-up change-up" id="cmi-icon"></i>
+                            <span class="change-up" id="cmi-change">+5.2%</span>
+                            <span class="text-secondary">较上期</span>
+                        </div>
+                    </div>
+                    
+                    <div class="drg-card">
+                        <div class="card-title">费用消耗指数</div>
+                        <div class="card-value" id="cost-index-value">0.95</div>
+                        <div class="card-change">
+                            <i class="fas fa-arrow-down change-down" id="cost-index-icon"></i>
+                            <span class="change-down" id="cost-index-change">-2.1%</span>
+                            <span class="text-secondary">较上期</span>
+                        </div>
+                    </div>
+                    
+                    <div class="drg-card">
+                        <div class="card-title">时间消耗指数</div>
+                        <div class="card-value" id="time-index-value">1.05</div>
+                        <div class="card-change">
+                            <i class="fas fa-arrow-up change-up" id="time-index-icon"></i>
+                            <span class="change-up" id="time-index-change">+1.8%</span>
+                            <span class="text-secondary">较上期</span>
+                        </div>
+                    </div>
+                    
+                    <div class="drg-card">
+                        <div class="card-title">DRG组数</div>
+                        <div class="card-value" id="drg-count-value">285</div>
+                        <div class="card-change">
+                            <i class="fas fa-arrow-up change-up" id="drg-count-icon"></i>
+                            <span class="change-up" id="drg-count-change">+12</span>
+                            <span class="text-secondary">较上期</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="drg-charts">
+                    <div class="chart-container">
+                        <h3 class="chart-title">DRG组分布</h3>
+                        <canvas id="drgDistributionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3 class="chart-title">CMI趋势</h3>
+                        <canvas id="cmiTrendChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="drg-charts">
+                    <div class="chart-container">
+                        <h3 class="chart-title">CMI和结余象限分析</h3>
+                        <canvas id="quadrantChart"></canvas>
+                        <div class="chart-legend" style="margin-top: 15px; font-size: 0.9em;">
+                            <div><span style="color: rgba(75, 192, 192, 0.8);">●</span> 优势病组：CMI高且有结余</div>
+                            <div><span style="color: rgba(54, 162, 235, 0.8);">●</span> 竞争病组：CMI低但有结余</div>
+                            <div><span style="color: rgba(255, 206, 86, 0.8);">●</span> 潜力病组：CMI高但无结余</div>
+                            <div><span style="color: rgba(255, 99, 132, 0.8);">●</span> 问题病组：CMI低且无结余</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3 class="chart-title">RW区间分布及费用分析</h3>
+                        <canvas id="rwDistributionChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="drg-table">
+                    <div class="table-header">
+                        <h3 class="table-title">DRG详细数据</h3>
+                        <div class="table-actions">
+                            <button class="btn btn-outline" onclick="exportData()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>DRG组</th>
+                                <th>科室</th>
+                                <th>权重分值</th>
+                                <th>费用消耗指数</th>
+                                <th>时间消耗指数</th>
+                                <th>总费用</th>
+                                <th>住院天数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drgTableBody">
+                            <!-- 表格数据将通过JavaScript动态添加 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/drg-analysis.js') }}"></script>
+</body>
+</html> 

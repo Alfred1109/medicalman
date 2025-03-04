@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医疗机构运营指标智能体</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .card-header {
+            background-color: #4e73df;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            color: #4e73df;
+            border-color: #4e73df #4e73df #fff;
+        }
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        .filter-section {
+            background-color: #f1f5fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1 class="text-center mb-4">医疗机构工作量数据分析</h1>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-filter me-2"></i>数据筛选
+                    </div>
+                    <div class="card-body filter-section">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="department-filter" class="form-label">科室</label>
+                                <select id="department-filter" class="form-select">
+                                    <option value="">全部科室</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="specialty-filter" class="form-label">专科</label>
+                                <select id="specialty-filter" class="form-select">
+                                    <option value="">全部专科</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="date-start" class="form-label">开始日期</label>
+                                <select id="date-start" class="form-select">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="date-end" class="form-label">结束日期</label>
+                                <select id="date-end" class="form-select">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie me-2"></i>科室工作量分布
+                    </div>
+                    <div class="card-body">
+                        <div id="department-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie me-2"></i>专科工作量分布
+                    </div>
+                    <div class="card-body">
+                        <div id="specialty-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line me-2"></i>日期工作量趋势
+                    </div>
+                    <div class="card-body">
+                        <div id="date-chart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-table me-2"></i>数据表格
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="dataTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="department-tab" data-bs-toggle="tab" data-bs-target="#department-data" type="button" role="tab">科室数据</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="specialty-tab" data-bs-toggle="tab" data-bs-target="#specialty-data" type="button" role="tab">专科数据</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="date-tab" data-bs-toggle="tab" data-bs-target="#date-data" type="button" role="tab">日期数据</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content mt-3" id="dataTabsContent">
+                            <div class="tab-pane fade show active" id="department-data" role="tabpanel">
+                                <div class="table-container">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>科室</th>
+                                                <th>记录数</th>
+                                                <th>总数量</th>
+                                                <th>平均数量</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="department-table-body">
+                                            <!-- 数据将通过JavaScript填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="specialty-data" role="tabpanel">
+                                <div class="table-container">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>专科</th>
+                                                <th>记录数</th>
+                                                <th>总数量</th>
+                                                <th>平均数量</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="specialty-table-body">
+                                            <!-- 数据将通过JavaScript填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="date-data" role="tabpanel">
+                                <div class="table-container">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>日期</th>
+                                                <th>记录数</th>
+                                                <th>总数量</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="date-table-body">
+                                            <!-- 数据将通过JavaScript填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // 初始化图表
+        const departmentChart = echarts.init(document.getElementById('department-chart'));
+        const specialtyChart = echarts.init(document.getElementById('specialty-chart'));
+        const dateChart = echarts.init(document.getElementById('date-chart'));
+        
+        // 加载筛选选项
+        function loadFilterOptions() {
+            // 加载科室
+            $.getJSON('/api/departments', function(data) {
+                const select = $('#department-filter');
+                data.forEach(dept => {
+                    select.append($('<option>').val(dept).text(dept));
+                });
+            });
+            
+            // 加载专科
+            $.getJSON('/api/specialties', function(data) {
+                const select = $('#specialty-filter');
+                data.forEach(spec => {
+                    select.append($('<option>').val(spec).text(spec));
+                });
+            });
+            
+            // 加载日期
+            $.getJSON('/api/dates', function(data) {
+                const startSelect = $('#date-start');
+                const endSelect = $('#date-end');
+                data.forEach(date => {
+                    startSelect.append($('<option>').val(date).text(date));
+                    endSelect.append($('<option>').val(date).text(date));
+                });
+            });
+        }
+        
+        // 加载科室数据并渲染图表和表格
+        function loadDepartmentData() {
+            $.getJSON('/api/stats/department', function(data) {
+                // 渲染表格
+                const tableBody = $('#department-table-body');
+                tableBody.empty();
+                data.forEach(item => {
+                    tableBody.append(`
+                        <tr>
+                            <td>${item.科室}</td>
+                            <td>${item.记录数}</td>
+                            <td>${item.总数量.toFixed(1)}</td>
+                            <td>${item.平均数量.toFixed(2)}</td>
+                        </tr>
+                    `);
+                });
+                
+                // 渲染图表
+                const chartData = data.map(item => ({
+                    name: item.科室,
+                    value: item.总数量
+                }));
+                
+                departmentChart.setOption({
+                    title: {
+                        text: '科室工作量分布',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{a} <br/>{b}: {c} ({d}%)'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left',
+                        data: data.map(item => item.科室)
+                    },
+                    series: [
+                        {
+                            name: '工作量',
+                            type: 'pie',
+                            radius: '60%',
+                            center: ['50%', '50%'],
+                            data: chartData,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                });
+            });
+        }
+        
+        // 加载专科数据并渲染图表和表格
+        function loadSpecialtyData() {
+            $.getJSON('/api/stats/specialty', function(data) {
+                // 渲染表格
+                const tableBody = $('#specialty-table-body');
+                tableBody.empty();
+                data.forEach(item => {
+                    tableBody.append(`
+                        <tr>
+                            <td>${item.专科}</td>
+                            <td>${item.记录数}</td>
+                            <td>${item.总数量.toFixed(1)}</td>
+                            <td>${item.平均数量.toFixed(2)}</td>
+                        </tr>
+                    `);
+                });
+                
+                // 渲染图表
+                const chartData = data.map(item => ({
+                    name: item.专科,
+                    value: item.总数量
+                }));
+                
+                specialtyChart.setOption({
+                    title: {
+                        text: '专科工作量分布',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{a} <br/>{b}: {c} ({d}%)'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left',
+                        data: data.map(item => item.专科)
+                    },
+                    series: [
+                        {
+                            name: '工作量',
+                            type: 'pie',
+                            radius: '60%',
+                            center: ['50%', '50%'],
+                            data: chartData,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                });
+            });
+        }
+        
+        // 加载日期数据并渲染图表和表格
+        function loadDateData() {
+            $.getJSON('/api/stats/date', function(data) {
+                // 渲染表格
+                const tableBody = $('#date-table-body');
+                tableBody.empty();
+                data.forEach(item => {
+                    tableBody.append(`
+                        <tr>
+                            <td>${item.日期}</td>
+                            <td>${item.记录数}</td>
+                            <td>${item.总数量.toFixed(1)}</td>
+                        </tr>
+                    `);
+                });
+                
+                // 渲染图表
+                dateChart.setOption({
+                    title: {
+                        text: '日期工作量趋势',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: data.map(item => item.日期)
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: [
+                        {
+                            name: '工作量',
+                            type: 'line',
+                            data: data.map(item => item.总数量),
+                            markPoint: {
+                                data: [
+                                    { type: 'max', name: '最大值' },
+                                    { type: 'min', name: '最小值' }
+                                ]
+                            }
+                        }
+                    ]
+                });
+            });
+        }
+        
+        // 页面加载完成后执行
+        $(document).ready(function() {
+            // 加载筛选选项
+            loadFilterOptions();
+            
+            // 加载初始数据
+            loadDepartmentData();
+            loadSpecialtyData();
+            loadDateData();
+            
+            // 窗口大小改变时重新调整图表大小
+            window.addEventListener('resize', function() {
+                departmentChart.resize();
+                specialtyChart.resize();
+                dateChart.resize();
+            });
+            
+            // 切换选项卡时重新渲染图表
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+                departmentChart.resize();
+                specialtyChart.resize();
+                dateChart.resize();
+            });
+            
+            // 发送按钮点击事件
+            $('#send-button').click(function() {
+                sendQuery();
+            });
+            
+            // 输入框回车事件
+            $('#user-input').keypress(function(e) {
+                if (e.which === 13) {
+                    sendQuery();
+                    return false;
+                }
+            });
+            
+            // 文件上传事件
+            $('#file-upload').change(function() {
+                if (this.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', this.files[0]);
+                    
+                    // 显示上传中提示
+                    $('#upload-status').html('<span class="text-info">正在上传...</span>');
+                    
+                    $.ajax({
+                        url: '/api/upload',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                $('#upload-status').html('<span class="text-success">上传成功: ' + response.filename + '</span>');
+                            } else {
+                                $('#upload-status').html('<span class="text-danger">上传失败: ' + response.message + '</span>');
+                            }
+                        },
+                        error: function() {
+                            $('#upload-status').html('<span class="text-danger">上传失败</span>');
+                        }
+                    });
+                }
+            });
+            
+            // 初始化变量
+            window.currentDataSource = null;
+        });
+    </script>
+</body>
+</html> 

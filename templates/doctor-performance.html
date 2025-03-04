@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 医生绩效</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .analysis-title {
+            margin-bottom: 0;
+        }
+        
+        .analysis-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .analysis-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .analysis-tab {
+            padding: var(--spacing-md) var(--spacing-lg);
+            cursor: pointer;
+            position: relative;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        
+        .analysis-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .analysis-tab.active {
+            color: var(--primary-color);
+        }
+        
+        .analysis-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .analysis-chart {
+            height: 350px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            padding: var(--spacing-md);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .analysis-chart:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .chart-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .chart-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+        
+        .chart-action {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: var(--bg-light);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .chart-action:hover {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+        }
+        
+        .chart-body {
+            height: calc(100% - 50px);
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-logo-text {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: var(--spacing-sm);
+            width: 20px;
+            text-align: center;
+        }
+        
+        @media (max-width: 992px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .analysis-filters {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .filter-select {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: white;
+            font-size: var(--font-size-md);
+            transition: border-color 0.3s;
+        }
+        
+        .filter-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        .filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+        }
+        
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .kpi-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .kpi-title {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .kpi-value {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            font-size: var(--font-size-sm);
+        }
+        
+        .kpi-change.positive {
+            color: var(--success-color);
+        }
+        
+        .kpi-change.negative {
+            color: var(--danger-color);
+        }
+        
+        .kpi-change i {
+            margin-right: var(--spacing-xs);
+        }
+        
+        @media (max-width: 992px) {
+            .kpi-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .kpi-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .doctor-table {
+            width: 100%;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--spacing-lg);
+            overflow: hidden;
+        }
+        
+        .doctor-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .doctor-table th {
+            background-color: var(--bg-light);
+            padding: var(--spacing-md);
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .doctor-table td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        
+        .doctor-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .doctor-table tr:hover td {
+            background-color: var(--bg-light);
+        }
+        
+        .doctor-name {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .doctor-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .performance-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+        }
+        
+        .performance-badge.excellent {
+            background-color: var(--success-light);
+            color: var(--success-color);
+        }
+        
+        .performance-badge.good {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+        }
+        
+        .performance-badge.average {
+            background-color: var(--warning-light);
+            color: var(--warning-color);
+        }
+        
+        .performance-badge.poor {
+            background-color: var(--danger-light);
+            color: var(--danger-color);
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item active">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="analysis-header">
+                <h2 class="analysis-title">医生绩效</h2>
+                <div class="analysis-controls">
+                    <button class="btn btn-outline"><i class="fas fa-download"></i> 导出报告</button>
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建分析</button>
+                </div>
+            </div>
+            
+            <div class="analysis-filters">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <div class="filter-label">时间范围</div>
+                        <select class="filter-select" id="timeRange">
+                            <option value="7">最近7天</option>
+                            <option value="30" selected>最近30天</option>
+                            <option value="90">最近90天</option>
+                            <option value="365">最近一年</option>
+                            <option value="custom">自定义范围</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-label">科室</div>
+                        <select class="filter-select" id="department">
+                            <option value="all" selected>全部科室</option>
+                            <option value="internal">内科</option>
+                            <option value="surgery">外科</option>
+                            <option value="pediatrics">儿科</option>
+                            <option value="gynecology">妇产科</option>
+                            <option value="orthopedics">骨科</option>
+                            <option value="ophthalmology">眼科</option>
+                            <option value="ent">耳鼻喉科</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-label">绩效指标</div>
+                        <select class="filter-select" id="performanceMetric">
+                            <option value="all" selected>全部指标</option>
+                            <option value="outpatient">门诊量</option>
+                            <option value="surgery">手术量</option>
+                            <option value="satisfaction">患者满意度</option>
+                            <option value="revenue">创收能力</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-label">医生类型</div>
+                        <select class="filter-select" id="doctorType">
+                            <option value="all" selected>全部类型</option>
+                            <option value="attending">主治医师</option>
+                            <option value="associate">副主任医师</option>
+                            <option value="chief">主任医师</option>
+                            <option value="resident">住院医师</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button class="btn btn-outline">重置</button>
+                    <button class="btn btn-primary">应用筛选</button>
+                </div>
+            </div>
+            
+            <div class="analysis-tabs">
+                <div class="analysis-tab"><a href="{{ url_for('analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
+                <div class="analysis-tab active"><a href="{{ url_for('doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
+            </div>
+            
+            <div class="kpi-cards">
+                <div class="kpi-card">
+                    <div class="kpi-title">医生总数</div>
+                    <div class="kpi-value">256</div>
+                    <div class="kpi-change positive">
+                        <i class="fas fa-arrow-up"></i> 5.2% 同比增长
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-title">平均门诊量</div>
+                    <div class="kpi-value">42.5</div>
+                    <div class="kpi-change positive">
+                        <i class="fas fa-arrow-up"></i> 3.7% 同比增长
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-title">平均满意度</div>
+                    <div class="kpi-value">4.6</div>
+                    <div class="kpi-change positive">
+                        <i class="fas fa-arrow-up"></i> 2.2% 同比增长
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-title">高级职称比例</div>
+                    <div class="kpi-value">38%</div>
+                    <div class="kpi-change positive">
+                        <i class="fas fa-arrow-up"></i> 1.5% 同比增长
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

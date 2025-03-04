@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 系统设置</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .settings-title {
+            margin-bottom: 0;
+        }
+        
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .settings-tab {
+            padding: var(--spacing-md) var(--spacing-lg);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-fast);
+        }
+        
+        .settings-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .settings-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .settings-section {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .settings-section-title {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .settings-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: var(--transition-fast);
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition-fast);
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-logo-text {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: var(--spacing-sm);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-info {
+            flex: 1;
+        }
+        
+        .setting-name {
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .setting-description {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+        
+        .setting-control {
+            margin-left: var(--spacing-md);
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item active">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="settings-header">
+                <h2 class="settings-title">系统设置</h2>
+            </div>
+            
+            <div class="settings-tabs">
+                <div class="settings-tab active">通用设置</div>
+                <div class="settings-tab">通知设置</div>
+                <div class="settings-tab">数据设置</div>
+                <div class="settings-tab">安全设置</div>
+            </div>
+            
+            <div class="settings-section">
+                <h3 class="settings-section-title">通用设置</h3>
+                
+                <div class="card">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">系统主题</div>
+                            <div class="setting-description">选择系统界面的主题风格</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control">
+                                <option>浅色主题</option>
+                                <option>深色主题</option>
+                                <option>跟随系统</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">默认页面</div>
+                            <div class="setting-description">设置登录后的默认页面</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control">
+                                <option>仪表盘</option>
+                                <option>智能问答</option>
+                                <option>预警通知</option>
+                                <option>多维度分析</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">自动刷新数据</div>
+                            <div class="setting-description">设置数据自动刷新的时间间隔</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control">
+                                <option>不自动刷新</option>
+                                <option>每5分钟</option>
+                                <option>每15分钟</option>
+                                <option>每30分钟</option>
+                                <option>每小时</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3 class="settings-section-title">通知设置</h3>
+                
+                <div class="card">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">桌面通知</div>
+                            <div class="setting-description">启用浏览器桌面通知</div>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">邮件通知</div>
+                            <div class="setting-description">接收重要预警的邮件通知</div>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-name">短信通知</div>
+                            <div class="setting-description">接收紧急预警的短信通知</div>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button class="btn btn-outline">恢复默认设置</button>
+                <button class="btn btn-primary">保存设置</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
+    <script>
+        // 移动菜单切换
+        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // 高亮当前活动的菜单项
+        document.querySelectorAll('.menu-item').forEach(item => {
+            const link = item.querySelector('a');
+            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // 设置选项卡切换
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 这里可以添加实际的选项卡切换逻辑
+                const tabName = this.textContent.trim();
+                console.log('切换到选项卡:', tabName);
+            });
+        });
+    </script>
+</body>
+</html> 

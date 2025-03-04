@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 用户管理</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .user-title {
+            margin-bottom: 0;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .user-search {
+            display: flex;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .user-search input {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md) 0 0 var(--border-radius-md);
+            font-size: var(--font-size-md);
+        }
+        
+        .user-search button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+            cursor: pointer;
+        }
+        
+        .user-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .user-table th, .user-table td {
+            padding: var(--spacing-md);
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .user-table th {
+            background-color: var(--light-bg);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .user-table tr:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .user-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius-pill);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+        
+        .user-status.active {
+            background-color: var(--success-light);
+            color: var(--success-color);
+        }
+        
+        .user-status.inactive {
+            background-color: var(--danger-light);
+            color: var(--danger-color);
+        }
+        
+        .user-actions-cell {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-logo-text {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: var(--spacing-sm);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: var(--spacing-lg);
+            gap: var(--spacing-xs);
+        }
+        
+        .pagination-item {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .pagination-item:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .pagination-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item active">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="user-header">
+                <h2 class="user-title">用户管理</h2>
+                <div class="user-actions">
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 添加用户</button>
+                    <button class="btn btn-outline"><i class="fas fa-download"></i> 导出</button>
+                </div>
+            </div>
+            
+            <div class="user-search">
+                <input type="text" placeholder="搜索用户...">
+                <button><i class="fas fa-search"></i></button>
+            </div>
+            
+            <div class="user-filters">
+                <select class="form-control">
+                    <option>所有角色</option>
+                    <option>管理员</option>
+                    <option>医生</option>
+                    <option>护士</option>
+                    <option>财务</option>
+                </select>
+                
+                <select class="form-control">
+                    <option>所有状态</option>
+                    <option>活跃</option>
+                    <option>非活跃</option>
+                </select>
+            </div>
+            
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>姓名</th>
+                        <th>角色</th>
+                        <th>部门</th>
+                        <th>状态</th>
+                        <th>最后登录</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>admin</td>
+                        <td>张三</td>
+                        <td>管理员</td>
+                        <td>信息科</td>
+                        <td><span class="user-status active">活跃</span></td>
+                        <td>2023-06-15 09:30</td>
+                        <td class="user-actions-cell">
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-key"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>doctor1</td>
+                        <td>李四</td>
+                        <td>医生</td>
+                        <td>内科</td>
+                        <td><span class="user-status active">活跃</span></td>
+                        <td>2023-06-14 16:45</td>
+                        <td class="user-actions-cell">
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-key"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>nurse1</td>
+                        <td>王五</td>
+                        <td>护士</td>
+                        <td>外科</td>
+                        <td><span class="user-status inactive">非活跃</span></td>
+                        <td>2023-06-10 11:20</td>
+                        <td class="user-actions-cell">
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-key"></i></button>
+                            <button class="btn btn-sm btn-outline"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="pagination">
+                <div class="pagination-item">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="pagination-item active">1</div>
+                <div class="pagination-item">2</div>
+                <div class="pagination-item">3</div>
+                <div class="pagination-item">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
+    <script>
+        // 移动菜单切换
+        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // 高亮当前活动的菜单项
+        document.querySelectorAll('.menu-item').forEach(item => {
+            const link = item.querySelector('a');
+            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

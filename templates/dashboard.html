@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 仪表盘</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .dashboard-title {
+            margin-bottom: 0;
+        }
+        
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .stat-card-title {
+            margin-bottom: 0;
+            font-size: var(--font-size-lg);
+            color: var(--text-secondary);
+        }
+        
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            border-radius: 50%;
+        }
+        
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-card-change {
+            display: flex;
+            align-items: center;
+            font-size: var(--font-size-sm);
+            color: var(--text-light);
+        }
+        
+        .stat-card-change.positive {
+            color: var(--success-color);
+        }
+        
+        .stat-card-change.negative {
+            color: var(--danger-color);
+        }
+        
+        .chart-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--spacing-lg);
+        }
+        
+        .chart-card {
+            height: 350px;
+        }
+        
+        @media (max-width: 992px) {
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-logo img {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .sidebar-logo-text {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: var(--spacing-sm);
+            width: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-hospital fa-lg"></i>
+                <div class="sidebar-logo-text">医院智能分析</div>
+            </div>
+            
+            <div class="menu-item active">
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('drg_analysis') }}"><i class="fas fa-file-medical-alt"></i> DRG分析</a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="dashboard-header">
+                <h2 class="dashboard-title">运营指标概览</h2>
+                <div class="date-selector">
+                    <button class="btn btn-outline active">今日</button>
+                    <button class="btn btn-outline">本周</button>
+                    <button class="btn btn-outline">本月</button>
+                    <button class="btn btn-outline"><i class="fas fa-calendar"></i> 自定义</button>
+                </div>
+            </div>
+            
+            <div class="card-container">
+                <div class="card stat-card">
+                    <div class="stat-card-header">
+                        <h3 class="stat-card-title">门诊量</h3>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">1,234</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-arrow-up"></i> 5.2% 同比增长
+                    </div>
+                </div>
+                
+                <div class="card stat-card">
+                    <div class="stat-card-header">
+                        <h3 class="stat-card-title">住院人数</h3>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-procedures"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">567</div>
+                    <div class="stat-card-change">
+                        <span>床位使用率：85%</span>
+                    </div>
+                </div>
+                
+                <div class="card stat-card">
+                    <div class="stat-card-header">
+                        <h3 class="stat-card-title">手术台数</h3>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card-value">45</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-arrow-up"></i> 3.1% 同比增长
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="card chart-card" id="trendChart">
+                    <!-- 趋势图表将在这里渲染 -->
+                </div>
+                <div class="card chart-card" id="distributionChart">
+                    <!-- 分布图表将在这里渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
+    <script>
+        // 移动菜单切换
+        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // 高亮当前活动的菜单项
+        document.querySelectorAll('.menu-item').forEach(item => {
+            const link = item.querySelector('a');
+            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // 日期选择器交互
+        document.querySelectorAll('.date-selector .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.date-selector .btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // 初始化趋势图表
+        const trendChart = echarts.init(document.getElementById('trendChart'));
+        const trendOption = {
+            title: { 
+                text: '近期运营指标趋势',
+                left: 'center'
+            },
+            tooltip: { 
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: { 
+                data: ['门诊量', '住院人数', '手术台数'],
+                bottom: 10
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                top: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                axisLine: {
+                    lineStyle: {
+                        color: '#ddd'
+                    }
+                }
+            },
+            yAxis: { 
+                type: 'value',
+                axisLine: {
+                    show: false
+                },
+                axisTick: {
+                    show: false
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: '#eee'
+                    }
+                }
+            },
+            series: [
+                {
+                    name: '门诊量',
+                    type: 'line',
+                    smooth: true,
+                    data: [120, 132, 101, 134, 90, 230, 210],
+                    itemStyle: {
+                        color: '#5b8db8'
+                    }
+                },
+                {
+                    name: '住院人数',
+                    type: 'line',
+                    smooth: true,
+                    data: [45, 42, 51, 54, 48, 43, 41],
+                    itemStyle: {
+                        color: '#4caf50'
+                    }
+                },
+                {
+                    name: '手术台数',
+                    type: 'line',
+                    smooth: true,
+                    data: [15, 12, 17, 14, 16, 10, 11],
+                    itemStyle: {
+                        color: '#ff9800'
+                    }
+                }
+            ]
+        };
+        trendChart.setOption(trendOption);
+        
+        // 初始化分布图表
+        const distributionChart = echarts.init(document.getElementById('distributionChart'));
+        const distributionOption = {
+            title: { 
+                text: '科室分布',
+                left: 'center'
+            },
+            tooltip: { 
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'horizontal',
+                bottom: 10,
+                data: ['内科', '外科', '儿科', '其他']
+            },
+            series: [
+                {
+                    name: '科室占比',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '18',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: 35, name: '内科' },
+                        { value: 30, name: '外科' },
+                        { value: 20, name: '儿科' },
+                        { value: 15, name: '其他' }
+                    ]
+                }
+            ]
+        };
+        distributionChart.setOption(distributionOption);
+        
+        // 窗口大小变化时重新调整图表大小
+        window.addEventListener('resize', function() {
+            trendChart.resize();
+            distributionChart.resize();
+        });
+    </script>
+</body>
+</html>
