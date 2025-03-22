@@ -1,0 +1,459 @@
+/* 组件样式库 - 优化版 */
+
+/* 
+ * 组件样式库专注于组件的结构和布局
+ * 所有颜色和主题相关的样式都通过CSS变量引用，确保主题切换时样式一致性
+ */
+
+/* ===== 布局组件 ===== */
+
+/* 页面容器 */
+.page-container {
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* 分隔线 */
+.divider {
+    height: 1px;
+    margin: 20px 0;
+    background-color: var(--border-color);
+}
+
+/* 间距工具类 */
+.spacer-xs { margin-bottom: 5px; }
+.spacer-sm { margin-bottom: 10px; }
+.spacer-md { margin-bottom: 20px; }
+.spacer-lg { margin-bottom: 30px; }
+.spacer-xl { margin-bottom: 50px; }
+
+/* ===== 卡片组件 ===== */
+.card {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px var(--shadow-color);
+}
+
+.card-header {
+    padding: 15px 20px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header-tabs {
+    margin-bottom: -15px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-footer {
+    padding: 15px 20px;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid var(--border-color);
+}
+
+/* ===== 数据卡片 ===== */
+.stat-card {
+    text-align: center;
+    padding: 20px;
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stat-card .stat-label {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.stat-card .stat-change {
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.stat-card .stat-change.positive {
+    color: var(--success-color);
+}
+
+.stat-card .stat-change.negative {
+    color: var(--danger-color);
+}
+
+/* ===== 按钮组件 ===== */
+.btn {
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    color: white;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon i {
+    margin-right: 8px;
+}
+
+.btn-icon-only {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* ===== 表格组件 ===== */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* ===== 表单组件 ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.form-control {
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    padding: 10px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(91, 141, 184, 0.25);
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* ===== 过滤器组件 ===== */
+.filter-section {
+    background-color: var(--primary-light);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-item {
+    margin-bottom: 10px;
+}
+
+.filter-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* ===== 图表容器 ===== */
+.chart-container {
+    height: 400px;
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.chart-legend {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 5px;
+}
+
+.chart-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 5px;
+}
+
+/* ===== 加载动画 ===== */
+.spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 0.25rem solid var(--primary-light);
+    border-right-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spinner 1s linear infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+/* ===== 标签组件 ===== */
+.tag {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.tag i {
+    margin-right: 4px;
+}
+
+/* ===== 头像组件 ===== */
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.avatar-sm {
+    width: 30px;
+    height: 30px;
+}
+
+.avatar-lg {
+    width: 60px;
+    height: 60px;
+}
+
+/* ===== 聊天组件 ===== */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: var(--bg-color);
+}
+
+.chat-input {
+    display: flex;
+    padding: 10px;
+    background-color: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+}
+
+.chat-input input {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.message {
+    margin-bottom: 15px;
+    max-width: 80%;
+}
+
+.message.user {
+    align-self: flex-end;
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    border-radius: 15px 15px 0 15px;
+    padding: 10px 15px;
+    margin-left: auto;
+}
+
+.message.system {
+    align-self: flex-start;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-radius: 15px 15px 15px 0;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+}
+
+/* ===== 通知组件 ===== */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+}
+
+.notification {
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+    animation: slide-in 0.3s ease-out;
+    position: relative;
+}
+
+.notification.success {
+    background-color: var(--success-light);
+    color: var(--success-dark);
+    border-left: 4px solid var(--success-color);
+}
+
+.notification.error {
+    background-color: var(--danger-light);
+    color: var(--danger-dark);
+    border-left: 4px solid var(--danger-color);
+}
+
+.notification.warning {
+    background-color: var(--warning-light);
+    color: var(--warning-dark);
+    border-left: 4px solid var(--warning-color);
+}
+
+.notification.info {
+    background-color: var(--info-light);
+    color: var(--info-dark);
+    border-left: 4px solid var(--info-color);
+}
+
+.notification-close {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.7;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ===== 分页组件 ===== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination .page-item .page-link {
+    color: var(--primary-color);
+    border-color: var(--border-color);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.pagination .page-item .page-link:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+/* ===== 面包屑导航 ===== */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+} 

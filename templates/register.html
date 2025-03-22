@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院运营指标智能分析系统 - 注册</title>
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: var(--light-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .register-container {
+            display: flex;
+            width: 900px;
+            max-width: 100%;
+            background-color: white;
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .register-image {
+            flex: 1;
+            background-image: url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: var(--spacing-xl);
+            color: white;
+        }
+        
+        .register-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.1));
+            z-index: 1;
+        }
+        
+        .register-image-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .register-image-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .register-image-text {
+            font-size: var(--font-size-md);
+            margin-bottom: var(--spacing-lg);
+            opacity: 0.9;
+        }
+        
+        .register-form-container {
+            flex: 1;
+            padding: var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        
+        .register-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .register-logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .register-logo-text {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .register-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+        
+        .register-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: var(--font-size-md);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        
+        .form-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-light);
+            outline: none;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: var(--spacing-md);
+            color: var(--text-light);
+        }
+        
+        .input-with-icon {
+            padding-left: 2.5rem;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            right: var(--spacing-md);
+            color: var(--text-light);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        
+        .register-button {
+            width: 100%;
+            padding: var(--spacing-md);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: var(--font-size-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .register-button:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .login-link {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+        
+        .login-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-fast);
+        }
+        
+        .login-link a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .register-container {
+                flex-direction: column;
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .register-image {
+                display: none;
+            }
+            
+            .register-form-container {
+                padding: var(--spacing-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-image">
+            <div class="register-image-content">
+                <h2 class="register-image-title">医院运营指标智能分析系统</h2>
+                <p class="register-image-text">基于人工智能的医疗机构运营指标分析平台，助力医院提升管理效率和服务质量。</p>
+            </div>
+        </div>
+        
+        <div class="register-form-container">
+            <div class="register-logo">
+                <div class="register-logo-icon">
+                    <i class="fas fa-hospital"></i>
+                </div>
+                <div class="register-logo-text">医院智能分析</div>
+            </div>
+            
+            <h1 class="register-title">创建账号</h1>
+            <p class="register-subtitle">请填写以下信息完成注册</p>
+            
+            <!-- 显示错误消息 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" style="color: {% if category == 'error' %}#dc3545{% else %}#28a745{% endif %}; background-color: {% if category == 'error' %}#f8d7da{% else %}#d4edda{% endif %}; border: 1px solid {% if category == 'error' %}#f5c6cb{% else %}#c3e6cb{% endif %}; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form action="{{ url_for('auth.register') }}" method="POST">
+                <div class="form-group">
+                    <label for="username" class="form-label">用户名</label>
+                    <div class="input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="username" name="username" class="form-input input-with-icon" placeholder="请输入用户名" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">密码</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" class="form-input input-with-icon" placeholder="请输入密码" required>
+                        <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePassword('password', 'passwordToggle')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-text" style="margin-top: 5px; font-size: 0.8rem; color: #6c757d;">
+                        密码必须包含至少8个字符，包括大小写字母、数字和特殊字符
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">确认密码</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-input input-with-icon" placeholder="请再次输入密码" required>
+                        <button type="button" class="password-toggle" id="confirmPasswordToggle" onclick="togglePassword('confirm_password', 'confirmPasswordToggle')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">电子邮箱</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" name="email" class="form-input input-with-icon" placeholder="请输入电子邮箱" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="department" class="form-label">所属部门</label>
+                    <div class="input-group">
+                        <i class="fas fa-building input-icon"></i>
+                        <input type="text" id="department" name="department" class="form-input input-with-icon" placeholder="请输入所属部门" required>
+                    </div>
+                </div>
+                
+                <!-- 添加验证码输入框 -->
+                <div class="form-group">
+                    <label class="form-label" for="captcha">验证码</label>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="input-group" style="position: relative;">
+                            <i class="fas fa-shield-alt input-icon"></i>
+                            <input type="text" id="captcha" name="captcha" class="form-input input-with-icon" required>
+                        </div>
+                        <div style="text-align: center;">
+                            <img id="captchaImage" src="/captcha" alt="验证码" 
+                                 style="height: 100px; cursor: pointer; border: 1px solid #ddd; border-radius: 4px;"
+                                 onclick="refreshCaptcha()">
+                        </div>
+                    </div>
+                    <div class="form-text" style="margin-top: 5px; font-size: 0.8rem; color: #6c757d; text-align: center;">
+                        看不清？点击图片刷新
+                    </div>
+                </div>
+                
+                <button type="submit" class="register-button">注册</button>
+                
+                <div class="login-link">
+                    已有账号？<a href="{{ url_for('auth.login') }}">立即登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function togglePassword(inputId, toggleId) {
+            const passwordInput = document.getElementById(inputId);
+            const passwordToggle = document.querySelector(`#${toggleId} i`);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordToggle.classList.remove('fa-eye');
+                passwordToggle.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                passwordToggle.classList.remove('fa-eye-slash');
+                passwordToggle.classList.add('fa-eye');
+            }
+        }
+        
+        // 刷新验证码
+        function refreshCaptcha() {
+            const captchaImage = document.getElementById('captchaImage');
+            captchaImage.src = '/captcha?' + new Date().getTime();
+            console.log('验证码已刷新');
+        }
+        
+        // 页面加载完成后刷新验证码
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCaptcha();
+            
+            // 添加密码强度验证
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            
+            passwordInput.addEventListener('input', validatePassword);
+            confirmPasswordInput.addEventListener('input', validateConfirmPassword);
+        });
+        
+        // 验证密码强度
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const passwordInput = document.getElementById('password');
+            
+            // 密码强度规则
+            const lengthRegex = /.{8,}/;
+            const uppercaseRegex = /[A-Z]/;
+            const lowercaseRegex = /[a-z]/;
+            const numberRegex = /[0-9]/;
+            const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+            
+            // 验证密码强度
+            let isValid = true;
+            let errorMessage = '';
+            
+            if (!lengthRegex.test(password)) {
+                isValid = false;
+                errorMessage = '密码长度必须至少为8个字符';
+            } else if (!uppercaseRegex.test(password)) {
+                isValid = false;
+                errorMessage = '密码必须包含至少一个大写字母';
+            } else if (!lowercaseRegex.test(password)) {
+                isValid = false;
+                errorMessage = '密码必须包含至少一个小写字母';
+            } else if (!numberRegex.test(password)) {
+                isValid = false;
+                errorMessage = '密码必须包含至少一个数字';
+            } else if (!specialCharRegex.test(password)) {
+                isValid = false;
+                errorMessage = '密码必须包含至少一个特殊字符';
+            }
+            
+            // 设置输入框样式和提示
+            if (!isValid && password.length > 0) {
+                passwordInput.setCustomValidity(errorMessage);
+                passwordInput.style.borderColor = '#dc3545';
+            } else {
+                passwordInput.setCustomValidity('');
+                passwordInput.style.borderColor = password.length > 0 ? '#28a745' : '';
+            }
+        }
+        
+        // 验证确认密码
+        function validateConfirmPassword() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            
+            if (confirmPassword !== password && confirmPassword.length > 0) {
+                confirmPasswordInput.setCustomValidity('两次输入的密码不一致');
+                confirmPasswordInput.style.borderColor = '#dc3545';
+            } else {
+                confirmPasswordInput.setCustomValidity('');
+                confirmPasswordInput.style.borderColor = confirmPassword.length > 0 ? '#28a745' : '';
+            }
+        }
+    </script>
+</body>
+</html> 

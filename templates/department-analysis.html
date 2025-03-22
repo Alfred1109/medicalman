@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医院运营指标智能分析系统 - 科室分析</title>
-    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+{% extends 'base.html' %}
+
+{% block title %}科室分析 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('analysis.department_analysis') }}">多维度分析</a></li>
+<li class="breadcrumb-item active">科室分析</li>
+{% endblock %}
+
+{% block page_title %}科室分析{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-outline-primary">
+    <i class="fas fa-download me-1"></i> 导出报告
+</button>
+<button class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> 新建分析
+</button>
+{% endblock %}
+
+{% block styles %}
     <style>
         .analysis-header {
             display: flex;
@@ -60,21 +73,55 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .kpi-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .kpi-card {
+        background-color: white;
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .kpi-title {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .kpi-change {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .kpi-change.positive {
+        color: var(--success-color);
+    }
+    
+    .kpi-change.negative {
+        color: var(--danger-color);
         }
         
         .analysis-chart {
-            height: 350px;
             background-color: white;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
             padding: var(--spacing-md);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .analysis-chart:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
         }
         
         .chart-header {
@@ -85,66 +132,38 @@
         }
         
         .chart-title {
-            font-size: var(--font-size-lg);
+        font-size: 1rem;
             font-weight: 600;
             margin: 0;
         }
         
         .chart-actions {
             display: flex;
-            gap: var(--spacing-xs);
+        gap: var(--spacing-sm);
         }
         
         .chart-action {
-            width: 32px;
-            height: 32px;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            background-color: var(--bg-light);
             color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s;
+        transition: all 0.2s;
         }
         
         .chart-action:hover {
-            background-color: var(--primary-light);
+        background-color: var(--background-light);
             color: var(--primary-color);
         }
         
-        .chart-body {
-            height: calc(100% - 50px);
+    .chart-container {
+        height: 300px;
         }
         
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-logo-text {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            color: white;
-        }
-        
-        .menu-item i {
-            margin-right: var(--spacing-sm);
-            width: 20px;
-            text-align: center;
-        }
-        
-        @media (max-width: 992px) {
-            .analysis-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .analysis-filters {
+    .filter-panel {
             background-color: white;
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -153,38 +172,21 @@
         }
         
         .filter-row {
-            display: flex;
-            flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
             gap: var(--spacing-md);
             margin-bottom: var(--spacing-md);
         }
         
-        .filter-group {
+    .filter-item {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-xs);
-            flex: 1;
-            min-width: 200px;
         }
         
         .filter-label {
-            font-size: var(--font-size-sm);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
             color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .filter-select {
-            padding: var(--spacing-sm) var(--spacing-md);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: white;
-            font-size: var(--font-size-md);
-            transition: border-color 0.3s;
-        }
-        
-        .filter-select:focus {
-            border-color: var(--primary-color);
-            outline: none;
         }
         
         .filter-actions {
@@ -193,55 +195,17 @@
             gap: var(--spacing-sm);
         }
         
+    @media (max-width: 992px) {
         .kpi-cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
+            grid-template-columns: repeat(2, 1fr);
         }
         
-        .kpi-card {
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            padding: var(--spacing-md);
-            display: flex;
-            flex-direction: column;
+        .analysis-grid {
+            grid-template-columns: 1fr;
         }
         
-        .kpi-title {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .kpi-value {
-            font-size: var(--font-size-xl);
-            font-weight: 600;
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .kpi-change {
-            display: flex;
-            align-items: center;
-            font-size: var(--font-size-sm);
-        }
-        
-        .kpi-change.positive {
-            color: var(--success-color);
-        }
-        
-        .kpi-change.negative {
-            color: var(--danger-color);
-        }
-        
-        .kpi-change i {
-            margin-right: var(--spacing-xs);
-        }
-        
-        @media (max-width: 992px) {
-            .kpi-cards {
-                grid-template-columns: repeat(2, 1fr);
+        .filter-row {
+            grid-template-columns: 1fr;
             }
         }
         
@@ -251,117 +215,59 @@
             }
         }
     </style>
-</head>
-<body>
-    <button class="mobile-menu-toggle">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <div class="dashboard">
-        <div class="sidebar">
-            <div class="sidebar-logo">
-                <i class="fas fa-hospital fa-lg"></i>
-                <div class="sidebar-logo-text">医院智能分析</div>
-            </div>
-            
-            <div class="menu-item">
-                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
-            </div>
-            <div class="menu-item active">
-                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
-            </div>
+{% endblock %}
+
+{% block content %}
+<div class="filter-panel">
+    <div class="filter-row">
+        <div class="filter-item">
+            <span class="filter-label">时间范围</span>
+            <select class="form-select">
+                <option selected>近30天</option>
+                <option>近90天</option>
+                <option>今年</option>
+                <option>去年</option>
+                <option>自定义</option>
+            </select>
         </div>
         
-        <div class="content">
-            <div class="analysis-header">
-                <h2 class="analysis-title">科室分析</h2>
-                <div class="analysis-controls">
-                    <button class="btn btn-outline"><i class="fas fa-download"></i> 导出报告</button>
-                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建分析</button>
-                </div>
-            </div>
-            
-            <div class="analysis-filters">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <div class="filter-label">时间范围</div>
-                        <select class="filter-select" id="timeRange">
-                            <option value="7">最近7天</option>
-                            <option value="30" selected>最近30天</option>
-                            <option value="90">最近90天</option>
-                            <option value="365">最近一年</option>
-                            <option value="custom">自定义范围</option>
+        <div class="filter-item">
+            <span class="filter-label">科室</span>
+            <select class="form-select">
+                <option selected>所有科室</option>
+                <option>内科</option>
+                <option>外科</option>
+                <option>妇产科</option>
+                <option>儿科</option>
+                <option>眼科</option>
                         </select>
                     </div>
                     
-                    <div class="filter-group">
-                        <div class="filter-label">科室</div>
-                        <select class="filter-select" id="department">
-                            <option value="all" selected>全部科室</option>
-                            <option value="internal">内科</option>
-                            <option value="surgery">外科</option>
-                            <option value="pediatrics">儿科</option>
-                            <option value="gynecology">妇产科</option>
-                            <option value="orthopedics">骨科</option>
-                            <option value="ophthalmology">眼科</option>
-                            <option value="ent">耳鼻喉科</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <div class="filter-label">指标类型</div>
-                        <select class="filter-select" id="metricType">
-                            <option value="all" selected>全部指标</option>
-                            <option value="outpatient">门诊指标</option>
-                            <option value="inpatient">住院指标</option>
-                            <option value="surgery">手术指标</option>
-                            <option value="financial">财务指标</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <div class="filter-label">科室类型</div>
-                        <select class="filter-select" id="departmentType">
-                            <option value="all" selected>全部类型</option>
-                            <option value="clinical">临床科室</option>
-                            <option value="medical">医技科室</option>
-                            <option value="support">辅助科室</option>
-                            <option value="special">特色专科</option>
+        <div class="filter-item">
+            <span class="filter-label">指标</span>
+            <select class="form-select">
+                <option selected>门诊量</option>
+                <option>住院量</option>
+                <option>手术量</option>
+                <option>收入</option>
+                <option>成本</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="filter-actions">
-                    <button class="btn btn-outline">重置</button>
+        <button class="btn btn-outline-primary">重置</button>
                     <button class="btn btn-primary">应用筛选</button>
                 </div>
             </div>
             
             <div class="analysis-tabs">
-                <div class="analysis-tab"><a href="{{ url_for('analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
-                <div class="analysis-tab active"><a href="{{ url_for('department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
+                <div class="analysis-tab active"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
             </div>
             
             <div class="kpi-cards">
@@ -391,9 +297,9 @@
                 
                 <div class="kpi-card">
                     <div class="kpi-title">平均住院日</div>
-                    <div class="kpi-value">9.3</div>
+        <div class="kpi-value">5.8</div>
                     <div class="kpi-change negative">
-                        <i class="fas fa-arrow-down"></i> 2.1% 同比下降
+            <i class="fas fa-arrow-down"></i> 0.5天 同比下降
                     </div>
                 </div>
             </div>
@@ -401,7 +307,7 @@
             <div class="analysis-grid">
                 <div class="analysis-chart">
                     <div class="chart-header">
-                        <h3 class="chart-title">科室门诊量排名</h3>
+            <h3 class="chart-title">科室门诊量分布</h3>
                         <div class="chart-actions">
                             <div class="chart-action" title="下载">
                                 <i class="fas fa-download"></i>
@@ -411,174 +317,124 @@
                             </div>
                         </div>
                     </div>
-                    <div class="chart-body" id="departmentRankingChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">科室收入占比</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="departmentRevenueChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">科室床位使用率</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="bedOccupancyChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">科室手术量趋势</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="surgeryTrendChart"></div>
-                </div>
-            </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
         </div>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
-    <script>
-        // 移动菜单切换
-        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
-        });
-        
-        // 高亮当前活动的菜单项
-        document.querySelectorAll('.menu-item').forEach(item => {
-            const link = item.querySelector('a');
-            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-        
-        // 图表操作按钮交互
-        document.querySelectorAll('.chart-action').forEach(action => {
-            action.addEventListener('click', function() {
-                const actionType = this.getAttribute('title');
-                const chartTitle = this.closest('.analysis-chart').querySelector('.chart-title').textContent;
-                console.log(`执行操作: ${actionType}, 图表: ${chartTitle}`);
+                </div>
                 
-                if (actionType === '全屏') {
-                    const chart = this.closest('.analysis-chart');
-                    if (chart.classList.contains('fullscreen')) {
-                        chart.classList.remove('fullscreen');
-                        this.innerHTML = '<i class="fas fa-expand"></i>';
-                    } else {
-                        chart.classList.add('fullscreen');
-                        this.innerHTML = '<i class="fas fa-compress"></i>';
-                    }
-                }
-            });
-        });
-        
-        // 初始化科室门诊量排名图表
-        const departmentRankingChart = echarts.init(document.getElementById('departmentRankingChart'));
-        const departmentRankingOption = {
+                <div class="analysis-chart">
+                    <div class="chart-header">
+            <h3 class="chart-title">科室住院量分布</h3>
+                        <div class="chart-actions">
+                            <div class="chart-action" title="下载">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="chart-action" title="全屏">
+                                <i class="fas fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
+                            </div>
+                        </div>
+                </div>
+                
+                <div class="analysis-chart">
+                    <div class="chart-header">
+        <h3 class="chart-title">科室工作量趋势变化</h3>
+                        <div class="chart-actions">
+                            <div class="chart-action" title="下载">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="chart-action" title="全屏">
+                                <i class="fas fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+    <div class="chart-container">
+        <!-- 图表将通过JavaScript渲染 -->
+    </div>
+</div>
+{% endblock %}
+    
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 科室门诊量分布图
+    const departmentOutpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
+    const departmentOutpatientOption = {
             tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                }
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'value',
-                axisLine: {
-                    show: false
-                },
-                axisTick: {
-                    show: false
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#eee'
-                    }
-                }
-            },
-            yAxis: {
-                type: 'category',
-                data: ['眼科', '耳鼻喉科', '骨科', '妇产科', '儿科', '外科', '内科'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#ddd'
-                    }
-                }
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+        },
+        legend: {
+            orient: 'vertical',
+            right: 10,
+            top: 'center',
+            data: ['内科', '外科', '妇产科', '儿科', '骨科', '眼科', '其他科室']
             },
             series: [
                 {
                     name: '门诊量',
-                    type: 'bar',
-                    data: [1200, 1500, 1800, 2200, 2500, 3800, 4500],
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
                     itemStyle: {
-                        color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                            { offset: 0, color: '#5b8db8' },
-                            { offset: 1, color: '#83bff6' }
-                        ])
-                    },
+                    borderRadius: 5,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false,
+                    position: 'center'
+                },
+                emphasis: {
                     label: {
                         show: true,
-                        position: 'right',
-                        formatter: '{c}'
+                        fontSize: '18',
+                        fontWeight: 'bold'
                     }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: [
+                    { value: 3254, name: '内科' },
+                    { value: 2841, name: '外科' },
+                    { value: 1798, name: '妇产科' },
+                    { value: 1432, name: '儿科' },
+                    { value: 1024, name: '骨科' },
+                    { value: 865, name: '眼科' },
+                    { value: 1244, name: '其他科室' }
+                ]
                 }
             ]
         };
-        departmentRankingChart.setOption(departmentRankingOption);
+    departmentOutpatientChart.setOption(departmentOutpatientOption);
         
-        // 初始化科室收入占比图表
-        const departmentRevenueChart = echarts.init(document.getElementById('departmentRevenueChart'));
-        const departmentRevenueOption = {
+    // 科室住院量分布图
+    const departmentInpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
+    const departmentInpatientOption = {
             tooltip: {
                 trigger: 'item',
-                formatter: '{a} <br/>{b}: {c}万元 ({d}%)'
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
             },
             legend: {
-                orient: 'horizontal',
-                bottom: 0,
-                data: ['内科', '外科', '儿科', '妇产科', '骨科', '眼科', '耳鼻喉科', '其他']
+            orient: 'vertical',
+            right: 10,
+            top: 'center',
+            data: ['内科', '外科', '妇产科', '儿科', '骨科', '其他科室']
             },
             series: [
                 {
-                    name: '科室收入',
+                name: '住院量',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     itemStyle: {
-                        borderRadius: 10,
+                    borderRadius: 5,
                         borderColor: '#fff',
                         borderWidth: 2
                     },
@@ -597,29 +453,26 @@
                         show: false
                     },
                     data: [
-                        { value: 450, name: '内科' },
-                        { value: 380, name: '外科' },
-                        { value: 150, name: '儿科' },
-                        { value: 220, name: '妇产科' },
-                        { value: 180, name: '骨科' },
-                        { value: 120, name: '眼科' },
-                        { value: 100, name: '耳鼻喉科' },
-                        { value: 80, name: '其他' }
+                    { value: 845, name: '内科' },
+                    { value: 765, name: '外科' },
+                    { value: 432, name: '妇产科' },
+                    { value: 324, name: '儿科' },
+                    { value: 298, name: '骨科' },
+                    { value: 181, name: '其他科室' }
                     ]
                 }
             ]
         };
-        departmentRevenueChart.setOption(departmentRevenueOption);
+    departmentInpatientChart.setOption(departmentInpatientOption);
         
-        // 初始化科室床位使用率图表
-        const bedOccupancyChart = echarts.init(document.getElementById('bedOccupancyChart'));
-        const bedOccupancyOption = {
+    // 科室工作量趋势变化图
+    const departmentTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
+    const departmentTrendOption = {
             tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
+            trigger: 'axis'
                 },
-                formatter: '{b}: {c}%'
+        legend: {
+            data: ['内科', '外科', '妇产科', '儿科', '骨科']
             },
             grid: {
                 left: '3%',
@@ -629,138 +482,77 @@
             },
             xAxis: {
                 type: 'category',
-                data: ['内科', '外科', '儿科', '妇产科', '骨科', '神经科', 'ICU'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#ddd'
-                    }
-                }
+            boundaryGap: false,
+            data: ['1月', '2月', '3月', '4月', '5月', '6月']
             },
             yAxis: {
-                type: 'value',
-                min: 0,
-                max: 100,
-                axisLabel: {
-                    formatter: '{value}%'
-                },
-                axisLine: {
-                    show: false
-                },
-                axisTick: {
-                    show: false
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#eee'
-                    }
-                }
+            type: 'value'
             },
             series: [
                 {
-                    name: '床位使用率',
-                    type: 'bar',
-                    data: [85, 78, 65, 72, 88, 76, 92],
-                    itemStyle: {
-                        color: function(params) {
-                            // 根据数值设置不同颜色
-                            if (params.value > 85) {
-                                return '#e74c3c'; // 红色，表示接近满负荷
-                            } else if (params.value > 70) {
-                                return '#f39c12'; // 黄色，表示适中
-                            } else {
-                                return '#2ecc71'; // 绿色，表示有空余
-                            }
-                        }
-                    },
-                    label: {
-                        show: true,
-                        position: 'top',
-                        formatter: '{c}%'
-                    }
-                }
-            ]
-        };
-        bedOccupancyChart.setOption(bedOccupancyOption);
-        
-        // 初始化科室手术量趋势图表
-        const surgeryTrendChart = echarts.init(document.getElementById('surgeryTrendChart'));
-        const surgeryTrendOption = {
-            tooltip: {
-                trigger: 'axis'
+                name: '内科',
+                type: 'line',
+                stack: '总量',
+                areaStyle: {},
+                emphasis: {
+                    focus: 'series'
             },
-            legend: {
-                data: ['外科', '骨科', '妇产科'],
-                bottom: 0
+                data: [520, 532, 501, 534, 590, 530]
             },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '10%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#ddd'
-                    }
-                }
-            },
-            yAxis: {
-                type: 'value',
-                axisLine: {
-                    show: false
+            {
+                name: '外科',
+                type: 'line',
+                stack: '总量',
+                areaStyle: {},
+                emphasis: {
+                    focus: 'series'
                 },
-                axisTick: {
-                    show: false
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#eee'
-                    }
-                }
+                data: [420, 482, 491, 434, 490, 530]
             },
-            series: [
+            {
+                name: '妇产科',
+                type: 'line',
+                stack: '总量',
+                areaStyle: {},
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [320, 332, 301, 334, 390, 330]
+            },
                 {
-                    name: '外科',
+                name: '儿科',
                     type: 'line',
-                    data: [120, 132, 101, 134, 90, 130, 110, 120, 132, 101, 134, 90],
-                    smooth: true,
-                    lineStyle: {
-                        width: 3
-                    }
+                stack: '总量',
+                areaStyle: {},
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [220, 182, 191, 234, 290, 330]
                 },
                 {
                     name: '骨科',
                     type: 'line',
-                    data: [80, 82, 91, 94, 70, 110, 130, 80, 82, 91, 94, 70],
-                    smooth: true,
-                    lineStyle: {
-                        width: 3
-                    }
+                stack: '总量',
+                label: {
+                    show: true,
+                    position: 'top'
                 },
-                {
-                    name: '妇产科',
-                    type: 'line',
-                    data: [60, 72, 71, 74, 60, 80, 110, 60, 72, 71, 74, 60],
-                    smooth: true,
-                    lineStyle: {
-                        width: 3
-                    }
+                areaStyle: {},
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [150, 232, 201, 154, 190, 330]
                 }
             ]
         };
-        surgeryTrendChart.setOption(surgeryTrendOption);
+    departmentTrendChart.setOption(departmentTrendOption);
         
-        // 窗口大小变化时重新调整图表大小
+    // 响应式调整
         window.addEventListener('resize', function() {
-            departmentRankingChart.resize();
-            departmentRevenueChart.resize();
-            bedOccupancyChart.resize();
-            surgeryTrendChart.resize();
+        departmentOutpatientChart.resize();
+        departmentInpatientChart.resize();
+        departmentTrendChart.resize();
+    });
         });
     </script>
-</body>
-</html> 
+{% endblock %} 

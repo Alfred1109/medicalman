@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="医疗管理系统 - 专业的医疗数据分析与管理平台">
+    <meta name="keywords" content="医疗管理,数据分析,医院管理,DRG分析">
+    <meta name="author" content="MedicalMan Team">
+    <title>{% block title %}医疗管理系统{% endblock %}</title>
+    
+    <!-- 网站图标 -->
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
+    
+    <!-- 核心CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    
+    <!-- 页面特定CSS -->
+    {% block styles %}{% endblock %}
+    
+    <!-- 预加载核心JS -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" as="script">
+</head>
+<body class="theme-default">
+    <!-- 页面加载动画 -->
+    <div id="page-loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <header class="navbar navbar-dark fixed-top">
+        <!-- 品牌标志 -->
+        <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+            <i class="fas fa-hospital-alt"></i>
+            <span>医疗管理系统</span>
+        </a>
+        
+        <!-- 移动端菜单按钮 -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- 顶部导航 - 仅显示通知和用户菜单 -->
+        <div class="d-none d-lg-flex align-items-center ms-auto">
+            <!-- 搜索框 -->
+            <form class="d-flex me-2" action="{{ url_for('dashboard.index') }}" method="get">
+                <input class="form-control me-2" type="search" placeholder="搜索..." name="q">
+                <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            
+            <!-- 通知 -->
+            <div class="nav-item dropdown me-2">
+                <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-bell"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        3
+                    </span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end notification-dropdown">
+                    <li><h6 class="dropdown-header">通知</h6></li>
+                    <li><a class="dropdown-item" href="#">系统维护通知</a></li>
+                    <li><a class="dropdown-item" href="#">新版本发布</a></li>
+                    <li><a class="dropdown-item" href="#">数据更新完成</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center" href="{{ url_for('dashboard.alerts') }}">查看全部</a></li>
+                </ul>
+            </div>
+            
+            <!-- 主题切换 -->
+            <div class="nav-item dropdown me-2">
+                <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-palette"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item theme-option" data-theme="default" href="#">默认主题</a></li>
+                    <li><a class="dropdown-item theme-option" data-theme="dark" href="#">深色模式</a></li>
+                    <li><a class="dropdown-item theme-option" data-theme="light" href="#">浅色模式</a></li>
+                    <li><a class="dropdown-item theme-option" data-theme="blue" href="#">蓝色主题</a></li>
+                    <li><a class="dropdown-item theme-option" data-theme="green" href="#">绿色主题</a></li>
+                </ul>
+            </div>
+            
+            <!-- 用户菜单 -->
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle me-1"></i>
+                    {% if session.get('user') %}
+                        {{ session.get('user').get('username') }}
+                    {% else %}
+                        用户
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}"><i class="fas fa-user me-2"></i>个人资料</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('settings.index') }}"><i class="fas fa-cog me-2"></i>设置</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>退出</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main>
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebarMenu">
+            <div class="d-flex flex-column h-100">
+                <!-- 移动端菜单头部 -->
+                <div class="d-lg-none p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">菜单</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu"></button>
+                    </div>
+                </div>
+                
+                <!-- 菜单内容 -->
+                <div class="list-group list-group-flush flex-grow-1 overflow-auto">
+                    <!-- 主要功能区 -->
+                    <div class="list-group-item list-group-item-action sidebar-heading">
+                        <i class="fas fa-th-large me-2"></i>主要功能
+                    </div>
+                    <a href="{{ url_for('dashboard.index') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('dashboard.') and not 'alerts' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>仪表盘
+                    </a>
+                    <a href="{{ url_for('dashboard.alerts') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('dashboard.') and 'alerts' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-bell me-2"></i>通知中心
+                    </a>
+                    <a href="{{ url_for('ai_chat.index') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('ai_chat.') %}active{% endif %}">
+                        <i class="fas fa-robot me-2"></i>AI聊天
+                    </a>
+                    
+                    <!-- 数据分析菜单组 -->
+                    <div class="list-group-item list-group-item-action sidebar-heading">
+                        <i class="fas fa-chart-line me-2"></i>数据分析
+                    </div>
+                    <a href="{{ url_for('analysis.department_analysis') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('analysis.') and 'department' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-hospital me-2"></i>科室分析
+                    </a>
+                    <a href="{{ url_for('analysis.financial_analysis') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('analysis.') and 'financial' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-money-bill-wave me-2"></i>财务分析
+                    </a>
+                    <a href="{{ url_for('analysis.patient_analysis') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('analysis.') and 'patient' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-user-injured me-2"></i>患者分析
+                    </a>
+                    <a href="{{ url_for('analysis.doctor_performance') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('analysis.') and 'doctor' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-user-md me-2"></i>医生绩效
+                    </a>
+                    <a href="{{ url_for('analysis.drg_analysis') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('analysis.') and 'drg' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-file-medical-alt me-2"></i>DRG分析
+                    </a>
+                    
+                    <!-- 管理员菜单 -->
+                    {% if session.get('user', {}).get('role') == 'admin' %}
+                    <div class="list-group-item list-group-item-action sidebar-heading">
+                        <i class="fas fa-cogs me-2"></i>系统管理
+                    </div>
+                    <a href="{{ url_for('settings.user_management') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('settings.') and 'user' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-users-cog me-2"></i>用户管理
+                    </a>
+                    <a href="{{ url_for('settings.index') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint == 'settings.index' %}active{% endif %}">
+                        <i class="fas fa-sliders-h me-2"></i>系统设置
+                    </a>
+                    <a href="{{ url_for('settings.logs') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('settings.') and 'logs' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-clipboard-list me-2"></i>系统日志
+                    </a>
+                    {% endif %}
+                    
+                    <!-- 帮助与支持 -->
+                    <div class="list-group-item list-group-item-action sidebar-heading">
+                        <i class="fas fa-info-circle me-2"></i>帮助与支持
+                    </div>
+                    <a href="{{ url_for('settings.help') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('settings.') and 'help' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-question-circle me-2"></i>帮助中心
+                    </a>
+                    <a href="{{ url_for('settings.feedback') }}" class="list-group-item list-group-item-action ps-4 {% if request.endpoint and request.endpoint.startswith('settings.') and 'feedback' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-comment-alt me-2"></i>反馈建议
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content-wrapper">
+            <!-- 面包屑导航 -->
+            <nav aria-label="breadcrumb" class="mb-4 d-none d-md-block">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">首页</a></li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+            
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2">{% block page_title %}{% endblock %}</h1>
+                <div class="page-actions">
+                    {% block page_actions %}{% endblock %}
+                </div>
+            </div>
+            
+            <!-- 页面内容 -->
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© {{ current_year }} 医疗管理系统 - 版权所有</span>
+        </div>
+    </footer>
+
+    <!-- 核心JS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/themes.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- 页面特定JS -->
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医院运营指标智能分析系统 - 医生绩效</title>
-    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+{% extends 'base.html' %}
+
+{% block title %}医生绩效 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('analysis.department_analysis') }}">多维度分析</a></li>
+<li class="breadcrumb-item active">医生绩效</li>
+{% endblock %}
+
+{% block page_title %}医生绩效{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-outline-primary">
+    <i class="fas fa-download me-1"></i> 导出报告
+</button>
+<button class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> 新建分析
+</button>
+{% endblock %}
+
+{% block styles %}
     <style>
         .analysis-header {
             display: flex;
@@ -60,21 +73,55 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .metric-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .metric-card {
+        background-color: white;
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .metric-title {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .metric-change {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .metric-change.positive {
+        color: var(--success-color);
+    }
+    
+    .metric-change.negative {
+        color: var(--danger-color);
         }
         
         .analysis-chart {
-            height: 350px;
             background-color: white;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
             padding: var(--spacing-md);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .analysis-chart:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
         }
         
         .chart-header {
@@ -85,66 +132,38 @@
         }
         
         .chart-title {
-            font-size: var(--font-size-lg);
+        font-size: 1rem;
             font-weight: 600;
             margin: 0;
         }
         
         .chart-actions {
             display: flex;
-            gap: var(--spacing-xs);
+        gap: var(--spacing-sm);
         }
         
         .chart-action {
-            width: 32px;
-            height: 32px;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            background-color: var(--bg-light);
             color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s;
+        transition: all 0.2s;
         }
         
         .chart-action:hover {
-            background-color: var(--primary-light);
+        background-color: var(--background-light);
             color: var(--primary-color);
         }
         
-        .chart-body {
-            height: calc(100% - 50px);
+    .chart-container {
+        height: 300px;
         }
         
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-logo-text {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            color: white;
-        }
-        
-        .menu-item i {
-            margin-right: var(--spacing-sm);
-            width: 20px;
-            text-align: center;
-        }
-        
-        @media (max-width: 992px) {
-            .analysis-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .analysis-filters {
+    .filter-panel {
             background-color: white;
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -153,38 +172,21 @@
         }
         
         .filter-row {
-            display: flex;
-            flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
             gap: var(--spacing-md);
             margin-bottom: var(--spacing-md);
         }
         
-        .filter-group {
+    .filter-item {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-xs);
-            flex: 1;
-            min-width: 200px;
         }
         
         .filter-label {
-            font-size: var(--font-size-sm);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
             color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .filter-select {
-            padding: var(--spacing-sm) var(--spacing-md);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: white;
-            font-size: var(--font-size-md);
-            transition: border-color 0.3s;
-        }
-        
-        .filter-select:focus {
-            border-color: var(--primary-color);
-            outline: none;
         }
         
         .filter-actions {
@@ -193,294 +195,461 @@
             gap: var(--spacing-sm);
         }
         
-        .kpi-cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-        }
-        
-        .kpi-card {
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            padding: var(--spacing-md);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .kpi-title {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .kpi-value {
-            font-size: var(--font-size-xl);
-            font-weight: 600;
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .kpi-change {
-            display: flex;
-            align-items: center;
-            font-size: var(--font-size-sm);
-        }
-        
-        .kpi-change.positive {
-            color: var(--success-color);
-        }
-        
-        .kpi-change.negative {
-            color: var(--danger-color);
-        }
-        
-        .kpi-change i {
-            margin-right: var(--spacing-xs);
-        }
-        
-        @media (max-width: 992px) {
-            .kpi-cards {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .kpi-cards {
-                grid-template-columns: 1fr;
-            }
-        }
-        
         .doctor-table {
-            width: 100%;
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            margin-bottom: var(--spacing-lg);
-            overflow: hidden;
-        }
-        
-        .doctor-table table {
             width: 100%;
             border-collapse: collapse;
         }
         
-        .doctor-table th {
-            background-color: var(--bg-light);
-            padding: var(--spacing-md);
+    .doctor-table th,
+    .doctor-table td {
+        padding: var(--spacing-sm);
             text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
             border-bottom: 1px solid var(--border-color);
         }
         
-        .doctor-table td {
-            padding: var(--spacing-md);
-            border-bottom: 1px solid var(--border-color);
+    .doctor-table th {
+        font-weight: 600;
             color: var(--text-secondary);
+        background-color: var(--background-light);
         }
         
-        .doctor-table tr:last-child td {
-            border-bottom: none;
+    .doctor-table tbody tr:hover {
+        background-color: var(--background-light);
         }
         
-        .doctor-table tr:hover td {
-            background-color: var(--bg-light);
-        }
-        
-        .doctor-name {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-        
-        .doctor-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: var(--primary-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-        
-        .performance-badge {
+    .badge {
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: var(--font-size-xs);
+        padding: 0.25em 0.6em;
+        font-size: 0.75rem;
             font-weight: 500;
+        border-radius: 0.25rem;
         }
         
-        .performance-badge.excellent {
+    .badge-success {
             background-color: var(--success-light);
             color: var(--success-color);
         }
         
-        .performance-badge.good {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-        }
-        
-        .performance-badge.average {
+    .badge-warning {
             background-color: var(--warning-light);
             color: var(--warning-color);
         }
         
-        .performance-badge.poor {
+    .badge-danger {
             background-color: var(--danger-light);
             color: var(--danger-color);
         }
-    </style>
-</head>
-<body>
-    <button class="mobile-menu-toggle">
-        <i class="fas fa-bars"></i>
-    </button>
     
-    <div class="dashboard">
-        <div class="sidebar">
-            <div class="sidebar-logo">
-                <i class="fas fa-hospital fa-lg"></i>
-                <div class="sidebar-logo-text">医院智能分析</div>
-            </div>
-            
-            <div class="menu-item">
-                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
-            </div>
-            <div class="menu-item active">
-                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
-            </div>
-        </div>
+    @media (max-width: 992px) {
+        .metric-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
         
-        <div class="content">
-            <div class="analysis-header">
-                <h2 class="analysis-title">医生绩效</h2>
-                <div class="analysis-controls">
-                    <button class="btn btn-outline"><i class="fas fa-download"></i> 导出报告</button>
-                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建分析</button>
-                </div>
-            </div>
-            
-            <div class="analysis-filters">
+        .analysis-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .metric-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="filter-panel">
                 <div class="filter-row">
-                    <div class="filter-group">
-                        <div class="filter-label">时间范围</div>
-                        <select class="filter-select" id="timeRange">
-                            <option value="7">最近7天</option>
-                            <option value="30" selected>最近30天</option>
-                            <option value="90">最近90天</option>
-                            <option value="365">最近一年</option>
-                            <option value="custom">自定义范围</option>
+        <div class="filter-item">
+            <span class="filter-label">科室</span>
+            <select class="form-select">
+                <option selected>所有科室</option>
+                <option>内科</option>
+                <option>外科</option>
+                <option>妇产科</option>
+                <option>儿科</option>
+                <option>眼科</option>
                         </select>
                     </div>
                     
-                    <div class="filter-group">
-                        <div class="filter-label">科室</div>
-                        <select class="filter-select" id="department">
-                            <option value="all" selected>全部科室</option>
-                            <option value="internal">内科</option>
-                            <option value="surgery">外科</option>
-                            <option value="pediatrics">儿科</option>
-                            <option value="gynecology">妇产科</option>
-                            <option value="orthopedics">骨科</option>
-                            <option value="ophthalmology">眼科</option>
-                            <option value="ent">耳鼻喉科</option>
+        <div class="filter-item">
+            <span class="filter-label">时间范围</span>
+            <select class="form-select">
+                <option selected>近30天</option>
+                <option>近90天</option>
+                <option>今年</option>
+                <option>去年</option>
+                <option>自定义</option>
                         </select>
                     </div>
                     
-                    <div class="filter-group">
-                        <div class="filter-label">绩效指标</div>
-                        <select class="filter-select" id="performanceMetric">
-                            <option value="all" selected>全部指标</option>
-                            <option value="outpatient">门诊量</option>
-                            <option value="surgery">手术量</option>
-                            <option value="satisfaction">患者满意度</option>
-                            <option value="revenue">创收能力</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <div class="filter-label">医生类型</div>
-                        <select class="filter-select" id="doctorType">
-                            <option value="all" selected>全部类型</option>
-                            <option value="attending">主治医师</option>
-                            <option value="associate">副主任医师</option>
-                            <option value="chief">主任医师</option>
-                            <option value="resident">住院医师</option>
+        <div class="filter-item">
+            <span class="filter-label">排序方式</span>
+            <select class="form-select">
+                <option selected>门诊量</option>
+                <option>住院量</option>
+                <option>手术量</option>
+                <option>患者满意度</option>
+                <option>绩效分</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="filter-actions">
-                    <button class="btn btn-outline">重置</button>
+        <button class="btn btn-outline-primary">重置</button>
                     <button class="btn btn-primary">应用筛选</button>
                 </div>
             </div>
             
             <div class="analysis-tabs">
-                <div class="analysis-tab"><a href="{{ url_for('analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
-                <div class="analysis-tab active"><a href="{{ url_for('doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
+                <div class="analysis-tab active"><a href="{{ url_for('analysis.doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
             </div>
             
-            <div class="kpi-cards">
-                <div class="kpi-card">
-                    <div class="kpi-title">医生总数</div>
-                    <div class="kpi-value">256</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i> 5.2% 同比增长
+<div class="metric-cards">
+    <div class="metric-card">
+        <div class="metric-title">医生总数</div>
+        <div class="metric-value">568</div>
+        <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i> 3.2% 较上月
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-title">平均门诊量</div>
+        <div class="metric-value">26.8</div>
+        <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i> 5.7% 较上月
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-title">平均满意度</div>
+        <div class="metric-value">4.7</div>
+        <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i> 0.2 较上月
                     </div>
                 </div>
                 
-                <div class="kpi-card">
-                    <div class="kpi-title">平均门诊量</div>
-                    <div class="kpi-value">42.5</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i> 3.7% 同比增长
+    <div class="metric-card">
+        <div class="metric-title">绩效完成率</div>
+        <div class="metric-value">92.5%</div>
+        <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i> 3.1% 较上月
+        </div>
                     </div>
                 </div>
                 
-                <div class="kpi-card">
-                    <div class="kpi-title">平均满意度</div>
-                    <div class="kpi-value">4.6</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i> 2.2% 同比增长
-                    </div>
+<div class="analysis-grid">
+    <div class="analysis-chart">
+        <div class="chart-header">
+            <h3 class="chart-title">科室医生绩效分布</h3>
+            <div class="chart-actions">
+                <div class="chart-action" title="下载">
+                    <i class="fas fa-download"></i>
                 </div>
-                
-                <div class="kpi-card">
-                    <div class="kpi-title">高级职称比例</div>
-                    <div class="kpi-value">38%</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i> 1.5% 同比增长
-                    </div>
+                <div class="chart-action" title="全屏">
+                    <i class="fas fa-expand"></i>
                 </div>
             </div>
         </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
+                    </div>
+                </div>
+                
+    <div class="analysis-chart">
+        <div class="chart-header">
+            <h3 class="chart-title">医生绩效趋势</h3>
+            <div class="chart-actions">
+                <div class="chart-action" title="下载">
+                    <i class="fas fa-download"></i>
+                    </div>
+                <div class="chart-action" title="全屏">
+                    <i class="fas fa-expand"></i>
+                </div>
+            </div>
+        </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
+        </div>
     </div>
-</body>
-</html> 
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">医生绩效排名</h5>
+        <div>
+            <button class="btn btn-sm btn-outline-primary">导出数据</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="doctor-table">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>医生</th>
+                        <th>科室</th>
+                        <th>门诊量</th>
+                        <th>住院量</th>
+                        <th>手术量</th>
+                        <th>满意度</th>
+                        <th>绩效分</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>张医生</td>
+                        <td>内科</td>
+                        <td>152</td>
+                        <td>23</td>
+                        <td>0</td>
+                        <td>4.9</td>
+                        <td>98.5</td>
+                        <td><span class="badge badge-success">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>李医生</td>
+                        <td>外科</td>
+                        <td>126</td>
+                        <td>35</td>
+                        <td>28</td>
+                        <td>4.8</td>
+                        <td>96.3</td>
+                        <td><span class="badge badge-success">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>王医生</td>
+                        <td>妇产科</td>
+                        <td>138</td>
+                        <td>42</td>
+                        <td>15</td>
+                        <td>4.7</td>
+                        <td>95.7</td>
+                        <td><span class="badge badge-success">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>赵医生</td>
+                        <td>骨科</td>
+                        <td>115</td>
+                        <td>27</td>
+                        <td>31</td>
+                        <td>4.6</td>
+                        <td>93.2</td>
+                        <td><span class="badge badge-success">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>刘医生</td>
+                        <td>眼科</td>
+                        <td>129</td>
+                        <td>15</td>
+                        <td>22</td>
+                        <td>4.5</td>
+                        <td>91.8</td>
+                        <td><span class="badge badge-success">优秀</span></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>陈医生</td>
+                        <td>儿科</td>
+                        <td>143</td>
+                        <td>31</td>
+                        <td>0</td>
+                        <td>4.3</td>
+                        <td>88.6</td>
+                        <td><span class="badge badge-warning">良好</span></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>杨医生</td>
+                        <td>皮肤科</td>
+                        <td>124</td>
+                        <td>5</td>
+                        <td>0</td>
+                        <td>4.2</td>
+                        <td>85.3</td>
+                        <td><span class="badge badge-warning">良好</span></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>吴医生</td>
+                        <td>神经内科</td>
+                        <td>92</td>
+                        <td>18</td>
+                        <td>0</td>
+                        <td>4.1</td>
+                        <td>83.7</td>
+                        <td><span class="badge badge-warning">良好</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 科室医生绩效分布图
+    const performanceDistributionChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
+    const performanceDistributionOption = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            }
+        },
+        legend: {
+            data: ['优秀', '良好', '一般', '待提高']
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'value'
+        },
+        yAxis: {
+            type: 'category',
+            data: ['内科', '外科', '妇产科', '儿科', '骨科', '眼科', '神经内科', '皮肤科']
+        },
+        series: [
+            {
+                name: '优秀',
+                type: 'bar',
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [18, 15, 12, 8, 7, 6, 4, 3]
+            },
+            {
+                name: '良好',
+                type: 'bar',
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [12, 13, 10, 7, 6, 5, 6, 4]
+            },
+            {
+                name: '一般',
+                type: 'bar',
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [5, 7, 4, 6, 4, 3, 2, 3]
+            },
+            {
+                name: '待提高',
+                type: 'bar',
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [1, 2, 1, 3, 1, 1, 0, 1]
+            }
+        ]
+    };
+    performanceDistributionChart.setOption(performanceDistributionOption);
+    
+    // 医生绩效趋势图
+    const performanceTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
+    const performanceTrendOption = {
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: ['平均绩效分', '最高绩效分', '最低绩效分']
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: ['1月', '2月', '3月', '4月', '5月', '6月']
+        },
+        yAxis: {
+            type: 'value',
+            min: 70,
+            max: 100
+        },
+        series: [
+            {
+                name: '平均绩效分',
+                type: 'line',
+                data: [87.5, 86.3, 88.7, 90.2, 91.5, 92.5],
+                smooth: true,
+                lineStyle: {
+                    width: 3
+                }
+            },
+            {
+                name: '最高绩效分',
+                type: 'line',
+                data: [95.2, 94.5, 96.8, 97.3, 98.1, 98.5],
+                smooth: true,
+                lineStyle: {
+                    width: 2,
+                    type: 'dashed'
+                }
+            },
+            {
+                name: '最低绩效分',
+                type: 'line',
+                data: [76.8, 75.5, 77.2, 79.5, 81.3, 83.7],
+                smooth: true,
+                lineStyle: {
+                    width: 2,
+                    type: 'dashed'
+                }
+            }
+        ]
+    };
+    performanceTrendChart.setOption(performanceTrendOption);
+    
+    // 响应式调整
+    window.addEventListener('resize', function() {
+        performanceDistributionChart.resize();
+        performanceTrendChart.resize();
+    });
+});
+</script>
+{% endblock %} 

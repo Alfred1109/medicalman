@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医院运营指标智能分析系统 - 财务分析</title>
-    <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+{% extends 'base.html' %}
+
+{% block title %}财务分析 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('analysis.department_analysis') }}">多维度分析</a></li>
+<li class="breadcrumb-item active">财务分析</li>
+{% endblock %}
+
+{% block page_title %}财务分析{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-outline-primary">
+    <i class="fas fa-download me-1"></i> 导出报告
+</button>
+<button class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> 新建分析
+</button>
+{% endblock %}
+
+{% block styles %}
     <style>
         .analysis-header {
             display: flex;
@@ -60,21 +73,55 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-card {
+        background-color: white;
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stat-title {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .stat-change {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .stat-change.positive {
+        color: var(--success-color);
+    }
+    
+    .stat-change.negative {
+        color: var(--danger-color);
         }
         
         .analysis-chart {
-            height: 350px;
             background-color: white;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
             padding: var(--spacing-md);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .analysis-chart:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
         }
         
         .chart-header {
@@ -85,66 +132,38 @@
         }
         
         .chart-title {
-            font-size: var(--font-size-lg);
+        font-size: 1rem;
             font-weight: 600;
             margin: 0;
         }
         
         .chart-actions {
             display: flex;
-            gap: var(--spacing-xs);
+        gap: var(--spacing-sm);
         }
         
         .chart-action {
-            width: 32px;
-            height: 32px;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            background-color: var(--bg-light);
             color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s;
+        transition: all 0.2s;
         }
         
         .chart-action:hover {
-            background-color: var(--primary-light);
+        background-color: var(--background-light);
             color: var(--primary-color);
         }
         
-        .chart-body {
-            height: calc(100% - 50px);
+    .chart-container {
+        height: 300px;
         }
         
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-logo-text {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            color: white;
-        }
-        
-        .menu-item i {
-            margin-right: var(--spacing-sm);
-            width: 20px;
-            text-align: center;
-        }
-        
-        @media (max-width: 992px) {
-            .analysis-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .analysis-filters {
+    .filter-panel {
             background-color: white;
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -153,38 +172,21 @@
         }
         
         .filter-row {
-            display: flex;
-            flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
             gap: var(--spacing-md);
             margin-bottom: var(--spacing-md);
         }
         
-        .filter-group {
+    .filter-item {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-xs);
-            flex: 1;
-            min-width: 200px;
         }
         
         .filter-label {
-            font-size: var(--font-size-sm);
+        font-size: 0.875rem;
+        margin-bottom: var(--spacing-xs);
             color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .filter-select {
-            padding: var(--spacing-sm) var(--spacing-md);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: white;
-            font-size: var(--font-size-md);
-            transition: border-color 0.3s;
-        }
-        
-        .filter-select:focus {
-            border-color: var(--primary-color);
-            outline: none;
         }
         
         .filter-actions {
@@ -193,149 +195,74 @@
             gap: var(--spacing-sm);
         }
         
-        .financial-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
+    @media (max-width: 992px) {
+        .stat-cards {
+            grid-template-columns: repeat(2, 1fr);
         }
         
-        .stat-card {
-            background-color: white;
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            flex-direction: column;
+        .analysis-grid {
+            grid-template-columns: 1fr;
         }
         
-        .stat-title {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-xs);
+        .filter-row {
+            grid-template-columns: 1fr;
+        }
         }
         
-        .stat-value {
-            font-size: var(--font-size-xl);
-            font-weight: 600;
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .stat-change {
-            font-size: var(--font-size-sm);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .stat-change.positive {
-            color: var(--success-color);
-        }
-        
-        .stat-change.negative {
-            color: var(--danger-color);
-        }
-        
-        @media (max-width: 768px) {
-            .financial-stats {
-                grid-template-columns: repeat(2, 1fr);
+    @media (max-width: 576px) {
+        .stat-cards {
+            grid-template-columns: 1fr;
             }
         }
     </style>
-</head>
-<body>
-    <button class="mobile-menu-toggle">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <div class="dashboard">
-        <div class="sidebar">
-            <div class="sidebar-logo">
-                <i class="fas fa-hospital fa-lg"></i>
-                <div class="sidebar-logo-text">医院智能分析</div>
-            </div>
-            
-            <div class="menu-item">
-                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
-            </div>
-            <div class="menu-item active">
-                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
-            </div>
-            <div class="menu-item">
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
-            </div>
+{% endblock %}
+
+{% block content %}
+<div class="filter-panel">
+    <div class="filter-row">
+        <div class="filter-item">
+            <span class="filter-label">时间范围</span>
+            <select class="form-select">
+                <option selected>近30天</option>
+                <option>近90天</option>
+                <option>今年</option>
+                <option>去年</option>
+                <option>自定义</option>
+            </select>
         </div>
         
-        <div class="content">
-            <div class="analysis-header">
-                <h2 class="analysis-title">财务分析</h2>
-                <div class="analysis-controls">
-                    <button class="btn btn-outline"><i class="fas fa-download"></i> 导出报告</button>
-                    <button class="btn btn-primary"><i class="fas fa-plus"></i> 新建分析</button>
-                </div>
-            </div>
-            
-            <div class="analysis-filters">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <div class="filter-label">时间范围</div>
-                        <select class="filter-select" id="timeRange">
-                            <option value="7">最近7天</option>
-                            <option value="30" selected>最近30天</option>
-                            <option value="90">最近90天</option>
-                            <option value="365">最近一年</option>
-                            <option value="custom">自定义范围</option>
+        <div class="filter-item">
+            <span class="filter-label">科室</span>
+            <select class="form-select">
+                <option selected>所有科室</option>
+                <option>内科</option>
+                <option>外科</option>
+                <option>妇产科</option>
+                <option>儿科</option>
+                <option>眼科</option>
                         </select>
                     </div>
                     
-                    <div class="filter-group">
-                        <div class="filter-label">科室</div>
-                        <select class="filter-select" id="department">
-                            <option value="all" selected>全部科室</option>
-                            <option value="internal">内科</option>
-                            <option value="surgery">外科</option>
-                            <option value="pediatrics">儿科</option>
-                            <option value="gynecology">妇产科</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <div class="filter-label">收入类型</div>
-                        <select class="filter-select" id="incomeType">
-                            <option value="all" selected>全部收入</option>
-                            <option value="outpatient">门诊收入</option>
-                            <option value="inpatient">住院收入</option>
-                            <option value="pharmacy">药房收入</option>
-                            <option value="examination">检查收入</option>
+        <div class="filter-item">
+            <span class="filter-label">收支类型</span>
+            <select class="form-select">
+                <option selected>全部</option>
+                <option>收入</option>
+                <option>支出</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="filter-actions">
-                    <button class="btn btn-outline">重置</button>
+        <button class="btn btn-outline-primary">重置</button>
                     <button class="btn btn-primary">应用筛选</button>
                 </div>
             </div>
             
-            <div class="financial-stats">
+<div class="stat-cards">
                 <div class="stat-card">
                     <div class="stat-title">总收入</div>
-                    <div class="stat-value">¥3,245,680</div>
+        <div class="stat-value">¥3,245,670</div>
                     <div class="stat-change positive">
                         <i class="fas fa-arrow-up"></i> 12.5% 较上月
                     </div>
@@ -343,7 +270,7 @@
                 
                 <div class="stat-card">
                     <div class="stat-title">总支出</div>
-                    <div class="stat-value">¥2,156,420</div>
+        <div class="stat-value">¥2,156,410</div>
                     <div class="stat-change negative">
                         <i class="fas fa-arrow-up"></i> 8.3% 较上月
                     </div>
@@ -367,12 +294,12 @@
             </div>
             
             <div class="analysis-tabs">
-                <div class="analysis-tab"><a href="{{ url_for('analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
-                <div class="analysis-tab active"><a href="{{ url_for('financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
-                <div class="analysis-tab"><a href="{{ url_for('drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">运营概览</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.department_analysis') }}" style="color: inherit; text-decoration: none;">科室分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.doctor_performance') }}" style="color: inherit; text-decoration: none;">医生绩效</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
+                <div class="analysis-tab active"><a href="{{ url_for('analysis.financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
+                <div class="analysis-tab"><a href="{{ url_for('analysis.drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
             </div>
             
             <div class="analysis-grid">
@@ -388,201 +315,133 @@
                             </div>
                         </div>
                     </div>
-                    <div class="chart-body" id="incomeChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">科室收入占比</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="departmentIncomeChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">成本结构分析</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="costStructureChart"></div>
-                </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-                        <h3 class="chart-title">利润率分析</h3>
-                        <div class="chart-actions">
-                            <div class="chart-action" title="下载">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="chart-action" title="全屏">
-                                <i class="fas fa-expand"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-body" id="profitMarginChart"></div>
-                </div>
-            </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
         </div>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <script src="{{ url_for("static", filename="js/utils.js") }}"></script>
-    <script>
-        // 移动菜单切换
-        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
-        });
-        
-        // 高亮当前活动的菜单项
-        document.querySelectorAll('.menu-item').forEach(item => {
-            const link = item.querySelector('a');
-            if (link.getAttribute('href') === location.pathname.split('/').pop()) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-        
-        // 图表操作按钮交互
-        document.querySelectorAll('.chart-action').forEach(action => {
-            action.addEventListener('click', function() {
-                const actionType = this.getAttribute('title');
-                const chartTitle = this.closest('.analysis-chart').querySelector('.chart-title').textContent;
-                console.log(`执行操作: ${actionType}, 图表: ${chartTitle}`);
+                </div>
                 
-                if (actionType === '全屏') {
-                    const chart = this.closest('.analysis-chart');
-                    if (chart.classList.contains('fullscreen')) {
-                        chart.classList.remove('fullscreen');
-                        this.innerHTML = '<i class="fas fa-expand"></i>';
-                    } else {
-                        chart.classList.add('fullscreen');
-                        this.innerHTML = '<i class="fas fa-compress"></i>';
-                    }
-                }
-            });
-        });
-        
-        // 初始化收入趋势图表
-        const incomeChart = echarts.init(document.getElementById('incomeChart'));
-        const incomeOption = {
+                <div class="analysis-chart">
+                    <div class="chart-header">
+            <h3 class="chart-title">收入构成</h3>
+                        <div class="chart-actions">
+                            <div class="chart-action" title="下载">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="chart-action" title="全屏">
+                                <i class="fas fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+        <div class="chart-container">
+            <!-- 图表将通过JavaScript渲染 -->
+                            </div>
+                        </div>
+                </div>
+                
+                <div class="analysis-chart">
+                    <div class="chart-header">
+        <h3 class="chart-title">科室财务对比</h3>
+                        <div class="chart-actions">
+                            <div class="chart-action" title="下载">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="chart-action" title="全屏">
+                                <i class="fas fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+    <div class="chart-container">
+        <!-- 图表将通过JavaScript渲染 -->
+    </div>
+</div>
+{% endblock %}
+    
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 收入趋势图
+    const revenueTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
+    const revenueTrendOption = {
             tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                }
+            trigger: 'axis'
             },
             legend: {
-                data: ['总收入', '门诊收入', '住院收入', '药房收入'],
-                bottom: 0
+            data: ['收入', '支出', '利润']
             },
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '10%',
+            bottom: '3%',
                 containLabel: true
             },
             xAxis: {
                 type: 'category',
-                data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#ddd'
-                    }
-                }
+            boundaryGap: false,
+            data: ['1月', '2月', '3月', '4月', '5月', '6月']
             },
             yAxis: {
                 type: 'value',
-                name: '金额 (万元)',
-                axisLine: {
-                    show: false
-                },
-                axisTick: {
-                    show: false
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#eee'
-                    }
+            axisLabel: {
+                formatter: '¥{value}K'
                 }
             },
             series: [
                 {
-                    name: '总收入',
+                name: '收入',
                     type: 'line',
-                    data: [320, 332, 301, 334, 390, 330, 320, 332, 301, 334, 390, 330],
+                data: [520, 532, 501, 534, 590, 630],
+                smooth: true,
                     lineStyle: {
-                        width: 3,
-                        color: '#5b8db8'
-                    },
-                    symbol: 'circle',
-                    symbolSize: 8
+                    width: 3
+                }
                 },
                 {
-                    name: '门诊收入',
-                    type: 'bar',
-                    stack: 'income',
-                    data: [120, 132, 101, 134, 190, 130, 120, 132, 101, 134, 190, 130],
-                    itemStyle: {
-                        color: '#4caf50'
+                name: '支出',
+                type: 'line',
+                data: [320, 332, 301, 334, 390, 420],
+                smooth: true,
+                lineStyle: {
+                    width: 3
                     }
                 },
                 {
-                    name: '住院收入',
-                    type: 'bar',
-                    stack: 'income',
-                    data: [150, 132, 151, 154, 130, 130, 150, 132, 151, 154, 130, 130],
-                    itemStyle: {
-                        color: '#2196f3'
-                    }
+                name: '利润',
+                type: 'line',
+                data: [200, 200, 200, 200, 200, 210],
+                smooth: true,
+                lineStyle: {
+                    width: 3
                 },
-                {
-                    name: '药房收入',
-                    type: 'bar',
-                    stack: 'income',
-                    data: [50, 68, 49, 46, 70, 70, 50, 68, 49, 46, 70, 70],
                     itemStyle: {
-                        color: '#ff9800'
+                    color: '#5cb87a'
                     }
                 }
             ]
         };
-        incomeChart.setOption(incomeOption);
+    revenueTrendChart.setOption(revenueTrendOption);
         
-        // 初始化科室收入占比图表
-        const departmentIncomeChart = echarts.init(document.getElementById('departmentIncomeChart'));
-        const departmentIncomeOption = {
+    // 收入构成图
+    const revenueCompositionChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
+    const revenueCompositionOption = {
             tooltip: {
                 trigger: 'item',
-                formatter: '{a} <br/>{b}: {c} 万元 ({d}%)'
+            formatter: '{a} <br/>{b}: ¥{c}K ({d}%)'
             },
             legend: {
-                orient: 'horizontal',
-                bottom: 0,
-                data: ['内科', '外科', '儿科', '妇产科', '眼科', '其他']
+            orient: 'vertical',
+            right: 10,
+            top: 'center',
+            data: ['门诊', '住院', '药房', '检查', '手术', '其他']
             },
             series: [
                 {
-                    name: '科室收入',
+                name: '收入来源',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     itemStyle: {
-                        borderRadius: 10,
+                    borderRadius: 5,
                         borderColor: '#fff',
                         borderWidth: 2
                     },
@@ -601,71 +460,29 @@
                         show: false
                     },
                     data: [
-                        { value: 1200, name: '内科' },
-                        { value: 850, name: '外科' },
-                        { value: 450, name: '儿科' },
-                        { value: 350, name: '妇产科' },
-                        { value: 250, name: '眼科' },
-                        { value: 150, name: '其他' }
+                    { value: 1235, name: '门诊' },
+                    { value: 735, name: '住院' },
+                    { value: 580, name: '药房' },
+                    { value: 484, name: '检查' },
+                    { value: 300, name: '手术' },
+                    { value: 135, name: '其他' }
                     ]
                 }
             ]
         };
-        departmentIncomeChart.setOption(departmentIncomeOption);
+    revenueCompositionChart.setOption(revenueCompositionOption);
         
-        // 初始化成本结构分析图表
-        const costStructureChart = echarts.init(document.getElementById('costStructureChart'));
-        const costStructureOption = {
-            tooltip: {
-                trigger: 'item',
-                formatter: '{a} <br/>{b}: {c} 万元 ({d}%)'
-            },
-            legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                data: ['人力成本', '药品成本', '设备成本', '运营成本', '其他成本']
-            },
-            series: [
-                {
-                    name: '成本结构',
-                    type: 'pie',
-                    radius: ['50%', '70%'],
-                    avoidLabelOverlap: false,
-                    label: {
-                        show: false,
-                        position: 'center'
-                    },
-                    emphasis: {
-                        label: {
-                            show: true,
-                            fontSize: '18',
-                            fontWeight: 'bold'
-                        }
-                    },
-                    labelLine: {
-                        show: false
-                    },
-                    data: [
-                        { value: 1050, name: '人力成本' },
-                        { value: 580, name: '药品成本' },
-                        { value: 320, name: '设备成本' },
-                        { value: 150, name: '运营成本' },
-                        { value: 56, name: '其他成本' }
-                    ]
-                }
-            ]
-        };
-        costStructureChart.setOption(costStructureOption);
-        
-        // 初始化利润率分析图表
-        const profitMarginChart = echarts.init(document.getElementById('profitMarginChart'));
-        const profitMarginOption = {
+    // 科室财务对比图
+    const departmentFinanceChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
+    const departmentFinanceOption = {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
                     type: 'shadow'
                 }
+            },
+        legend: {
+            data: ['收入', '支出', '利润']
             },
             grid: {
                 left: '3%',
@@ -674,57 +491,62 @@
                 containLabel: true
             },
             xAxis: {
-                type: 'category',
-                data: ['内科', '外科', '儿科', '妇产科', '眼科', '骨科', '全院'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#ddd'
-                    }
+            type: 'value',
+            axisLabel: {
+                formatter: '¥{value}K'
                 }
             },
             yAxis: {
-                type: 'value',
-                name: '利润率 (%)',
-                axisLine: {
-                    show: false
-                },
-                axisTick: {
-                    show: false
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#eee'
-                    }
-                }
+            type: 'category',
+            data: ['内科', '外科', '妇产科', '儿科', '骨科', '眼科']
             },
             series: [
                 {
-                    name: '利润率',
+                name: '收入',
+                type: 'bar',
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [620, 732, 501, 534, 490, 430]
+            },
+            {
+                name: '支出',
                     type: 'bar',
-                    data: [28.5, 35.2, 25.8, 32.1, 42.5, 30.8, 33.6],
-                    itemStyle: {
-                        color: function(params) {
-                            // 为全院设置不同颜色
-                            return params.dataIndex === 6 ? '#5b8db8' : '#4caf50';
-                        }
-                    },
+                stack: 'total',
+                label: {
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [420, 532, 401, 434, 390, 330]
+            },
+            {
+                name: '利润',
+                type: 'bar',
+                stack: 'total',
                     label: {
-                        show: true,
-                        position: 'top',
-                        formatter: '{c}%'
-                    }
+                    show: true
+                },
+                emphasis: {
+                    focus: 'series'
+                },
+                data: [200, 200, 100, 100, 100, 100]
                 }
             ]
         };
-        profitMarginChart.setOption(profitMarginOption);
+    departmentFinanceChart.setOption(departmentFinanceOption);
         
-        // 窗口大小变化时重新调整图表大小
+    // 响应式调整
         window.addEventListener('resize', function() {
-            incomeChart.resize();
-            departmentIncomeChart.resize();
-            costStructureChart.resize();
-            profitMarginChart.resize();
+        revenueTrendChart.resize();
+        revenueCompositionChart.resize();
+        departmentFinanceChart.resize();
+    });
         });
     </script>
-</body>
-</html> 
+{% endblock %} 

@@ -158,28 +158,28 @@
             </div>
             
             <div class="menu-item">
-                <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
+                <a href="{{ url_for('dashboard.index') }}"><i class="fas fa-chart-line"></i> 指标详情</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> 智能问答</a>
+                <a href="{{ url_for('ai_chat.index') }}"><i class="fas fa-robot"></i> 智能问答</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
+                <a href="{{ url_for('dashboard.alerts') }}"><i class="fas fa-bell"></i> 预警通知</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
+                <a href="{{ url_for('analysis.department_analysis') }}"><i class="fas fa-chart-pie"></i> 多维度分析</a>
             </div>
             <div class="menu-item active">
-                <a href="{{ url_for('user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
+                <a href="{{ url_for('settings.user_management') }}"><i class="fas fa-users"></i> 用户管理</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> 系统设置</a>
+                <a href="{{ url_for('settings.index') }}"><i class="fas fa-cog"></i> 系统设置</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
+                <a href="{{ url_for('settings.help') }}"><i class="fas fa-question-circle"></i> 帮助与反馈</a>
             </div>
             <div class="menu-item">
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+                <a href="{{ url_for('auth.login') }}"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
             </div>
         </div>
         

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">首页</a></li>
+<li class="breadcrumb-item active">个人资料</li>
+{% endblock %}
+
+{% block page_title %}个人资料{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">基本信息</h5>
+            </div>
+            <div class="card-body">
+                <form id="profile-form" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" value="{{ user.username }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">角色</label>
+                        <input type="text" class="form-control" id="role" value="{{ user.role }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email" value="{{ user.email }}" required>
+                        <div class="invalid-feedback">请输入有效的邮箱地址</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">部门</label>
+                        <input type="text" class="form-control" id="department" value="{{ user.department }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">修改密码</h5>
+            </div>
+            <div class="card-body">
+                <form id="password-form" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="current-password" class="form-label">当前密码</label>
+                        <input type="password" class="form-control" id="current-password" required>
+                        <div class="invalid-feedback">请输入当前密码</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">新密码</label>
+                        <input type="password" class="form-control" id="new-password" required>
+                        <div class="invalid-feedback">请输入新密码</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm-password" class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" id="confirm-password" required>
+                        <div class="invalid-feedback">请确认新密码</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">更改密码</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 表单验证
+        (function() {
+            'use strict';
+            
+            const forms = document.querySelectorAll('.needs-validation');
+            
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+        
+        // 修改个人信息表单提交
+        $('#profile-form').submit(function(e) {
+            e.preventDefault();
+            
+            if (this.checkValidity() === false) {
+                return;
+            }
+            
+            const formData = {
+                email: $('#email').val(),
+                department: $('#department').val()
+            };
+            
+            // 这里添加AJAX请求提交表单数据
+            showToast('success', '个人信息已更新');
+        });
+        
+        // 修改密码表单提交
+        $('#password-form').submit(function(e) {
+            e.preventDefault();
+            
+            if (this.checkValidity() === false) {
+                return;
+            }
+            
+            const newPassword = $('#new-password').val();
+            const confirmPassword = $('#confirm-password').val();
+            
+            // 验证两次密码输入是否一致
+            if (newPassword !== confirmPassword) {
+                showToast('error', '两次输入的密码不一致');
+                return;
+            }
+            
+            const formData = {
+                current_password: $('#current-password').val(),
+                new_password: newPassword
+            };
+            
+            // 这里添加AJAX请求提交表单数据
+            showToast('success', '密码已更新');
+            this.reset();
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}系统日志 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">设置</a></li>
+<li class="breadcrumb-item active">系统日志</li>
+{% endblock %}
+
+{% block page_title %}系统日志{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary" id="refreshLogsBtn">
+        <i class="fas fa-sync-alt me-1"></i> 刷新
+    </button>
+    <button type="button" class="btn btn-outline-primary" id="exportLogsBtn">
+        <i class="fas fa-file-export me-1"></i> 导出
+    </button>
+</div>
+<button type="button" class="btn btn-danger ms-2" id="clearLogsBtn">
+    <i class="fas fa-trash-alt me-1"></i> 清空日志
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">日志筛选</h5>
+                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                    <i class="fas fa-filter"></i> 筛选选项
+                </button>
+            </div>
+            <div class="collapse" id="filterCollapse">
+                <div class="card-body">
+                    <form id="logFilterForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="logLevel" class="form-label">日志级别</label>
+                            <select class="form-select" id="logLevel">
+                                <option value="all" selected>全部</option>
+                                <option value="info">信息 (INFO)</option>
+                                <option value="warning">警告 (WARNING)</option>
+                                <option value="error">错误 (ERROR)</option>
+                                <option value="critical">严重 (CRITICAL)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="logModule" class="form-label">模块</label>
+                            <select class="form-select" id="logModule">
+                                <option value="all" selected>全部</option>
+                                <option value="auth">认证模块</option>
+                                <option value="dashboard">仪表盘</option>
+                                <option value="analysis">数据分析</option>
+                                <option value="settings">系统设置</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="logUser" class="form-label">用户</label>
+                            <select class="form-select" id="logUser">
+                                <option value="all" selected>全部</option>
+                                <option value="admin">管理员</option>
+                                <option value="system">系统</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="startDate" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="endDate" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchKeyword" class="form-label">关键词搜索</label>
+                            <input type="text" class="form-control" id="searchKeyword" placeholder="输入关键词...">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="button" class="btn btn-primary" id="applyFilterBtn">应用筛选</button>
+                            <button type="button" class="btn btn-outline-secondary" id="resetFilterBtn">重置</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">系统日志记录</h5>
+                <div class="small text-muted mt-1">显示最近 1000 条日志记录</div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0" id="logsTable">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 180px;">时间</th>
+                                <th scope="col" style="width: 100px;">级别</th>
+                                <th scope="col" style="width: 120px;">模块</th>
+                                <th scope="col" style="width: 120px;">用户</th>
+                                <th scope="col">消息</th>
+                                <th scope="col" style="width: 100px;">IP地址</th>
+                                <th scope="col" style="width: 80px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 日志数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0" id="pagination">
+                        <!-- 分页将通过JavaScript动态生成 -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志详情模态框 -->
+<div class="modal fade" id="logDetailModal" tabindex="-1" aria-labelledby="logDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logDetailModalLabel">日志详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">时间：</label>
+                            <div id="detailTimestamp"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">级别：</label>
+                            <div id="detailLevel"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">模块：</label>
+                            <div id="detailModule"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">用户：</label>
+                            <div id="detailUser"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">IP地址：</label>
+                            <div id="detailIp"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">会话ID：</label>
+                            <div id="detailSessionId"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">消息：</label>
+                    <div id="detailMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">详细信息：</label>
+                    <pre class="bg-light p-3 rounded"><code id="detailDetails"></code></pre>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">用户代理：</label>
+                    <div id="detailUserAgent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 清空日志确认模态框 -->
+<div class="modal fade" id="clearLogsModal" tabindex="-1" aria-labelledby="clearLogsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clearLogsModalLabel">确认清空日志</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> 警告：此操作将清空所有系统日志记录，无法恢复。
+                </div>
+                <p>是否确定要继续？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmClearLogsBtn">确认清空</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取DOM元素
+    const refreshLogsBtn = document.getElementById('refreshLogsBtn');
+    const exportLogsBtn = document.getElementById('exportLogsBtn');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const resetFilterBtn = document.getElementById('resetFilterBtn');
+    const confirmClearLogsBtn = document.getElementById('confirmClearLogsBtn');
+    const pagination = document.getElementById('pagination');
+    
+    // 当前页码
+    let currentPage = 1;
+    
+    // 初始化日期过滤器
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
+    
+    document.getElementById('startDate').value = sevenDaysAgo;
+    document.getElementById('endDate').value = today;
+    
+    // 加载日志数据
+    function loadLogs(page = 1) {
+        showLoading();
+        
+        // 获取筛选条件
+        const filters = getFilterValues();
+        
+        // 构建查询参数
+        const params = new URLSearchParams({
+            page: page,
+            per_page: 20,
+            ...filters
+        });
+        
+        // 发送请求获取日志数据
+        fetch(`/api/logs?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新表格数据
+                    updateTable(data.data.logs);
+                    // 更新分页
+                    updatePagination(data.data.total, page);
+                } else {
+                    showToast('error', data.message || '加载日志失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', '加载日志失败');
+            })
+            .finally(() => {
+                hideLoading();
+            });
+    }
+    
+    // 更新表格数据
+    function updateTable(logs) {
+        const tbody = document.querySelector('#logsTable tbody');
+        tbody.innerHTML = '';
+        
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${log.timestamp}</td>
+                <td><span class="badge bg-${getLevelBadgeClass(log.level)}">${log.level}</span></td>
+                <td>${log.module}</td>
+                <td>${log.user}</td>
+                <td>${log.message}</td>
+                <td>${log.ip_address}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-link" onclick="showLogDetail(${log.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // 更新分页
+    function updatePagination(total, currentPage) {
+        const totalPages = Math.ceil(total / 20);
+        let html = '';
+        
+        // 上一页
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">上一页</a>
+            </li>
+        `;
+        
+        // 页码
+        for (let i = 1; i <= totalPages; i++) {
+            if (
+                i === 1 || // 第一页
+                i === totalPages || // 最后一页
+                (i >= currentPage - 1 && i <= currentPage + 1) // 当前页附近的页码
+            ) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                    </li>
+                `;
+            } else if (
+                i === currentPage - 2 ||
+                i === currentPage + 2
+            ) {
+                html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+        }
+        
+        // 下一页
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">下一页</a>
+            </li>
+        `;
+        
+        pagination.innerHTML = html;
+    }
+    
+    // 获取日志级别对应的样式类
+    function getLevelBadgeClass(level) {
+        switch (level.toLowerCase()) {
+            case 'info':
+                return 'info';
+            case 'warning':
+                return 'warning';
+            case 'error':
+                return 'danger';
+            case 'critical':
+                return 'danger';
+            default:
+                return 'secondary';
+        }
+    }
+    
+    // 显示日志详情
+    window.showLogDetail = function(logId) {
+        showLoading();
+        
+        fetch(`/api/logs/${logId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const log = data.data;
+                    
+                    // 更新模态框内容
+                    document.getElementById('detailTimestamp').textContent = log.timestamp;
+                    document.getElementById('detailLevel').innerHTML = 
+                        `<span class="badge bg-${getLevelBadgeClass(log.level)}">${log.level}</span>`;
+                    document.getElementById('detailModule').textContent = log.module;
+                    document.getElementById('detailUser').textContent = log.user;
+                    document.getElementById('detailIp').textContent = log.ip_address;
+                    document.getElementById('detailSessionId').textContent = log.session_id;
+                    document.getElementById('detailMessage').textContent = log.message;
+                    document.getElementById('detailDetails').textContent = log.details;
+                    document.getElementById('detailUserAgent').textContent = log.user_agent;
+                    
+                    // 显示模态框
+                    $('#logDetailModal').modal('show');
+                } else {
+                    showToast('error', data.message || '获取日志详情失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', '获取日志详情失败');
+            })
+            .finally(() => {
+                hideLoading();
+            });
+    };
+    
+    // 切换页码
+    window.changePage = function(page) {
+        currentPage = page;
+        loadLogs(page);
+    };
+    
+    // 刷新日志
+    refreshLogsBtn.addEventListener('click', function() {
+        loadLogs(currentPage);
+    });
+    
+    // 导出日志
+    exportLogsBtn.addEventListener('click', function() {
+        // 获取筛选条件
+        const filters = getFilterValues();
+        
+        // 构建查询参数
+        const params = new URLSearchParams(filters);
+        
+        // 触发下载
+        window.location.href = `/api/logs/export?${params.toString()}`;
+    });
+    
+    // 打开清空日志确认模态框
+    clearLogsBtn.addEventListener('click', function() {
+        $('#clearLogsModal').modal('show');
+    });
+    
+    // 确认清空日志
+    confirmClearLogsBtn.addEventListener('click', function() {
+        showLoading();
+        
+        fetch('/api/logs/clear', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 清空表格
+                document.querySelector('#logsTable tbody').innerHTML = 
+                    '<tr><td colspan="7" class="text-center py-4">没有日志记录</td></tr>';
+                // 清空分页
+                pagination.innerHTML = '';
+                // 显示成功消息
+                showToast('success', '所有日志已清空');
+            } else {
+                showToast('error', data.message || '清空日志失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', '清空日志失败');
+        })
+        .finally(() => {
+            hideLoading();
+            $('#clearLogsModal').modal('hide');
+        });
+    });
+    
+    // 应用筛选
+    applyFilterBtn.addEventListener('click', function() {
+        currentPage = 1; // 重置页码
+        loadLogs(currentPage);
+    });
+    
+    // 重置筛选
+    resetFilterBtn.addEventListener('click', function() {
+        // 重置筛选表单
+        document.getElementById('logFilterForm').reset();
+        document.getElementById('startDate').value = sevenDaysAgo;
+        document.getElementById('endDate').value = today;
+        
+        // 重置页码并加载数据
+        currentPage = 1;
+        loadLogs(currentPage);
+    });
+    
+    // 辅助函数: 获取筛选值
+    function getFilterValues() {
+        return {
+            level: document.getElementById('logLevel').value,
+            module: document.getElementById('logModule').value,
+            user: document.getElementById('logUser').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+            keyword: document.getElementById('searchKeyword').value
+        };
+    }
+    
+    // 辅助函数: 显示加载状态
+    function showLoading() {
+        // 为表格添加加载样式
+        const table = document.getElementById('logsTable');
+        table.classList.add('loading');
+        
+        // 禁用按钮
+        refreshLogsBtn.disabled = true;
+        exportLogsBtn.disabled = true;
+        clearLogsBtn.disabled = true;
+        applyFilterBtn.disabled = true;
+        resetFilterBtn.disabled = true;
+    }
+    
+    // 辅助函数: 隐藏加载状态
+    function hideLoading() {
+        // 移除表格加载样式
+        const table = document.getElementById('logsTable');
+        table.classList.remove('loading');
+        
+        // 启用按钮
+        refreshLogsBtn.disabled = false;
+        exportLogsBtn.disabled = false;
+        clearLogsBtn.disabled = false;
+        applyFilterBtn.disabled = false;
+        resetFilterBtn.disabled = false;
+    }
+    
+    // 初始加载
+    loadLogs();
+});
+</script>
+{% endblock %} 

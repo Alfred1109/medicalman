@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}反馈与建议 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">设置</a></li>
+<li class="breadcrumb-item active">反馈与建议</li>
+{% endblock %}
+
+{% block page_title %}反馈与建议{% endblock %}
+
+{% block page_actions %}
+<button type="button" class="btn btn-primary" id="submitFeedbackBtn">
+    <i class="fas fa-paper-plane me-1"></i> 提交反馈
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">发送反馈</h5>
+            </div>
+            <div class="card-body">
+                <form id="feedbackForm">
+                    <div class="mb-3">
+                        <label for="feedbackType" class="form-label">反馈类型</label>
+                        <select class="form-select" id="feedbackType" required>
+                            <option value="" selected disabled>请选择反馈类型</option>
+                            <option value="bug">Bug报告</option>
+                            <option value="feature">功能建议</option>
+                            <option value="improvement">改进意见</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackTitle" class="form-label">标题</label>
+                        <input type="text" class="form-control" id="feedbackTitle" placeholder="请简要描述您的反馈" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackContent" class="form-label">详细描述</label>
+                        <textarea class="form-control" id="feedbackContent" rows="6" placeholder="请详细描述您的反馈内容，包括任何相关细节..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackPriority" class="form-label">优先级</label>
+                        <select class="form-select" id="feedbackPriority">
+                            <option value="low">低 - 不急需解决</option>
+                            <option value="medium" selected>中 - 建议尽快解决</option>
+                            <option value="high">高 - 严重影响使用</option>
+                            <option value="critical">紧急 - 系统无法正常使用</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attachments" class="form-label">附件（可选）</label>
+                        <input type="file" class="form-control" id="attachments" multiple>
+                        <div class="form-text">您可以上传截图或其他相关文件（最大10MB）</div>
+                    </div>
+                </form>
+                <div class="alert alert-success mt-3 d-none" id="feedbackSuccess">
+                    <i class="fas fa-check-circle me-2"></i> 感谢您的反馈！我们将尽快处理您的建议。
+                </div>
+                <div class="alert alert-danger mt-3 d-none" id="feedbackError">
+                    <i class="fas fa-exclamation-circle me-2"></i> 提交反馈时发生错误，请稍后再试。
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">反馈指南</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="fas fa-bug me-2 text-danger"></i>报告Bug</h6>
+                    <p>请提供以下信息：</p>
+                    <ul>
+                        <li>问题的详细描述</li>
+                        <li>问题发生的步骤</li>
+                        <li>预期结果和实际结果</li>
+                        <li>浏览器和操作系统</li>
+                        <li>截图（如有）</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6><i class="fas fa-lightbulb me-2 text-warning"></i>功能建议</h6>
+                    <p>请提供以下信息：</p>
+                    <ul>
+                        <li>功能的详细描述</li>
+                        <li>此功能如何改善系统</li>
+                        <li>您期望的具体行为</li>
+                    </ul>
+                </div>
+                <div>
+                    <h6><i class="fas fa-question-circle me-2 text-info"></i>需要帮助？</h6>
+                    <p>如需紧急支持，请通过以下方式联系我们：</p>
+                    <ul>
+                        <li>电子邮件：support@medicalman.com</li>
+                        <li>电话：400-123-4567</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">最近的反馈</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">数据导出功能建议</h6>
+                        <small>3天前</small>
+                    </div>
+                    <p class="mb-1 text-truncate">希望能增加批量导出数据的功能...</p>
+                    <small><span class="badge bg-warning">处理中</span></small>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">登录页面优化</h6>
+                        <small>1周前</small>
+                    </div>
+                    <p class="mb-1 text-truncate">登录界面可以增加记住密码功能</p>
+                    <small><span class="badge bg-success">已实现</span></small>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">图表加载问题</h6>
+                        <small>2周前</small>
+                    </div>
+                    <p class="mb-1 text-truncate">数据分析页面的图表加载很慢</p>
+                    <small><span class="badge bg-danger">待解决</span></small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取表单和按钮元素
+    const feedbackForm = document.getElementById('feedbackForm');
+    const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+    const feedbackSuccess = document.getElementById('feedbackSuccess');
+    const feedbackError = document.getElementById('feedbackError');
+    
+    // 提交反馈
+    submitFeedbackBtn.addEventListener('click', function() {
+        // 简单表单验证
+        const feedbackType = document.getElementById('feedbackType').value;
+        const feedbackTitle = document.getElementById('feedbackTitle').value;
+        const feedbackContent = document.getElementById('feedbackContent').value;
+        
+        if (!feedbackType || !feedbackTitle || !feedbackContent) {
+            // 显示表单验证错误
+            feedbackError.textContent = '请填写所有必填字段';
+            feedbackError.classList.remove('d-none');
+            feedbackSuccess.classList.add('d-none');
+            return;
+        }
+        
+        // 清除错误提示
+        feedbackError.classList.add('d-none');
+        
+        // 模拟API调用 - 实际应用中应替换为真实的API调用
+        // 为了演示，我们使用setTimeout模拟API响应延迟
+        submitFeedbackBtn.disabled = true;
+        submitFeedbackBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
+        
+        setTimeout(function() {
+            // 模拟成功响应
+            submitFeedbackBtn.disabled = false;
+            submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> 提交反馈';
+            
+            // 显示成功消息
+            feedbackSuccess.classList.remove('d-none');
+            
+            // 重置表单
+            feedbackForm.reset();
+            
+            // 5秒后隐藏成功消息
+            setTimeout(function() {
+                feedbackSuccess.classList.add('d-none');
+            }, 5000);
+        }, 1500);
+    });
+});
+</script>
+{% endblock %} 
