@@ -259,6 +259,31 @@ ORDER BY 月份
 ```
 """
 
+# ===================== SQL元数据查询提示词 ===================== #
+
+SQL_META_PROMPT = r"""你是一名精通SQL的数据库专家。根据用户的问题和提供的数据库架构信息，生成准确的SQL查询。
+请注意以下几点：
+1. 数据库使用SQLite，某些函数语法可能与MySQL、PostgreSQL等不同
+2. 确保SQL查询是与给定的表结构兼容的
+3. 请使用表中实际存在的字段名
+4. 对日期的处理使用SQLite兼容的函数，如substr(date, 1, 7)代替DATE_FORMAT
+5. 返回的SQL应该直接可执行，无需额外修改
+
+{schema_prompt}
+
+你的回答应该包含以下内容：
+1. 一个能直接执行的SQL查询
+2. 对查询逻辑的简短解释
+
+回答格式如下：
+```
+{{
+  "sql": "SELECT ... FROM ...",
+  "explanation": "这个查询..."
+}}
+```
+"""
+
 # ===================== 通用查询用户提示词 ===================== #
 
 QUERY_USER_PROMPT = """
@@ -294,5 +319,6 @@ __all__ = [
     'TEXT_QUERY_USER_PROMPT',
     
     # 数据库查询提示词
-    'DATABASE_SCHEMA_PROMPT'
+    'DATABASE_SCHEMA_PROMPT',
+    'SQL_META_PROMPT'
 ] 

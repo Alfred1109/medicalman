@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import traceback
+from app.services.llm_service import LLMServiceFactory
 
 # 获取当前目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,10 +16,8 @@ sys.path.insert(0, project_root)
 
 def test_chart_generation():
     """测试图表生成功能"""
-    from app.services.llm_service import LLMService
-    
-    # 初始化服务
-    llm_service = LLMService()
+    # 使用工厂方法获取图表服务
+    chart_service = LLMServiceFactory.get_chart_service()
     
     # 准备测试数据
     test_data = [
@@ -40,8 +39,8 @@ def test_chart_generation():
         print(f"用户查询: {user_query}")
         print(f"测试数据: {structured_data}")
         
-        # 调用图表生成函数
-        result = llm_service.generate_chart_config(user_query, structured_data)
+        # 使用图表服务生成图表配置
+        result = chart_service.generate_chart_config(user_query, structured_data)
         
         if result and "charts" in result and result["charts"]:
             print("\n图表生成成功!")

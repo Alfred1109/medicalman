@@ -253,7 +253,7 @@ def analyze_text_content(text, user_message):
         user_message: 用户查询消息
         
     返回:
-        dict: 分析结果
+        分析结果，或者错误时返回None
     """
     try:
         # 计算字数
@@ -270,12 +270,20 @@ def analyze_text_content(text, user_message):
                 titles.append(line.strip())
         
         # 根据用户消息查找相关段落
-        query_tokens = word_tokenize(user_message.lower())
         relevant_paragraphs = []
+        
+        try:
+            # 尝试使用NLTK进行分词
+            query_tokens = word_tokenize(user_message.lower())
+        except Exception as nltk_error:
+            # 如果NLTK不可用，使用简单的空格分割
+            logger.warning(f"NLTK分词失败，使用简单分词: {str(nltk_error)}")
+            query_tokens = user_message.lower().split()
         
         for para in paragraphs:
             if para.strip():
                 para_lower = para.lower()
+                # 计算简单的相关性分数
                 relevance_score = sum(1 for token in query_tokens if token in para_lower)
                 if relevance_score > 0:
                     relevant_paragraphs.append({
@@ -294,10 +302,5 @@ def analyze_text_content(text, user_message):
         }
     except Exception as e:
         logger.error(f"分析文本内容时出错: {str(e)}")
-        return {
-            "error": str(e),
-            "word_count": 0,
-            "paragraph_count": 0,
-            "titles": [],
-            "relevant_paragraphs": []
-        } 
+        # 出错时返回None而不是空字典，避免后续代码尝试访问不存在的键
+        return None 

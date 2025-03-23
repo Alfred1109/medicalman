@@ -15,20 +15,21 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 # DATABASE_PATH = str(ROOT_DIR / 'medical_workload.db')
 
 from app.utils.db import execute_query_to_dataframe
-from app.services.llm_service import LLMService
+from app.services.llm_service import LLMServiceFactory
 from app.utils.chart import generate_dynamic_charts
 from app.utils.files import get_latest_file, analyze_text_content
 from app.models.database import Database
 
 # 导入提示词
 from app.prompts import (
-    DATABASE_SCHEMA_PROMPT, DATABASE_SCHEMA_USER_PROMPT,
+    DATABASE_SCHEMA_PROMPT, DATABASE_USER_PROMPT,
     RESPONSE_SYSTEM_PROMPT, RESPONSE_USER_PROMPT,
     EXCEL_ANALYSIS_SYSTEM_PROMPT, EXCEL_ANALYSIS_USER_PROMPT,
     TEXT_ANALYSIS_SYSTEM_PROMPT, TEXT_ANALYSIS_USER_PROMPT,
     KNOWLEDGE_BASE_SYSTEM_PROMPT, KNOWLEDGE_BASE_USER_PROMPT,
     FILE_ANALYSIS_SYSTEM_PROMPT, FILE_ANALYSIS_USER_PROMPT,
-    DATA_ANALYSIS_SYSTEM_PROMPT, DATA_ANALYSIS_USER_PROMPT
+    DATA_ANALYSIS_SYSTEM_PROMPT, DATA_ANALYSIS_USER_PROMPT,
+    SQL_META_PROMPT
 )
 
 # 数据库元数据缓存
@@ -190,33 +191,13 @@ def generate_sql_from_metadata(user_message):
     schema_prompt = generate_schema_prompt()
     
     # 结合数据库结构和用户查询创建提示
-    system_prompt = f"""你是一名精通SQL的数据库专家。根据用户的问题和提供的数据库架构信息，生成准确的SQL查询。
-请注意以下几点：
-1. 数据库使用SQLite，某些函数语法可能与MySQL、PostgreSQL等不同
-2. 确保SQL查询是与给定的表结构兼容的
-3. 请使用表中实际存在的字段名
-4. 对日期的处理使用SQLite兼容的函数，如substr(date, 1, 7)代替DATE_FORMAT
-5. 返回的SQL应该直接可执行，无需额外修改
-
-{schema_prompt}
-
-你的回答应该包含以下内容：
-1. 一个能直接执行的SQL查询
-2. 对查询逻辑的简短解释
-
-回答格式如下：
-```
-{{
-  "sql": "SELECT ... FROM ...",
-  "explanation": "这个查询..."
-}}
-```
-"""
-
+    formatted_prompt = SQL_META_PROMPT.format(schema_prompt=schema_prompt)
+    
     user_prompt = f"请为以下问题生成SQL查询：{user_message}"
     
-    # 调用LLM获取结果
-    llm_response = LLMService.call_llm_api(system_prompt, user_prompt)
+    # 使用基础服务调用LLM API
+    base_service = LLMServiceFactory.get_base_service()
+    llm_response = base_service.call_api(formatted_prompt, user_prompt)
     
     # 解析LLM的回答，提取JSON部分
     if llm_response:
@@ -248,23 +229,28 @@ def generate_sql_from_metadata(user_message):
 
 def analyze_user_query_and_generate_sql(user_message):
     """
-    使用元数据辅助LLM理解表结构并生成正确的SQL查询
+    分析用户查询并生成SQL
     
     参数:
-        user_message: 用户查询消息
+        user_message: 用户的查询消息
         
     返回:
-        包含SQL查询和解释的字典，或者None（如果生成失败）
+        包含生成的SQL和说明的字典，如果失败则返回None
     """
-    # 优先使用基于元数据的方法
-    result = generate_sql_from_metadata(user_message)
-    
-    # 如果基于元数据的方法失败，回退到原有方法
-    if not result:
-        # 这里可以保留原来的逻辑作为备选
-        result = LLMService.analyze_user_query_and_generate_sql(user_message)
-    
-    return result
+    try:
+        # 使用数据库元数据生成SQL
+        sql_result = generate_sql_from_metadata(user_message)
+        
+        if sql_result and 'sql' in sql_result:
+            return sql_result
+        
+        # 如果使用元数据方法失败，则使用LLM服务生成SQL
+        sql_service = LLMServiceFactory.get_sql_service()
+        return sql_service.generate_sql(user_message)
+    except Exception as e:
+        print(f"生成SQL时出错: {str(e)}")
+        traceback.print_exc()
+        return None
 
 def execute_sql_query(sql_query):
     """
@@ -280,6 +266,9 @@ def execute_sql_query(sql_query):
         return execute_query_to_dataframe(sql_query)
     except Exception as e:
         print(f"SQL查询执行错误: {str(e)}")
+        # 添加更多有用的上下文信息，帮助诊断问题
+        print(f"执行的SQL查询: {sql_query}")
+        traceback.print_exc()  # 打印完整的堆栈跟踪
         raise e
 
 def get_latest_excel_file(directory: str = 'static/uploads/documents') -> Optional[Tuple[str, pd.DataFrame]]:
@@ -335,198 +324,189 @@ def execute_sql_query(sql: str) -> pd.DataFrame:
 # 使用改进后的方法处理用户查询
 def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
     """
-    处理用户查询
+    根据用户查询生成回复，包括SQL查询结果、图表和自然语言回复
     
     参数:
-        user_message: 用户消息
-        knowledge_settings: 知识设置
+        user_message: 用户查询
+        knowledge_settings: 相关知识库设置
         
     返回:
-        处理结果
+        查询结果字典
     """
+    response_data = {
+        "success": False,
+        "message": "",
+        "sql": None,
+        "explanation": None,
+        "charts": [],
+        "has_chart": False,
+        "results": None
+    }
+    
     try:
-        print("\n=== 处理新的用户查询 ===")
-        print(f"用户消息: {user_message}")
+        # 步骤1: 检查最近上传的文件，尝试进行Excel分析
+        excel_result = get_latest_excel_file()
         
-        # 对于特定查询，直接使用预定义的SQL
-        if "神经内科" in user_message and "小儿专科" in user_message and "2024年1月" in user_message:
-            sql_query = """
-            SELECT 
-                o.department AS 科室, 
-                o.specialty AS 专科, 
-                SUM(o.visit_count) AS 实际门诊量, 
-                t.target_count AS 目标门诊量,
-                ROUND(SUM(o.visit_count) * 100.0 / t.target_count, 2) AS 完成率
-            FROM outpatient o
-            JOIN target t ON o.department = t.department AND o.specialty = t.specialty
-            WHERE o.department = '神经内科' AND o.specialty = '小儿专科'
-                  AND substr(o.visit_date, 1, 7) = '2024-01'
-                  AND t.month = '2024-01'
-            GROUP BY o.department, o.specialty
-            """
-            explanation = "根据用户查询使用预定义的SQL查询"
+        if excel_result:
+            filename, dataframe = excel_result
+            print(f"分析Excel文件: {filename}")
             
-            try:
-                # 执行预定义查询
-                results = execute_sql_query(sql_query)
-                query_success = True
-                error_message = None
-            except Exception as e:
-                query_success = False
-                error_message = str(e)
-                results = pd.DataFrame()
-                print(f"执行预定义查询出错: {error_message}")
-        else:
-            # 1. 调用LLM生成SQL查询，使用改进的方法自动识别数据库结构
-            query_result = analyze_user_query_and_generate_sql(user_message)
-            
-            # 如果LLM调用失败，使用一个合理的默认查询
-            if not query_result:
-                # 通用的默认查询
-                sql_query = """
-                SELECT o.department AS 科室, o.specialty AS 专科, 
-                       o.visit_date AS 日期, o.visit_count AS 门诊量
-                FROM outpatient o
-                LIMIT 10
-                """
-                explanation = "无法解析生成的查询，返回默认查询"
-            else:
-                sql_query = query_result.get('sql', '')
-                explanation = query_result.get('explanation', '无解释')
-                
-                # 不再需要手动替换表名和字段名，因为LLM已经使用了正确的名称
-                print(f"生成的SQL查询: {sql_query}")
-                print(f"查询解释: {explanation}")
-            
-            # 2. 执行SQL查询
-            try:
-                # 使用直接的SQL执行函数，而不是依赖应用上下文
-                results = execute_sql_query(sql_query)
-                query_success = True
-                error_message = None
-            except Exception as e:
-                query_success = False
-                error_message = str(e)
-                results = pd.DataFrame()
-                print(f"执行SQL查询时出错: {error_message}")
-                
-                # 如果查询出错，尝试使用默认查询
-                try:
-                    print("尝试获取数据库元数据...")
-                    metadata = get_db_metadata(force_refresh=True)  # 强制刷新元数据
-                    print(f"可用的表: {metadata['tables']}")
-                    
-                    # 根据可用的表选择一个默认查询
-                    if 'outpatient' in metadata['tables']:
-                        default_sql = """
-                        SELECT department AS 科室, specialty AS 专科, 
-                               visit_date AS 日期, visit_count AS 门诊量
-                        FROM outpatient
-                        LIMIT 10
-                        """
-                    elif '门诊量' in metadata['tables']:
-                        default_sql = """
-                        SELECT 科室, 专科, 日期, 数量 AS 门诊量
-                        FROM 门诊量
-                        LIMIT 10
-                        """
-                    else:
-                        # 如果找不到合适的表，使用第一个可用的表
-                        if metadata['tables']:
-                            first_table = metadata['tables'][0]
-                            columns = metadata['table_details'][first_table]['columns']
-                            cols_str = ", ".join(columns)
-                            default_sql = f"""
-                            SELECT {cols_str}
-                            FROM {first_table}
-                            LIMIT 10
-                            """
-                        else:
-                            raise Exception("数据库中没有可用的表")
-                        
-                    print("尝试使用默认查询...")
-                    print(f"默认SQL查询: {default_sql}")
-                    results = execute_sql_query(default_sql)
-                    query_success = True
-                    error_message = None
-                except Exception as e2:
-                    print(f"默认查询也失败: {str(e2)}")
-        
-        # 3. 根据查询结果生成可视化
-        visualizations = []
-        if not results.empty:
-            # 无法生成可视化图表，因为不在应用上下文中
-            pass
-        
-        # 4. 生成回复文本
-        if query_success and not results.empty:
-            # 将数据帧转换为可读字符串
-            result_str = results.to_string(index=False)
-            
-            # 添加Markdown格式的表格
-            md_table = results.to_markdown(index=False)
-            
-            # 使用LLM分析结果
-            formatted_user_prompt = RESPONSE_USER_PROMPT.format(
+            # 使用文本分析服务分析Excel内容
+            text_service = LLMServiceFactory.get_text_analysis_service()
+            excel_analysis = text_service.generate_excel_analysis(
                 user_query=user_message,
-                query_results=result_str
+                filename=filename,
+                dataframe=dataframe
             )
             
-            reply = LLMService.call_llm_api(RESPONSE_SYSTEM_PROMPT, formatted_user_prompt)
-            if not reply:
-                # 如果LLM调用失败，直接返回结果
-                if "完成率" in results.columns or "达成率" in results.columns:
-                    # 创建Markdown格式的表格
-                    reply = f"# 门诊量目标达成情况分析\n\n"
-                    reply += f"## 数据概述\n\n"
-                    reply += f"{md_table}\n\n"
-                    
-                    # 添加分析结果
-                    reply += f"## 分析结果\n\n"
-                    
-                    # 检查是否有完成率或达成率低于100%的记录
-                    completion_rate_col = "完成率" if "完成率" in results.columns else "达成率"
-                    below_target = results[results[completion_rate_col] < 100]
-                    above_target = results[results[completion_rate_col] >= 100]
-                    
-                    if not below_target.empty:
-                        reply += f"### 未达成目标的记录\n\n"
-                        reply += below_target.to_markdown(index=False) + "\n\n"
-                        
-                    if not above_target.empty:
-                        reply += f"### 已达成目标的记录\n\n"
-                        reply += above_target.to_markdown(index=False) + "\n\n"
-                    
-                    reply += f"## 建议\n\n"
-                    reply += f"- 对于未达成目标的项目，建议分析原因并制定改进措施\n"
-                    reply += f"- 对于超额完成的项目，可总结经验并推广至其他领域\n"
-                else:
-                    reply = f"# 查询结果\n\n{md_table}"
-        else:
-            # 生成错误提示
-            reply = f"抱歉，无法执行您的查询。错误信息: {error_message}" if error_message else "抱歉，查询没有返回任何结果。"
+            if excel_analysis:
+                response_data.update({
+                    "success": True,
+                    "message": excel_analysis,
+                    "source": "excel",
+                    "filename": filename
+                })
+                return response_data
         
-        # 5. 返回完整结果
-        return {
-            'success': query_success,
-            'query': sql_query,
-            'explanation': explanation,
-            'sql_results': results.to_dict('records') if not results.empty else [],
-            'visualizations': visualizations,
-            'reply': reply,
-            'error': error_message
-        }
+        # 步骤2: 检查最近上传的文本文件进行分析
+        latest_file = get_latest_file('static/uploads/documents')
+        if latest_file and latest_file.endswith(('.txt', '.md', '.csv', '.log', '.json')):
+            file_path = os.path.join('static/uploads/documents', latest_file)
+            
+            try:
+                # 读取文本文件内容
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text_content = f.read()
+                
+                # 确保文本内容不为空
+                if text_content and text_content.strip():
+                    # 使用文本分析服务分析内容
+                    text_analysis = analyze_text_content(text_content, user_message)
+                    
+                    # 确保text_analysis不为None
+                    if text_analysis:
+                        response_data.update({
+                            "success": True,
+                            "message": text_analysis,
+                            "source": "text",
+                            "filename": latest_file
+                        })
+                        return response_data
+                    else:
+                        # 如果文本分析失败，记录错误并继续尝试SQL查询
+                        print("警告: 文本分析返回None，继续尝试其他查询方法")
+            except Exception as e:
+                print(f"分析文本文件时出错: {str(e)}")
+                # 继续执行，尝试数据库查询
         
+        # 步骤3: 知识库查询
+        if knowledge_settings and knowledge_settings.get('enabled', False):
+            # 执行知识库查询的代码
+            pass
+            
+        # 步骤4: 生成SQL查询
+        sql_result = analyze_user_query_and_generate_sql(user_message)
+        
+        if not sql_result:
+            # 如果无法生成SQL，直接使用LLM生成回复
+            text_service = LLMServiceFactory.get_text_analysis_service()
+            llm_response = text_service.generate_text_response(user_message)
+            
+            response_data.update({
+                "success": True,
+                "message": llm_response or "无法理解您的查询。",
+                "source": "llm"
+            })
+            return response_data
+        
+        # 提取SQL和解释
+        sql_query = sql_result.get('sql')
+        explanation = sql_result.get('explanation')
+        
+        # 更新响应数据
+        response_data.update({
+            "sql": sql_query,
+            "explanation": explanation,
+            "source": "database"
+        })
+        
+        # 执行SQL查询
+        try:
+            df_result = execute_sql_query(sql_query)
+            
+            # 检查结果是否为空
+            if df_result.empty:
+                response_data.update({
+                    "success": True,
+                    "message": "查询执行成功，但未找到符合条件的数据。",
+                    "results": []
+                })
+                return response_data
+                
+            # 转换结果为JSON格式
+            results = df_result.to_dict(orient='records')
+            
+            # 更新响应数据
+            response_data.update({
+                "success": True,
+                "results": results
+            })
+            
+            # 生成图表配置
+            chart_service = LLMServiceFactory.get_chart_service()
+            chart_config = chart_service.generate_chart_config(
+                user_query=user_message, 
+                sql=sql_query, 
+                data=results[:100]  # 限制数据量
+            )
+            
+            if chart_config:
+                # 生成图表的HTML代码
+                charts = generate_dynamic_charts(chart_config, results[:100])
+                
+                if charts:
+                    response_data.update({
+                        "charts": charts,
+                        "has_chart": True
+                    })
+            
+            # 生成最终回复
+            text_service = LLMServiceFactory.get_text_analysis_service()
+            final_response = text_service.generate_sql_analysis(
+                user_query=user_message,
+                sql_query=sql_query,
+                results=results[:100],  # 限制数据量
+                has_chart=response_data["has_chart"]
+            )
+            
+            response_data["message"] = final_response
+            
+        except Exception as e:
+            print(f"执行SQL查询时出错: {str(e)}")
+            traceback.print_exc()
+            
+            response_data.update({
+                "success": False,
+                "message": f"执行SQL查询时出错: {str(e)}"
+            })
+            
+            # 尝试生成文本回复作为备选
+            text_service = LLMServiceFactory.get_text_analysis_service()
+            fallback_response = text_service.generate_text_response(user_message)
+            
+            if fallback_response:
+                response_data.update({
+                    "success": True,
+                    "message": fallback_response,
+                    "source": "llm_fallback"
+                })
+    
     except Exception as e:
-        print(f"处理用户查询时出错: {str(e)}")
-        print(f"错误堆栈: {traceback.format_exc()}")
+        print(f"处理查询时出错: {str(e)}")
+        traceback.print_exc()
+        response_data.update({
+            "success": False,
+            "message": f"处理查询时出错: {str(e)}"
+        })
         
-        return {
-            'success': False,
-            'query': '',
-            'explanation': '',
-            'sql_results': [],
-            'visualizations': [],
-            'reply': f"抱歉，处理您的查询时发生错误: {str(e)}",
-            'error': str(e)
-        } 
+    return response_data 

@@ -4,7 +4,7 @@ AI聊天控制器模块
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required
 from app.models.database import Database
-from app.services.llm_service import LLMService
+from app.services.llm_service import LLMServiceFactory
 from app.services.file_service import FileService
 import json
 import traceback
@@ -46,8 +46,11 @@ def process_query():
             
         # 默认流程：分析用户查询并生成SQL
         try:
-            # 调用LLM服务分析用户查询
-            analysis_result = LLMService.analyze_user_query_and_generate_sql(user_query)
+            # 使用工厂方法获取SQL服务
+            sql_service = LLMServiceFactory.get_sql_service()
+            
+            # 生成SQL查询
+            analysis_result = sql_service.generate_sql(user_query)
             
             if not analysis_result or 'sql' not in analysis_result:
                 # 如果无法生成SQL查询，使用通用回答
@@ -57,7 +60,11 @@ def process_query():
                 如果问题超出你的知识范围，请诚实地表明。
                 """
                 
-                response = LLMService.call_llm_api(system_prompt, user_query)
+                # 使用工厂方法获取基础服务
+                base_service = LLMServiceFactory.get_base_service()
+                
+                # 调用LLM API
+                response = base_service.call_api(system_prompt, user_query)
                 
                 return jsonify(
                     success=True,
@@ -92,14 +99,32 @@ def process_query():
                 
                 # 获取数据并分析
                 result_data = df.to_dict(orient='records')
-                data_analysis = LLMService.generate_data_analysis(result_data, user_query)
                 
-                if data_analysis:
+                # 使用工厂方法获取文本分析服务
+                text_service = LLMServiceFactory.get_text_analysis_service()
+                
+                # 准备上下文数据
+                context_data = {
+                    "text_content": result_data[0]['text_content'],
+                    "metadata": result_data[0]['metadata'],
+                    "file_type": result_data[0]['file_type'],
+                    "file_name": result_data[0]['file_name']
+                }
+                if result_data[0]['structured_data']:
+                    context_data["structured_data"] = result_data[0]['structured_data']
+                
+                # 生成文本分析
+                analysis_result = text_service.generate_text_analysis(
+                    user_query=user_query,
+                    context_data=json.dumps(context_data, ensure_ascii=False)
+                )
+                
+                if analysis_result:
                     return jsonify(
                         success=True,
-                        message=data_analysis.get('analysis', "数据分析完成。"),
+                        message=analysis_result.get('analysis', "数据分析完成。"),
                         data=result_data,
-                        charts=data_analysis.get('charts', []),
+                        charts=analysis_result.get('charts', []),
                         type="data_analysis"
                     )
                 else:
@@ -122,7 +147,11 @@ def process_query():
                 请根据用户的问题，直接提供可能的回答，不要提及SQL错误。
                 """
                 
-                response = LLMService.call_llm_api(system_prompt, user_query)
+                # 使用工厂方法获取基础服务
+                base_service = LLMServiceFactory.get_base_service()
+                
+                # 调用LLM API
+                response = base_service.call_api(system_prompt, user_query)
                 
                 return jsonify(
                     success=True,
@@ -140,7 +169,11 @@ def process_query():
             如果问题超出你的知识范围，请诚实地表明。
             """
             
-            response = LLMService.call_llm_api(system_prompt, user_query)
+            # 使用工厂方法获取基础服务
+            base_service = LLMServiceFactory.get_base_service()
+            
+            # 调用LLM API
+            response = base_service.call_api(system_prompt, user_query)
             
             return jsonify(
                 success=True,
@@ -292,14 +325,21 @@ def analyze_document():
         # 提取结构化数据（如果有）
         structured_data = result.get('structured_data')
         
+        # 准备上下文数据
+        context_data = {
+            "text_content": text_content,
+            "metadata": metadata,
+            "file_type": file_type,
+            "file_name": filename
+        }
+        if structured_data:
+            context_data["structured_data"] = structured_data
+        
         # 生成分析结果
-        analysis_result = LLMService.generate_text_analysis(
-            text_content=text_content, 
+        text_service = LLMServiceFactory.get_text_analysis_service()
+        analysis_result = text_service.generate_text_analysis(
             user_query=user_query,
-            metadata=metadata,
-            structured_data=structured_data,
-            file_type=file_type,
-            file_name=filename
+            context_data=json.dumps(context_data, ensure_ascii=False)
         )
         
         if analysis_result:
