@@ -150,7 +150,7 @@ medicalman/
    ```
 
 8. **访问应用**
-   在浏览器中访问 http://localhost:5000
+   在浏览器中访问 http://localhost:5101
 
 ### 5.3 生产环境部署
 
@@ -161,7 +161,7 @@ medicalman/
 pip install gunicorn
 
 # 启动Gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 "run:app"
+gunicorn -w 4 -b 0.0.0.0:5101 "run:app"
 ```
 
 ## 6. 使用指南

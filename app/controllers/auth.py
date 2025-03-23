@@ -68,20 +68,24 @@ def login():
         return jsonify({'success': False, 'message': '验证码错误'})
     
     # 查找用户
-    user = User.query.filter_by(username=username).first()
+    user = User.get_by_username(username)
     if user is None or not user.check_password(password):
         return jsonify({'success': False, 'message': '用户名或密码错误'})
     
     # 登录用户
-    login_user(user)
+    print(f"用户 {username} 登录成功，准备重定向到仪表板")
+    login_user(user, remember=True)
     
     # 生成新的验证码
     session['captcha'] = generate_captcha()
     
+    redirect_url = url_for('dashboard.index')
+    print(f"重定向URL: {redirect_url}")
+
     return jsonify({
         'success': True,
         'message': '登录成功',
-        'redirect': url_for('dashboard.index')
+        'redirect': redirect_url
     })
 
 # 登出
@@ -109,11 +113,12 @@ def register():
     department = data.get('department')
     
     # 验证用户名是否已存在
-    if User.query.filter_by(username=username).first():
+    if User.get_by_username(username):
         return jsonify({'success': False, 'message': '用户名已存在'})
     
     # 验证邮箱是否已存在
-    if User.query.filter_by(email=email).first():
+    existing_email = db.session.query(User).filter_by(email=email).first()
+    if existing_email:
         return jsonify({'success': False, 'message': '邮箱已被注册'})
     
     # 创建新用户
@@ -121,7 +126,8 @@ def register():
     user.set_password(password)
     
     # 如果是第一个用户，设置为管理员
-    if User.query.count() == 0:
+    count = db.session.query(User).count()
+    if count == 0:
         user.is_admin = True
     
     try:

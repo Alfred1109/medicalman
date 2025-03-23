@@ -2,7 +2,8 @@
 设置控制器模块
 """
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
-from app.controllers.auth import login_required, role_required
+from flask_login import login_required, current_user
+from functools import wraps
 from app.models.database import Database
 from app.models.user import User
 import traceback
@@ -11,6 +12,22 @@ import json
 
 # 创建蓝图
 settings_bp = Blueprint('settings', __name__)
+
+# 角色装饰器
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user is None or not current_user.is_authenticated:
+                return redirect(url_for('auth.login', next=request.url))
+            
+            if current_user.role != role and not current_user.is_admin:
+                flash('您没有权限访问此页面', 'error')
+                return redirect(url_for('dashboard.index'))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 @settings_bp.route('/settings')
 @login_required

@@ -435,18 +435,31 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     username: username,
                     password: password,
                     captcha: captcha
-                })
+                }),
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('登录响应状态:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('登录响应数据:', data);
                 if (data.success) {
-                    // 登录成功，重定向到仪表板
-                    window.location.href = '/';
+                    // 登录成功，重定向到服务器指定的URL
+                    console.log('重定向到:', data.redirect);
+                    // 使用完整的URL，包括协议和主机名
+                    const currentHost = window.location.protocol + '//' + window.location.host;
+                    const redirectUrl = data.redirect.startsWith('/') 
+                        ? currentHost + data.redirect 
+                        : data.redirect;
+                    console.log('完整重定向URL:', redirectUrl);
+                    window.location.href = redirectUrl;
                 } else {
                     // 登录失败，显示错误消息
                     errorMessageElement.textContent = data.message || '登录失败，请检查用户名和密码';

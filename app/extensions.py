@@ -17,7 +17,8 @@ login_manager.login_message_category = 'warning'
 def init_extensions(app):
     """初始化所有Flask扩展"""
     # 初始化数据库
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///medical_workload.db'
+    db_path = app.config.get('DATABASE_PATH', 'instance/medical_workload.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     

@@ -59,8 +59,8 @@ function sendQuery() {
     // 添加用户消息到聊天界面
     addMessage('user', userMessage);
 
-    // 显示加载指示器
-    addMessage('assistant', '<div class="loading-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>', 'loading-message');
+    // 显示加载指示器 - 使用条状思考动画替代旋转动画
+    addMessage('assistant', '<div class="thinking-message">思考中<span class="typing-indicator"><span></span><span></span><span></span></span></div>', 'loading-message');
 
     // 发送请求到后端
     $.ajax({

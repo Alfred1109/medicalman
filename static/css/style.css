@@ -48,42 +48,57 @@
     border-bottom-left-radius: 0;
 }
 
-/* 加载指示器 */
-.loading-indicator {
+/* 思考中的消息样式 */
+.thinking-message {
     display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 10px;
+    font-weight: 500;
+    color: #444;
 }
 
-.loading-indicator .dot {
-    width: 8px;
-    height: 8px;
-    margin: 0 4px;
-    background-color: #6c757d;
-    border-radius: 50%;
-    animation: bounce 1.5s infinite ease-in-out;
+/* 思考中的条状动画样式 */
+.typing-indicator {
+    display: inline-flex;
+    margin-left: 5px;
 }
 
-.loading-indicator .dot:nth-child(1) {
+.typing-indicator span {
+    display: inline-block;
+    width: 5px;
+    height: 12px;
+    border-radius: 1px;
+    background-color: #333;
+    margin: 0 2px;
+    opacity: 0.2;
+    animation: stretch 1s ease-in-out infinite;
+    transform-origin: bottom;
+}
+
+.typing-indicator span:nth-child(1) {
     animation-delay: 0s;
 }
 
-.loading-indicator .dot:nth-child(2) {
+.typing-indicator span:nth-child(2) {
     animation-delay: 0.2s;
 }
 
-.loading-indicator .dot:nth-child(3) {
+.typing-indicator span:nth-child(3) {
     animation-delay: 0.4s;
 }
 
-@keyframes bounce {
-    0%, 80%, 100% {
-        transform: scale(0);
+@keyframes stretch {
+    0%, 100% {
+        transform: scaleY(0.5);
     }
-    40% {
-        transform: scale(1);
+    50% {
+        transform: scaleY(1.5);
+        opacity: 0.8;
     }
+}
+
+/* 旧的加载动画样式 - 禁用 */
+.loading-indicator {
+    display: none;
 }
 
 /* 错误消息 */
@@ -193,4 +208,37 @@
 .sources-section li {
     font-size: 0.9rem;
     margin-bottom: 5px;
+}
+
+/* 加载状态的AI消息气泡样式 */
+.chat-bubble.ai.thinking {
+    background-color: white;
+    box-shadow: none;
+    border: 1px solid #f0f0f0;
+}
+
+.chat-bubble.ai.thinking > div {
+    display: flex;
+    align-items: center;
+}
+
+.chat-bubble.ai.thinking .typing-indicator {
+    display: inline-flex;
+    margin-left: 8px;
+}
+
+/* 旧的loading样式 - 保留但不再使用 */
+.chat-bubble.ai.loading {
+    background-color: white;
+    animation: none !important; /* 防止气泡旋转 */
+}
+
+.chat-bubble.ai.loading > div {
+    animation: none !important; /* 防止内容旋转 */
+}
+
+.chat-bubble.ai.loading .typing-indicator {
+    display: inline-flex;
+    margin-left: 8px;
+    animation: none !important; /* 防止整体旋转 */
 } 

@@ -10,6 +10,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(UserMixin, db.Model):
+    """用户模型类"""
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -19,12 +20,14 @@ class User(UserMixin, db.Model):
     department = db.Column(db.String(50))
     is_admin = db.Column(db.Boolean, default=False)
     permissions = db.Column(db.String(255), default='')  # 权限列表，以逗号分隔
+    role = db.Column(db.String(20), default='user')  # 添加role字段以兼容旧代码
     
-    def __init__(self, username, email, department=None, is_admin=False):
+    def __init__(self, username, email, department=None, is_admin=False, role='user'):
         self.username = username
         self.email = email
         self.department = department
         self.is_admin = is_admin
+        self.role = role
     
     def set_password(self, password):
         """设置用户密码"""
@@ -39,38 +42,6 @@ class User(UserMixin, db.Model):
         if self.is_admin:  # 管理员拥有所有权限
             return True
         return permission in self.permissions.split(',')
-    
-    def __repr__(self):
-        return f'<User {self.username}>'
-
-@login_manager.user_loader
-def load_user(user_id):
-    """Flask-Login用户加载回调"""
-    return User.query.get(int(user_id))
-
-class User:
-    """用户模型类"""
-    
-    def __init__(self, user_id: int = None, username: str = None, 
-                 password_hash: str = None, role: str = None, 
-                 email: str = None, department: str = None):
-        """
-        初始化用户对象
-        
-        参数:
-            user_id: 用户ID
-            username: 用户名
-            password_hash: 密码哈希
-            role: 用户角色
-            email: 电子邮件
-            department: 所属科室
-        """
-        self.user_id = user_id
-        self.username = username
-        self.password_hash = password_hash
-        self.role = role
-        self.email = email
-        self.department = department
     
     @staticmethod
     def hash_password(password: str) -> str:
@@ -106,6 +77,10 @@ class User:
         返回:
             密码是否匹配
         """
+        # 如果是使用werkzeug生成的密码哈希，直接使用check_password_hash
+        if not stored_password.count(':'):
+            return check_password_hash(stored_password, provided_password)
+            
         salt_hex, key_hex = stored_password.split(':')
         salt = bytes.fromhex(salt_hex)
         stored_key = bytes.fromhex(key_hex)
@@ -122,33 +97,6 @@ class User:
         return key == stored_key
     
     @classmethod
-    def get_by_id(cls, user_id: int) -> Optional['User']:
-        """
-        根据ID获取用户
-        
-        参数:
-            user_id: 用户ID
-            
-        返回:
-            用户对象，如果不存在则返回None
-        """
-        query = "SELECT * FROM users WHERE id = ?"
-        results = Database.execute_query(query, (user_id,))
-        
-        if not results:
-            return None
-        
-        user_data = results[0]
-        return cls(
-            user_id=user_data['id'],
-            username=user_data['username'],
-            password_hash=user_data['password_hash'],
-            role=user_data['role'],
-            email=user_data['email'],
-            department=user_data['department']
-        )
-    
-    @classmethod
     def get_by_username(cls, username: str) -> Optional['User']:
         """
         根据用户名获取用户
@@ -159,21 +107,20 @@ class User:
         返回:
             用户对象，如果不存在则返回None
         """
-        query = "SELECT * FROM users WHERE username = ?"
-        results = Database.execute_query(query, (username,))
+        return cls.query.filter_by(username=username).first()
+    
+    @classmethod
+    def get_by_id(cls, user_id: int) -> Optional['User']:
+        """
+        根据ID获取用户
         
-        if not results:
-            return None
-        
-        user_data = results[0]
-        return cls(
-            user_id=user_data['id'],
-            username=user_data['username'],
-            password_hash=user_data['password_hash'],
-            role=user_data['role'],
-            email=user_data['email'],
-            department=user_data['department']
-        )
+        参数:
+            user_id: 用户ID
+            
+        返回:
+            用户对象，如果不存在则返回None
+        """
+        return cls.query.get(user_id)
     
     def save(self) -> bool:
         """
@@ -182,56 +129,36 @@ class User:
         返回:
             保存是否成功
         """
-        if self.user_id:
-            # 更新现有用户
-            query = """
-            UPDATE users 
-            SET username = ?, password_hash = ?, role = ?, email = ?, department = ?
-            WHERE id = ?
-            """
-            params = (
-                self.username, self.password_hash, self.role, 
-                self.email, self.department, self.user_id
-            )
-        else:
-            # 创建新用户
-            query = """
-            INSERT INTO users (username, password_hash, role, email, department)
-            VALUES (?, ?, ?, ?, ?)
-            """
-            params = (
-                self.username, self.password_hash, self.role, 
-                self.email, self.department
-            )
-        
         try:
-            affected_rows = Database.execute_update(query, params)
-            return affected_rows > 0
+            db.session.add(self)
+            db.session.commit()
+            return True
         except Exception as e:
+            db.session.rollback()
             print(f"保存用户时出错: {str(e)}")
             return False
     
-    @staticmethod
-    def get_all_users() -> List['User']:
+    def to_dict(self) -> Dict[str, Any]:
         """
-        获取所有用户
+        将用户对象转换为字典
         
         返回:
-            用户对象列表
+            用户信息字典
         """
-        query = "SELECT * FROM users"
-        results = Database.execute_query(query)
-        
-        users = []
-        for user_data in results:
-            user = User(
-                user_id=user_data['id'],
-                username=user_data['username'],
-                password_hash=user_data['password_hash'],
-                role=user_data['role'],
-                email=user_data['email'],
-                department=user_data['department']
-            )
-            users.append(user)
-        
-        return users 
+        return {
+            'id': self.id,
+            'user_id': self.id,  # 兼容旧代码
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'department': self.department,
+            'is_admin': self.is_admin
+        }
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Flask-Login用户加载回调"""
+    return User.query.get(int(user_id)) 

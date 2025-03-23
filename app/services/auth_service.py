@@ -28,20 +28,15 @@ class AuthService:
         user = User.get_by_username(username)
         
         # 验证用户和密码
-        if user and User.verify_password(user.password_hash, password):
+        if user and user.check_password(password):
             # 设置会话
-            session['user_id'] = user.user_id
+            session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
             session['department'] = user.department
             
             # 返回用户信息
-            return {
-                'user_id': user.user_id,
-                'username': user.username,
-                'role': user.role,
-                'department': user.department
-            }
+            return user.to_dict()
         
         # 登录失败
         return None
@@ -87,19 +82,17 @@ class AuthService:
             return False, "用户名已存在"
         
         # 创建新用户
-        password_hash = User.hash_password(password)
-        new_user = User(
-            username=username,
-            password_hash=password_hash,
-            role=role,
-            email=email,
-            department=department
-        )
-        
-        # 保存用户
-        if new_user.save():
+        from app.extensions import db
+        try:
+            new_user = User(username=username, email=email, department=department, role=role)
+            new_user.set_password(password)
+            
+            db.session.add(new_user)
+            db.session.commit()
             return True, None
-        else:
+        except Exception as e:
+            db.session.rollback()
+            print(f"注册用户时出错: {str(e)}")
             return False, "注册失败，请稍后再试"
     
     @staticmethod
@@ -124,20 +117,14 @@ class AuthService:
             return None
         
         user_id = session.get('user_id')
-        user = User.get_by_id(user_id)
+        user = User.query.get(user_id)
         
         if not user:
             # 会话中有用户ID但找不到用户，清除会话
             AuthService.logout()
             return None
         
-        return {
-            'user_id': user.user_id,
-            'username': user.username,
-            'role': user.role,
-            'email': user.email,
-            'department': user.department
-        }
+        return user.to_dict()
     
     @staticmethod
     def generate_captcha(width: int, height: int, chars: str, length: int) -> Tuple[str, bytes]:

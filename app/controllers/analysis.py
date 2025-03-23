@@ -2,7 +2,7 @@
 分析控制器模块
 """
 from flask import Blueprint, render_template, request, jsonify
-from app.controllers.auth import login_required
+from flask_login import login_required
 from app.models.database import Database
 import pandas as pd
 import json

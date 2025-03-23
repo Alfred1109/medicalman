@@ -20,6 +20,71 @@
 
 {% block styles %}
     <style>
+        .analysis-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .analysis-tab {
+            padding: var(--spacing-md) var(--spacing-lg);
+            cursor: pointer;
+            position: relative;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        
+        .analysis-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .analysis-tab.active {
+            color: var(--primary-color);
+        }
+        
+        .analysis-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+        
+        .filter-panel {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-label {
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--text-secondary);
+        }
+        
+        .filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+        }
+            
         .drg-container {
             padding: var(--spacing-md);
         }
@@ -46,62 +111,48 @@
             min-width: 200px;
         }
         
-        .filter-label {
-            display: block;
-            margin-bottom: var(--spacing-xs);
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        
-        .filter-input {
-            width: 100%;
-            padding: var(--spacing-sm);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-        }
-        
         .drg-cards {
             display: grid;
-        grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: var(--spacing-md);
             margin-bottom: var(--spacing-lg);
         }
         
         .drg-card {
-        background: white;
-        border-radius: var(--border-radius);
+            background: white;
+            border-radius: var(--border-radius);
             padding: var(--spacing-md);
             box-shadow: var(--shadow-sm);
         }
         
-    .drg-card-title {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-        margin-bottom: var(--spacing-xs);
-    }
-    
-    .drg-card-value {
-        font-size: var(--font-size-xl);
-        font-weight: 600;
+        .drg-card-title {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
             margin-bottom: var(--spacing-xs);
         }
         
-    .drg-card-trend {
+        .drg-card-value {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .drg-card-trend {
             display: flex;
             align-items: center;
             font-size: var(--font-size-sm);
         }
         
-    .drg-card-trend.positive {
-        color: var(--success-color);
-    }
-    
-    .drg-card-trend.negative {
+        .drg-card-trend.positive {
+            color: var(--success-color);
+        }
+        
+        .drg-card-trend.negative {
             color: var(--danger-color);
         }
         
-    .drg-card-trend i {
-        margin-right: var(--spacing-xs);
+        .drg-card-trend i {
+            margin-right: var(--spacing-xs);
         }
         
         .drg-charts {
@@ -111,115 +162,210 @@
             margin-bottom: var(--spacing-lg);
         }
         
-    .drg-chart-container {
-        background: white;
-        border-radius: var(--border-radius);
+        .drg-chart-container {
+            background: white;
+            border-radius: var(--border-radius);
             padding: var(--spacing-md);
             box-shadow: var(--shadow-sm);
         }
         
-    .drg-chart-header {
+        .drg-chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: var(--spacing-md);
         }
         
-    .drg-chart-title {
+        .drg-chart-title {
             font-weight: 600;
-        margin: 0;
-    }
-    
-    .drg-chart-actions {
-        display: flex;
-        gap: var(--spacing-xs);
-    }
-    
-    .drg-chart-action {
-        width: 28px;
-        height: 28px;
-        border-radius: 4px;
+            margin: 0;
+        }
+        
+        .drg-chart-actions {
             display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .drg-chart-action:hover {
-        background-color: var(--light-bg);
-        color: var(--primary-color);
-    }
-    
-    .drg-table {
-        width: 100%;
-        background: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-    }
-    
-    .drg-table table {
+            gap: var(--spacing-xs);
+        }
+        
+        .drg-chart-action {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .drg-chart-action:hover {
+            background-color: var(--light-bg);
+            color: var(--primary-color);
+        }
+        
+        /* 通用样式命名 - 与其他分析页面保持一致 */
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .stat-card {
+            background-color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .stat-title {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .stat-change.positive {
+            color: var(--success-color);
+        }
+        
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
+        
+        .analysis-chart {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            padding: var(--spacing-md);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .chart-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .chart-action {
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        
+        .chart-action:hover {
+            background-color: var(--background-light);
+            color: var(--primary-color);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .drg-table {
+            width: 100%;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        
+        .drg-table table {
             width: 100%;
             border-collapse: collapse;
         }
         
-    .drg-table th {
-        background: var(--light-bg);
+        .drg-table th {
+            background: var(--light-bg);
             padding: var(--spacing-sm);
             text-align: left;
-        font-weight: 600;
-    }
-    
-    .drg-table td {
-        padding: var(--spacing-sm);
-        border-top: 1px solid var(--border-color);
-    }
-    
-    .drg-table tr:hover td {
-        background: var(--light-bg);
-    }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 0.25em 0.6em;
-        font-size: 0.75rem;
-        font-weight: 500;
-        border-radius: 0.25rem;
-    }
-    
-    .status-badge-success {
-        background-color: var(--success-light);
-        color: var(--success-color);
-    }
-    
-    .status-badge-warning {
-        background-color: var(--warning-light);
-        color: var(--warning-color);
-    }
-    
-    .status-badge-danger {
-        background-color: var(--danger-light);
-        color: var(--danger-color);
-    }
-    
-    @media (max-width: 992px) {
-        .drg-cards {
-            grid-template-columns: repeat(2, 1fr);
+            font-weight: 600;
         }
         
+        .drg-table td {
+            padding: var(--spacing-sm);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .drg-table tr:hover td {
+            background: var(--light-bg);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 0.25rem;
+        }
+        
+        .status-badge-success {
+            background-color: var(--success-light);
+            color: var(--success-color);
+        }
+        
+        .status-badge-warning {
+            background-color: var(--warning-light);
+            color: var(--warning-color);
+        }
+        
+        .status-badge-danger {
+            background-color: var(--danger-light);
+            color: var(--danger-color);
+        }
+        
+        @media (max-width: 992px) {
+            .drg-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
             .drg-charts {
                 grid-template-columns: 1fr;
             }
         }
-    
-    @media (max-width: 576px) {
-        .drg-cards {
-            grid-template-columns: 1fr;
+        
+        @media (max-width: 576px) {
+            .drg-cards {
+                grid-template-columns: 1fr;
+            }
         }
-    }
-</style>
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -230,7 +376,7 @@
     <div class="analysis-tab"><a href="{{ url_for('analysis.patient_analysis') }}" style="color: inherit; text-decoration: none;">患者分析</a></div>
     <div class="analysis-tab"><a href="{{ url_for('analysis.financial_analysis') }}" style="color: inherit; text-decoration: none;">财务分析</a></div>
     <div class="analysis-tab active"><a href="{{ url_for('analysis.drg_analysis') }}" style="color: inherit; text-decoration: none;">DRG分析</a></div>
-            </div>
+</div>
             
 <div class="filter-panel">
     <div class="filter-row">
@@ -254,9 +400,9 @@
                 <option>今年</option>
                 <option>去年</option>
                 <option>自定义</option>
-                        </select>
-                    </div>
-                    
+            </select>
+        </div>
+        
         <div class="filter-item">
             <span class="filter-label">DRG组</span>
             <select class="form-select">
@@ -265,81 +411,85 @@
                 <option>外科手术组</option>
                 <option>妇产科疾病组</option>
                 <option>儿科疾病组</option>
-                        </select>
+            </select>
         </div>
-                    </div>
-                    
+    </div>
+    
     <div class="filter-actions">
         <button class="btn btn-outline-primary">重置</button>
         <button class="btn btn-primary">应用筛选</button>
-                    </div>
-                </div>
+    </div>
+</div>
                 
-                <div class="drg-cards">
-                    <div class="drg-card">
-        <div class="drg-card-title">DRG组数量</div>
-        <div class="drg-card-value">684</div>
-        <div class="drg-card-trend positive">
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-title">DRG组数量</div>
+        <div class="stat-value">684</div>
+        <div class="stat-change positive">
             <i class="fas fa-arrow-up"></i> 5.2% 较上月
-                        </div>
-                    </div>
-                    
-                    <div class="drg-card">
-        <div class="drg-card-title">平均住院日</div>
-        <div class="drg-card-value">8.3</div>
-        <div class="drg-card-trend negative">
-            <i class="fas fa-arrow-down"></i> 2.4% 较上月
-                        </div>
-                    </div>
-                    
-                    <div class="drg-card">
-        <div class="drg-card-title">CMI指数</div>
-        <div class="drg-card-value">1.24</div>
-        <div class="drg-card-trend positive">
-            <i class="fas fa-arrow-up"></i> 3.7% 较上月
-                        </div>
-                    </div>
-                    
-                    <div class="drg-card">
-        <div class="drg-card-title">辅助检查收费占比</div>
-        <div class="drg-card-value">22.5%</div>
-        <div class="drg-card-trend negative">
-            <i class="fas fa-arrow-down"></i> 1.8% 较上月
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="drg-charts">
-    <div class="drg-chart-container">
-        <div class="drg-chart-header">
-            <h4 class="drg-chart-title">DRG组病例分布</h4>
-            <div class="drg-chart-actions">
-                <div class="drg-chart-action" title="下载图表">
-                    <i class="fas fa-download"></i>
-                    </div>
-                <div class="drg-chart-action" title="全屏查看">
-                    <i class="fas fa-expand"></i>
-                </div>
-                        </div>
         </div>
-        <canvas id="drgDistributionChart" height="180"></canvas>
-                    </div>
-                    
-    <div class="drg-chart-container">
-        <div class="drg-chart-header">
-            <h4 class="drg-chart-title">DRG绩效趋势</h4>
-            <div class="drg-chart-actions">
-                <div class="drg-chart-action" title="下载图表">
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-title">平均住院日</div>
+        <div class="stat-value">8.3</div>
+        <div class="stat-change negative">
+            <i class="fas fa-arrow-down"></i> 2.4% 较上月
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-title">CMI指数</div>
+        <div class="stat-value">1.24</div>
+        <div class="stat-change positive">
+            <i class="fas fa-arrow-up"></i> 3.7% 较上月
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-title">辅助检查收费占比</div>
+        <div class="stat-value">22.5%</div>
+        <div class="stat-change negative">
+            <i class="fas fa-arrow-down"></i> 1.8% 较上月
+        </div>
+    </div>
+</div>
+                
+<div class="analysis-grid">
+    <div class="analysis-chart">
+        <div class="chart-header">
+            <h3 class="chart-title">DRG组病例分布</h3>
+            <div class="chart-actions">
+                <div class="chart-action" title="下载图表">
                     <i class="fas fa-download"></i>
-                    </div>
-                <div class="drg-chart-action" title="全屏查看">
+                </div>
+                <div class="chart-action" title="全屏查看">
                     <i class="fas fa-expand"></i>
                 </div>
             </div>
         </div>
-        <canvas id="drgPerformanceChart" height="180"></canvas>
-                        </div>
-                    </div>
+        <div class="chart-container">
+            <canvas id="drgDistributionChart" height="180"></canvas>
+        </div>
+    </div>
+    
+    <div class="analysis-chart">
+        <div class="chart-header">
+            <h3 class="chart-title">DRG绩效趋势</h3>
+            <div class="chart-actions">
+                <div class="chart-action" title="下载图表">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="chart-action" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                </div>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="drgPerformanceChart" height="180"></canvas>
+        </div>
+    </div>
+</div>
                     
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -351,8 +501,8 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-hover">
-                        <thead>
-                            <tr>
+                <thead>
+                    <tr>
                         <th>DRG组编码</th>
                         <th>DRG组名称</th>
                         <th>病例数</th>
@@ -361,8 +511,8 @@
                         <th>费用差异(%)</th>
                         <th>变异系数</th>
                         <th>绩效状态</th>
-                            </tr>
-                        </thead>
+                    </tr>
+                </thead>
                 <tbody>
                     <tr>
                         <td>G10</td>
@@ -424,11 +574,11 @@
                         <td>0.17</td>
                         <td><span class="status-badge status-badge-warning">良</span></td>
                     </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                </tbody>
+            </table>
         </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
