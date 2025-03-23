@@ -3,6 +3,7 @@
 """
 import traceback
 from typing import Dict, Any, Optional
+import re
 
 from app.services.base_llm_service import BaseLLMService
 
@@ -55,6 +56,359 @@ class TextAnalysisService(BaseLLMService):
             print(f"生成文本分析时出错: {str(e)}")
             traceback.print_exc()
             return f"分析过程中发生错误: {str(e)}"
+    
+    def generate_sql_analysis(self, user_query: str, sql_query: str, results: list, has_chart: bool = False) -> str:
+        """
+        分析SQL查询结果并生成解释
+        
+        参数:
+            user_query: 用户查询
+            sql_query: 执行的SQL查询
+            results: 查询结果列表
+            has_chart: 是否有图表
+            
+        返回:
+            分析结果文本
+        """
+        try:
+            # 转换结果为可读格式
+            if results and len(results) > 0:
+                sample_size = min(10, len(results))  # 最多取10条数据作为样本
+                results_str = str(results[:sample_size])
+                total_count = len(results)
+            else:
+                results_str = "[]"
+                total_count = 0
+            
+            # 构建SQL分析提示词
+            prompt = f"""请分析以下SQL查询结果并生成专业、通俗易懂的解释：
+
+用户问题：
+{user_query}
+
+执行的SQL查询：
+{sql_query}
+
+查询结果 (共{total_count}条记录，显示前{min(10, total_count)}条)：
+{results_str}
+
+{'图表已生成用于可视化这些数据。' if has_chart else '未生成图表。'}
+
+请提供：
+1. 对用户问题的直接回答
+2. 对SQL查询结果的专业医学解释
+3. 关键医学发现和见解
+4. 结果的临床意义或管理含义
+5. 如有需要，解释重要的医学术语
+
+你的分析应当准确、客观、全面，并以清晰的医学视角进行解读。
+使用专业但易于理解的语言，适合医疗管理人员阅读。
+"""
+            
+            # 调用LLM API
+            response = self.call_api(
+                system_prompt="你是一位医疗数据分析专家，擅长解读SQL查询结果并提供医学见解。",
+                user_message=prompt,
+                temperature=0.4,
+                top_p=0.9
+            )
+            
+            if not response:
+                return "无法分析查询结果，请稍后重试。"
+            
+            # 尝试自动生成图表配置
+            if not has_chart and results and len(results) > 0:
+                try:
+                    charts = self.generate_auto_charts(user_query, results)
+                    if charts and len(charts) > 0:
+                        print(f"自动生成了{len(charts)}个图表")
+                except Exception as chart_error:
+                    print(f"自动生成图表时出错: {str(chart_error)}")
+            
+            return response
+        
+        except Exception as e:
+            print(f"分析SQL结果时出错: {str(e)}")
+            traceback.print_exc()
+            return f"分析SQL结果时发生错误: {str(e)}"
+    
+    def generate_auto_charts(self, user_query: str, results: list) -> list:
+        """
+        根据查询结果自动生成适合的图表配置
+        
+        参数:
+            user_query: 用户查询
+            results: 查询结果列表
+            
+        返回:
+            图表配置列表
+        """
+        try:
+            if not results or len(results) == 0:
+                return []
+                
+            charts = []
+            
+            # 提取数据字段
+            sample = results[0]
+            fields = list(sample.keys())
+            
+            # 检查是否有数值型和类别型字段
+            numeric_fields = []
+            category_fields = []
+            date_fields = []
+            
+            for field in fields:
+                values = [r.get(field) for r in results if r.get(field) is not None]
+                if not values:
+                    continue
+                    
+                # 检查是否为数值型
+                if all(isinstance(v, (int, float)) for v in values):
+                    numeric_fields.append(field)
+                # 检查是否为日期型
+                elif all(isinstance(v, str) and re.match(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', v) for v in values):
+                    date_fields.append(field)
+                # 检查是否为类别型
+                elif len(set(values)) < len(values) * 0.5:  # 如果唯一值少于总数的一半，视为类别
+                    category_fields.append(field)
+            
+            # 生成柱状图/折线图 (数值 vs 类别/日期)
+            if numeric_fields and (category_fields or date_fields):
+                # 选择X轴（优先使用日期，其次使用类别）
+                x_field = date_fields[0] if date_fields else category_fields[0]
+                # 选择Y轴（数值）
+                y_field = numeric_fields[0]
+                
+                # 提取并聚合数据
+                x_values = []
+                y_values = []
+                
+                # 简单数据预处理
+                data_map = {}
+                for r in results:
+                    x_val = r.get(x_field)
+                    y_val = r.get(y_field)
+                    if x_val is not None and y_val is not None:
+                        if x_val in data_map:
+                            data_map[x_val] += y_val
+                        else:
+                            data_map[x_val] = y_val
+                
+                # 转换为数组
+                for x, y in data_map.items():
+                    x_values.append(str(x))
+                    y_values.append(y)
+                
+                # 对日期或数字类型的X值进行排序
+                if x_values and len(x_values) > 0:
+                    try:
+                        # 检查是否为日期格式
+                        if date_fields and all(re.match(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', x) for x in x_values):
+                            # 日期排序
+                            sorted_data = sorted(zip(x_values, y_values), 
+                                                key=lambda item: [int(n) for n in re.split(r'[-/]', item[0])])
+                            x_values = [item[0] for item in sorted_data]
+                            y_values = [item[1] for item in sorted_data]
+                        # 检查是否为月份格式 (例如: "1月", "2月"...)
+                        elif all(re.match(r'(\d+)月?', x) for x in x_values):
+                            # 月份排序
+                            sorted_data = sorted(zip(x_values, y_values), 
+                                                key=lambda item: int(re.match(r'(\d+)月?', item[0]).group(1)))
+                            x_values = [item[0] for item in sorted_data]
+                            y_values = [item[1] for item in sorted_data]
+                        # 检查是否为纯数字
+                        elif all(re.match(r'^\d+$', x) for x in x_values):
+                            # 数字排序
+                            sorted_data = sorted(zip(x_values, y_values), key=lambda item: int(item[0]))
+                            x_values = [item[0] for item in sorted_data]
+                            y_values = [item[1] for item in sorted_data]
+                    except Exception as sort_error:
+                        print(f"排序X轴数据时出错: {str(sort_error)}")
+                
+                # 创建图表配置
+                chart_type = "line" if date_fields else "bar"
+                chart = {
+                    "title": f"{y_field} vs {x_field}",
+                    "type": chart_type,
+                    "xAxis": {
+                        "type": "category",
+                        "data": x_values,
+                        "name": x_field
+                    },
+                    "yAxis": {
+                        "type": "value",
+                        "name": y_field
+                    },
+                    "series": [
+                        {
+                            "name": y_field,
+                            "data": y_values,
+                            "type": chart_type
+                        }
+                    ]
+                }
+                
+                charts.append(chart)
+            
+            # 如果有多个数值字段，为每个字段创建一个图表
+            if len(numeric_fields) > 1 and (category_fields or date_fields):
+                x_field = date_fields[0] if date_fields else category_fields[0]
+                
+                for y_field in numeric_fields[1:2]:  # 最多再添加一个图表
+                    # 提取并聚合数据
+                    data_map = {}
+                    for r in results:
+                        x_val = r.get(x_field)
+                        y_val = r.get(y_field)
+                        if x_val is not None and y_val is not None:
+                            if x_val in data_map:
+                                data_map[x_val] += y_val
+                            else:
+                                data_map[x_val] = y_val
+                    
+                    # 转换为数组
+                    x_values = []
+                    y_values = []
+                    for x, y in data_map.items():
+                        x_values.append(str(x))
+                        y_values.append(y)
+                    
+                    # 对日期或数字类型的X值进行排序
+                    if x_values and len(x_values) > 0:
+                        try:
+                            # 检查是否为日期格式
+                            if date_fields and all(re.match(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', x) for x in x_values):
+                                # 日期排序
+                                sorted_data = sorted(zip(x_values, y_values), 
+                                                    key=lambda item: [int(n) for n in re.split(r'[-/]', item[0])])
+                                x_values = [item[0] for item in sorted_data]
+                                y_values = [item[1] for item in sorted_data]
+                            # 检查是否为月份格式 (例如: "1月", "2月"...)
+                            elif all(re.match(r'(\d+)月?', x) for x in x_values):
+                                # 月份排序
+                                sorted_data = sorted(zip(x_values, y_values), 
+                                                    key=lambda item: int(re.match(r'(\d+)月?', item[0]).group(1)))
+                                x_values = [item[0] for item in sorted_data]
+                                y_values = [item[1] for item in sorted_data]
+                            # 检查是否为纯数字
+                            elif all(re.match(r'^\d+$', x) for x in x_values):
+                                # 数字排序
+                                sorted_data = sorted(zip(x_values, y_values), key=lambda item: int(item[0]))
+                                x_values = [item[0] for item in sorted_data]
+                                y_values = [item[1] for item in sorted_data]
+                        except Exception as sort_error:
+                            print(f"排序X轴数据时出错: {str(sort_error)}")
+                    
+                    # 创建图表配置
+                    chart_type = "line" if date_fields else "bar"
+                    chart = {
+                        "title": f"{y_field} vs {x_field}",
+                        "type": chart_type,
+                        "xAxis": {
+                            "type": "category",
+                            "data": x_values,
+                            "name": x_field
+                        },
+                        "yAxis": {
+                            "type": "value",
+                            "name": y_field
+                        },
+                        "series": [
+                            {
+                                "name": y_field,
+                                "data": y_values,
+                                "type": chart_type
+                            }
+                        ]
+                    }
+                    
+                    charts.append(chart)
+            
+            # 饼图（如果只有一个数值字段和一个类别字段，且类别不超过10个）
+            if len(numeric_fields) == 1 and len(category_fields) == 1:
+                category_field = category_fields[0]
+                value_field = numeric_fields[0]
+                
+                # 提取并聚合数据
+                data_map = {}
+                for r in results:
+                    cat = r.get(category_field)
+                    val = r.get(value_field)
+                    if cat is not None and val is not None:
+                        if cat in data_map:
+                            data_map[cat] += val
+                        else:
+                            data_map[cat] = val
+                
+                # 如果类别数量合适，创建饼图
+                if len(data_map) <= 10:
+                    pie_data = []
+                    for cat, val in data_map.items():
+                        pie_data.append({"name": str(cat), "value": val})
+                    
+                    chart = {
+                        "title": f"{value_field} 按 {category_field} 分布",
+                        "type": "pie",
+                        "series": [
+                            {
+                                "type": "pie",
+                                "radius": "60%",
+                                "data": pie_data
+                            }
+                        ]
+                    }
+                    
+                    charts.append(chart)
+            
+            return charts
+            
+        except Exception as e:
+            print(f"自动生成图表配置时出错: {str(e)}")
+            traceback.print_exc()
+            return []
+    
+    def generate_text_response(self, user_query: str) -> str:
+        """
+        生成文本响应，当无法执行SQL查询时使用
+        
+        参数:
+            user_query: 用户查询
+            
+        返回:
+            响应文本
+        """
+        try:
+            # 构建提示词
+            prompt = f"""请回答以下医疗相关问题：
+
+问题：{user_query}
+
+请提供：
+1. 准确、专业的回答
+2. 如有必要，解释相关医学术语
+3. 以清晰、易于理解的方式表达
+
+如果问题超出你的知识范围，请诚实地表明并提供可能的参考来源。
+"""
+            
+            # 调用LLM API
+            response = self.call_api(
+                system_prompt="你是一位专业的医疗助手，擅长回答医疗相关问题。你的回答应当准确、全面、易于理解。",
+                user_message=prompt,
+                temperature=0.5,
+                top_p=0.9
+            )
+            
+            if not response:
+                return "无法生成回答，请稍后重试。"
+            
+            return response
+        
+        except Exception as e:
+            print(f"生成文本响应时出错: {str(e)}")
+            traceback.print_exc()
+            return f"生成回答时发生错误: {str(e)}"
     
     def generate_modular_response(self, 
                                 user_query: str, 

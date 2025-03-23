@@ -23,1523 +23,231 @@
 {% endblock %}
 
 {% block styles %}
-    <style>
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 180px);
-            margin-bottom: var(--spacing-md);
-            position: relative;
-        }
-        
-        .chat-body {
-            flex: 1;
-            overflow-y: auto;
-            background-color: var(--light-bg);
-            border-radius: var(--border-radius-md);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        .chat-footer {
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-        
-        .chat-input {
-            flex: 1;
-            padding: var(--spacing-md);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-md);
-            font-size: var(--font-size-md);
-            resize: none;
-            transition: border-color var(--transition-fast);
-        }
-        
-        .chat-input:focus {
-            border-color: var(--primary-color);
-            outline: none;
-        }
-        
-        .chat-send {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 var(--spacing-lg);
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius-md);
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
-        }
-        
-        .chat-send:hover {
-            background-color: var(--primary-dark);
-        }
-        
-        .chat-message {
-            display: flex;
-            margin-bottom: var(--spacing-md);
-        }
-        
-        .chat-message.user {
-            flex-direction: row-reverse;
-        }
-        
-        .chat-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 var(--spacing-sm);
-            flex-shrink: 0;
-        }
-        
-        .chat-avatar.ai {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-        }
-        
-        .chat-avatar.user {
-            background-color: var(--secondary-light);
-            color: var(--secondary-color);
-        }
-        
-        .chat-bubble {
-            max-width: 70%;
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius-md);
-            position: relative;
-        }
-        
-        .chat-bubble.ai {
-            background-color: white;
-            box-shadow: var(--shadow-sm);
-        }
-        
-        .chat-bubble.user {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .chat-time {
-            font-size: var(--font-size-xs);
-            color: var(--text-light);
-            margin-top: var(--spacing-xs);
-            text-align: right;
-        }
-        
-        .chat-bubble.user .chat-time {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .chat-suggestions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-xs);
-            margin-top: var(--spacing-sm);
-        }
-        
-        .chat-suggestion {
-            background-color: var(--light-bg);
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-sm);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
-        }
-        
-        .chat-suggestion:hover {
-            background-color: var(--border-color);
-        }
-        
-        .loading-dots {
-            display: none; /* 禁用旧的加载动画 */
-        }
-        
-        /* 知识库选择面板样式 */
-        .knowledge-panel {
-            width: 300px;
-            background-color: white;
-            border-left: 1px solid var(--border-color);
-            padding: var(--spacing-md);
-            overflow-y: auto;
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            z-index: 10;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .knowledge-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-sm);
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .knowledge-title {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            margin: 0;
-        }
-        
-        .knowledge-toggle {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: var(--font-size-lg);
-        }
-        
-        .knowledge-section {
-            margin-bottom: var(--spacing-md);
-        }
-        
-        .knowledge-section-title {
-            font-size: var(--font-size-md);
-            font-weight: 600;
-            margin-bottom: var(--spacing-sm);
-            color: var(--text-secondary);
-        }
-        
-        .knowledge-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: var(--spacing-xs);
-        }
-        
-        .knowledge-checkbox {
-            margin-right: var(--spacing-sm);
-        }
-        
-        .knowledge-label {
-            font-size: var(--font-size-sm);
-            color: var(--text-primary);
-        }
-        
-        .knowledge-apply {
-            margin-top: auto;
-            padding: var(--spacing-sm);
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius-md);
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
-        }
-        
-        .knowledge-apply:hover {
-            background-color: var(--primary-dark);
-        }
-        
-        @media (max-width: 768px) {
-            .knowledge-panel {
-                width: 100%;
-                position: fixed;
-                left: 0;
-                right: 0;
-            }
-        }
-        
-        /* Markdown样式 */
-        .markdown-content {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-        
-        .markdown-content h1, 
-        .markdown-content h2, 
-        .markdown-content h3, 
-        .markdown-content h4, 
-        .markdown-content h5, 
-        .markdown-content h6 {
-            margin-top: 24px;
-            margin-bottom: 16px;
-            font-weight: 600;
-            line-height: 1.25;
-        }
-        
-        .markdown-content h1 {
-            font-size: 2em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.3em;
-        }
-        
-        .markdown-content h2 {
-            font-size: 1.5em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.3em;
-        }
-        
-        .markdown-content h3 {
-            font-size: 1.25em;
-        }
-        
-        .markdown-content h4 {
-            font-size: 1em;
-        }
-        
-        .markdown-content p {
-            margin-top: 0;
-            margin-bottom: 16px;
-        }
-        
-        .markdown-content ul, 
-        .markdown-content ol {
-            padding-left: 2em;
-            margin-top: 0;
-            margin-bottom: 16px;
-        }
-        
-        .markdown-content li {
-            margin-bottom: 0.25em;
-        }
-        
-        .markdown-content blockquote {
-            padding: 0 1em;
-            color: #6a737d;
-            border-left: 0.25em solid #dfe2e5;
-            margin: 0 0 16px 0;
-        }
-        
-        .markdown-content pre {
-            padding: 16px;
-            overflow: auto;
-            font-size: 85%;
-            line-height: 1.45;
-            background-color: #f6f8fa;
-            border-radius: 3px;
-            margin-top: 0;
-            margin-bottom: 16px;
-        }
-        
-        .markdown-content code {
-            padding: 0.2em 0.4em;
-            margin: 0;
-            font-size: 85%;
-            background-color: rgba(27,31,35,0.05);
-            border-radius: 3px;
-        }
-        
-        .markdown-content pre code {
-            padding: 0;
-            background-color: transparent;
-        }
-        
-        .markdown-content hr {
-            height: 0.25em;
-            padding: 0;
-            margin: 24px 0;
-            background-color: #e1e4e8;
-            border: 0;
-        }
-        
-        .markdown-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 16px;
-            overflow: auto;
-        }
-        
-        .markdown-table th, 
-        .markdown-table td {
-            padding: 6px 13px;
-            border: 1px solid #dfe2e5;
-        }
-        
-        .markdown-table tr {
-            background-color: #fff;
-            border-top: 1px solid #c6cbd1;
-        }
-        
-        .markdown-table tr:nth-child(2n) {
-            background-color: #f6f8fa;
-        }
-        
-        .markdown-content img {
-            max-width: 100%;
-            box-sizing: content-box;
-        }
-        
-        .markdown-content strong {
-            font-weight: 600;
-        }
-        
-        .markdown-content em {
-            font-style: italic;
-        }
-        
-        /* 图表样式 */
-        .chart-container {
-            margin: 20px 0;
-            width: 100%;
-            height: 400px;
-            position: relative;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        /* 文档上传区域样式 */
-        .upload-section {
-            margin-bottom: var(--spacing-md);
-            padding: var(--spacing-md);
-            border: 2px dashed var(--border-color);
-            border-radius: var(--border-radius-md);
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-
-        .upload-section:hover {
-            border-color: var(--primary-color);
-            background-color: var(--primary-light);
-        }
-
-        .upload-icon {
-            font-size: 2rem;
-            color: var(--primary-color);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .upload-text {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-        }
-
-        .uploaded-files {
-            margin-top: var(--spacing-md);
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            padding: var(--spacing-sm);
-            background-color: var(--light-bg);
-            border-radius: var(--border-radius-sm);
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .file-name {
-            flex: 1;
-            font-size: var(--font-size-sm);
-            margin-right: var(--spacing-sm);
-        }
-
-        .file-remove {
-            color: var(--danger-color);
-            cursor: pointer;
-            padding: var(--spacing-xs);
-        }
-
-        /* 数据表格样式 */
-        .data-table-container {
-            margin: 15px 0;
-            overflow-x: auto;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .data-table-container h4 {
-            margin: 10px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-        
-        .data-table th {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid var(--primary-color);
-        }
-        
-        .data-table td {
-            padding: 10px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .data-table tbody tr:hover {
-            background-color: var(--hover-color);
-        }
-        
-        /* 图表样式 */
-        .charts-container {
-            margin: 20px 0;
-        }
-        
-        .chart-item {
-            margin-bottom: 25px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-        }
-        
-        .chart-title {
-            padding: 12px 15px;
-            font-weight: 600;
-            color: var(--text-color);
-            background-color: var(--background-light);
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        /* 聊天建议样式 */
-        .chat-suggestions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .chat-suggestion {
-            padding: 8px 15px;
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-            border-radius: 16px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .chat-suggestion:hover {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        /* 文件信息样式 */
-        .file-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            background-color: var(--background-light);
-            border-radius: 6px;
-            border-left: 3px solid var(--secondary-color);
-        }
-        
-        .file-info i {
-            margin-right: 10px;
-            color: var(--secondary-color);
-        }
-        
-        /* 添加Markdown表格样式 */
-        .markdown-body table {
-            border-collapse: collapse;
-            margin: 15px 0;
-            width: 100%;
-        }
-        
-        .markdown-body th, .markdown-body td {
-            border: 1px solid #ddd;
-            padding: 8px 12px;
-        }
-        
-        .markdown-body th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-            text-align: left;
-        }
-        
-        .markdown-body tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        /* 添加Markdown标题样式 */
-        .markdown-body h1 {
-            font-size: 1.8em;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-            padding-bottom: 0.3em;
-            border-bottom: 1px solid #eaecef;
-        }
-        
-        .markdown-body h2 {
-            font-size: 1.5em;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-            padding-bottom: 0.3em;
-            border-bottom: 1px solid #eaecef;
-        }
-        
-        .markdown-body h3 {
-            font-size: 1.3em;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-        }
-        
-        /* 添加列表样式 */
-        .markdown-body ul, .markdown-body ol {
-            padding-left: 2em;
-            margin-bottom: 1em;
-        }
-        
-        .markdown-body li {
-            margin-bottom: 0.3em;
-        }
-        
-        /* 添加代码块样式 */
-        .markdown-body pre {
-            background-color: #f6f8fa;
-            border-radius: 3px;
-            padding: 16px;
-            overflow: auto;
-            margin-bottom: 16px;
-        }
-        
-        .markdown-body code {
-            background-color: rgba(27,31,35,0.05);
-            border-radius: 3px;
-            padding: 0.2em 0.4em;
-            font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
-        }
-
-        /* 思考中的条状动画样式 */
-        .typing-indicator {
-            display: inline-flex;
-            margin-left: 5px;
-        }
-
-        .typing-indicator span {
-            display: inline-block;
-            width: 5px;
-            height: 12px;  /* 修改为矩形条状 */
-            border-radius: 1px; /* 减小圆角 */
-            background-color: #333;
-            margin: 0 2px;
-            opacity: 0.2;
-        }
-
-        .typing-indicator span:nth-of-type(1) {
-            animation: 1s stretch ease-in-out infinite 0s;
-        }
-
-        .typing-indicator span:nth-of-type(2) {
-            animation: 1s stretch ease-in-out infinite 0.2s;
-        }
-
-        .typing-indicator span:nth-of-type(3) {
-            animation: 1s stretch ease-in-out infinite 0.4s;
-        }
-
-        @keyframes stretch {
-            0%, 100% {
-                transform: scaleY(0.5);
-            }
-            50% {
-                transform: scaleY(1.5);
-                opacity: 0.8;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-chat.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
 {% endblock %}
 
 {% block content %}
-                    <div class="chat-container">
-                        <div class="chat-body" id="chatMessages">
-                            <div class="chat-message">
-                                <div class="chat-avatar ai">
-                                    <i class="fas fa-robot"></i>
-                                </div>
-                                <div class="chat-bubble ai">
-                                    <div>您好，我是医院运营指标智能分析助手。请问有什么可以帮您解答的问题？</div>
-                                    <div class="chat-time">09:30</div>
-                                    <div class="chat-suggestions">
-                                        <div class="chat-suggestion">门诊目标的达成情况如何？</div>
-                                        <div class="chat-suggestion">门诊量的整体趋势是怎样的？</div>
-                                        <div class="chat-suggestion">如何分析科室绩效？</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="chat-message user">
-                                <div class="chat-avatar user">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="chat-bubble user">
-                                    <div>请分析一下最近一周的门诊量变化趋势</div>
-                                    <div class="chat-time">09:31</div>
-                                </div>
-                            </div>
-                            
-                            <div class="chat-message">
-                                <div class="chat-avatar ai">
-                                    <i class="fas fa-robot"></i>
-                                </div>
-                                <div class="chat-bubble ai">
-                                    <div>根据数据分析，最近一周的门诊量呈现波动上升趋势：<br>
-                                    周一：120人次<br>
-                                    周二：132人次<br>
-                                    周三：101人次<br>
-                                    周四：134人次<br>
-                                    周五：90人次<br>
-                                    周六：230人次<br>
-                                    周日：210人次<br><br>
-                                    
-                                    周末门诊量明显高于工作日，建议适当增加周末医护人员配置。周三和周五门诊量较低，可以考虑在这两天安排一些特色门诊或优惠活动来提升就诊人数。</div>
-                                    <div class="chat-time">09:32</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="chat-footer">
-                            <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="message-input"></textarea>
-                            <button class="chat-send" id="sendButton">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+    <div class="chat-container">
+        <div class="chat-body" id="chatMessages">
+            <div class="chat-message">
+                <div class="chat-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="chat-bubble ai">
+                    <div>您好，我是医院运营指标智能分析助手。请问有什么可以帮您解答的问题？</div>
+                    <div class="chat-time">09:30</div>
+                    <div class="chat-suggestions">
+                        <div class="chat-suggestion">门诊目标的达成情况如何？</div>
+                        <div class="chat-suggestion">门诊量的整体趋势是怎样的？</div>
+                        <div class="chat-suggestion">如何分析科室绩效？</div>
                     </div>
                 </div>
-                
-<!-- 知识库面板 -->
-                <div class="knowledge-panel" id="knowledgePanel">
-                    <div class="knowledge-header">
-        <h3 class="knowledge-title">知识库设置</h3>
-                        <button class="knowledge-toggle">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-    <div class="knowledge-section">
-        <h4 class="knowledge-section-title">数据源</h4>
-        <div class="knowledge-item">
-            <input type="radio" id="autoSource" name="data-source" value="auto" checked class="knowledge-checkbox">
-            <label for="autoSource" class="knowledge-label">自动选择</label>
-                            </div>
-        <div class="knowledge-item">
-            <input type="radio" id="databaseSource" name="data-source" value="database" class="knowledge-checkbox">
-            <label for="databaseSource" class="knowledge-label">系统数据库</label>
-                            </div>
-        <div class="knowledge-item">
-            <input type="radio" id="uploadSource" name="data-source" value="upload" class="knowledge-checkbox">
-            <label for="uploadSource" class="knowledge-label">上传的文件</label>
-                            </div>
-                    </div>
-
-                    <div class="knowledge-section">
-                        <h4 class="knowledge-section-title">数据表</h4>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="outpatient" checked class="knowledge-checkbox">
-            <label for="outpatient" class="knowledge-label">门诊数据</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="target" checked class="knowledge-checkbox">
-            <label for="target" class="knowledge-label">绩效目标</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="drg" checked class="knowledge-checkbox">
-            <label for="drg" class="knowledge-label">DRG分组</label>
-                        </div>
-                    </div>
-                    
-                    <div class="knowledge-section">
-                        <h4 class="knowledge-section-title">分析维度</h4>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="department" checked class="knowledge-checkbox">
-                            <label for="department" class="knowledge-label">科室维度</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="specialty" checked class="knowledge-checkbox">
-                            <label for="specialty" class="knowledge-label">专科维度</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="target_completion" checked class="knowledge-checkbox">
-            <label for="target_completion" class="knowledge-label">目标完成度</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="checkbox" id="trend" checked class="knowledge-checkbox">
-                            <label for="trend" class="knowledge-label">趋势分析</label>
-                        </div>
-                    </div>
-                    
-                    <div class="knowledge-section">
-                        <h4 class="knowledge-section-title">时间范围</h4>
-                        <div class="knowledge-item">
-            <input type="radio" id="allTime" name="time-range" checked class="knowledge-checkbox">
-                            <label for="allTime" class="knowledge-label">全部时间</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="radio" id="lastMonth" name="time-range" class="knowledge-checkbox">
-            <label for="lastMonth" class="knowledge-label">最近30天</label>
-                        </div>
-                        <div class="knowledge-item">
-            <input type="radio" id="lastWeek" name="time-range" class="knowledge-checkbox">
-            <label for="lastWeek" class="knowledge-label">最近7天</label>
-                        </div>
-                    </div>
-                    
-    <!-- 文档上传区域 -->
-    <div class="knowledge-section">
-        <h4 class="knowledge-section-title">文档上传</h4>
-        <div class="upload-section" id="uploadArea">
-            <div class="upload-icon">
-                <i class="fas fa-file-upload"></i>
-                </div>
-            <div class="upload-text">
-                拖放文件至此处，或点击上传
             </div>
-            <input type="file" id="fileInput" style="display: none" multiple>
+            
+            <div class="chat-message user">
+                <div class="chat-avatar user">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="chat-bubble user">
+                    <div>请分析一下最近一周的门诊量变化趋势</div>
+                    <div class="chat-time">09:31</div>
+                </div>
+            </div>
+            
+            <div class="chat-message">
+                <div class="chat-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="chat-bubble ai">
+                    <div>根据数据分析，最近一周的门诊量呈现波动上升趋势：<br>
+                    周一：120人次<br>
+                    周二：132人次<br>
+                    周三：101人次<br>
+                    周四：134人次<br>
+                    周五：90人次<br>
+                    周六：230人次<br>
+                    周日：210人次<br><br>
+                    
+                    周末门诊量明显高于工作日，建议适当增加周末医护人员配置。周三和周五门诊量较低，可以考虑在这两天安排一些特色门诊或优惠活动来提升就诊人数。</div>
+                    <div class="chat-time">09:32</div>
+                </div>
+            </div>
         </div>
-        <div class="uploaded-files" id="uploadedFiles">
-            <!-- 已上传文件将显示在这里 -->
+        
+        <div class="chat-footer">
+            <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="message-input"></textarea>
+            <button class="chat-send" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </div>
     
-    <button id="applyKnowledge" class="knowledge-apply">
-        <i class="fas fa-check me-1"></i> 应用设置
-    </button>
-</div>
-
-<!-- 历史记录模态框 -->
-<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="historyModalLabel">对话历史记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- 知识库面板 -->
+    <div class="knowledge-panel" id="knowledgePanel">
+        <div class="knowledge-header">
+            <h3 class="knowledge-title">知识库设置</h3>
+            <button class="knowledge-toggle">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">数据源</h4>
+            <div class="knowledge-item">
+                <input type="radio" id="autoSource" name="data-source" value="auto" checked class="knowledge-checkbox">
+                <label for="autoSource" class="knowledge-label">自动选择</label>
             </div>
-            <div class="modal-body">
-                <div class="list-group" id="historyList">
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>门诊量变化趋势分析</strong>
-                            <small class="text-muted">今天 09:30</small>
+            <div class="knowledge-item">
+                <input type="radio" id="databaseSource" name="data-source" value="database" class="knowledge-checkbox">
+                <label for="databaseSource" class="knowledge-label">系统数据库</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="uploadSource" name="data-source" value="upload" class="knowledge-checkbox">
+                <label for="uploadSource" class="knowledge-label">上传的文件</label>
+            </div>
+        </div>
+
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">数据表</h4>
+            <div class="knowledge-item">
+                <input type="checkbox" id="outpatient" checked class="knowledge-checkbox">
+                <label for="outpatient" class="knowledge-label">门诊数据</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="target" checked class="knowledge-checkbox">
+                <label for="target" class="knowledge-label">绩效目标</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="drg" checked class="knowledge-checkbox">
+                <label for="drg" class="knowledge-label">DRG分组</label>
+            </div>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">分析维度</h4>
+            <div class="knowledge-item">
+                <input type="checkbox" id="department" checked class="knowledge-checkbox">
+                <label for="department" class="knowledge-label">科室维度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="specialty" checked class="knowledge-checkbox">
+                <label for="specialty" class="knowledge-label">专科维度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="target_completion" checked class="knowledge-checkbox">
+                <label for="target_completion" class="knowledge-label">目标完成度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="trend" checked class="knowledge-checkbox">
+                <label for="trend" class="knowledge-label">趋势分析</label>
+            </div>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">时间范围</h4>
+            <div class="knowledge-item">
+                <input type="radio" id="allTime" name="time-range" checked class="knowledge-checkbox">
+                <label for="allTime" class="knowledge-label">全部时间</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="lastMonth" name="time-range" class="knowledge-checkbox">
+                <label for="lastMonth" class="knowledge-label">最近30天</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="lastWeek" name="time-range" class="knowledge-checkbox">
+                <label for="lastWeek" class="knowledge-label">最近7天</label>
+            </div>
+        </div>
+        
+        <!-- 文档上传区域 -->
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">文档上传</h4>
+            <div class="upload-section" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <div class="upload-text">
+                    拖放文件至此处，或点击上传
+                </div>
+                <input type="file" id="fileInput" style="display: none" multiple>
+            </div>
+            <div class="uploaded-files" id="uploadedFiles">
+                <!-- 已上传文件将显示在这里 -->
+            </div>
+        </div>
+        
+        <button id="applyKnowledge" class="knowledge-apply">
+            <i class="fas fa-check me-1"></i> 应用设置
+        </button>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">对话历史记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group" id="historyList">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>门诊量变化趋势分析</strong>
+                                <small class="text-muted">今天 09:30</small>
+                            </div>
+                            <p class="mb-1 text-truncate">请分析一下最近一周的门诊量变化趋势</p>
                         </div>
-                        <p class="mb-1 text-truncate">请分析一下最近一周的门诊量变化趋势</p>
-                    </div>
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>科室绩效对比</strong>
-                            <small class="text-muted">昨天 15:45</small>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>科室绩效对比</strong>
+                                <small class="text-muted">昨天 15:45</small>
+                            </div>
+                            <p class="mb-1 text-truncate">各个科室的绩效对比如何？哪个科室表现最好？</p>
                         </div>
-                        <p class="mb-1 text-truncate">各个科室的绩效对比如何？哪个科室表现最好？</p>
-                    </div>
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>住院收入分析</strong>
-                            <small class="text-muted">昨天 10:20</small>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>住院收入分析</strong>
+                                <small class="text-muted">昨天 10:20</small>
+                            </div>
+                            <p class="mb-1 text-truncate">住院部收入是否达到了目标？主要来源于哪些科室？</p>
                         </div>
-                        <p class="mb-1 text-truncate">住院部收入是否达到了目标？主要来源于哪些科室？</p>
-                    </div>
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>门诊预约率</strong>
-                            <small class="text-muted">前天 16:12</small>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>门诊预约率</strong>
+                                <small class="text-muted">前天 16:12</small>
+                            </div>
+                            <p class="mb-1 text-truncate">请分析本月门诊的预约率情况并与上月对比</p>
                         </div>
-                        <p class="mb-1 text-truncate">请分析本月门诊的预约率情况并与上月对比</p>
-                    </div>
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>药品库存分析</strong>
-                            <small class="text-muted">3天前 11:05</small>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>药品库存分析</strong>
+                                <small class="text-muted">3天前 11:05</small>
+                            </div>
+                            <p class="mb-1 text-truncate">哪些药品库存较低需要补充？哪些药品使用频率较高？</p>
                         </div>
-                        <p class="mb-1 text-truncate">哪些药品库存较低需要补充？哪些药品使用频率较高？</p>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-danger" id="clearHistoryBtn">清空历史记录</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-danger" id="clearHistoryBtn">清空历史记录</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/highlight.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 移动菜单切换
-        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-        if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', function() {
-                document.querySelector('.sidebar').classList.toggle('active');
-            });
-        }
-        
-        // 高亮当前活动的菜单项
-        document.querySelectorAll('.menu-item').forEach(item => {
-            const link = item.querySelector('a');
-            if (link && link.getAttribute('href') === location.pathname.split('/').pop()) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-        
-        // 知识库面板切换
-        const toggleKnowledgePanel = document.getElementById('toggleKnowledgePanel');
-        const knowledgePanel = document.getElementById('knowledgePanel');
-        
-        // 初始化知识库面板状态
-        if (knowledgePanel) {
-            knowledgePanel.style.display = 'none';
-        }
-        
-        // 强制确保知识库按钮绑定点击事件
-        console.log('知识库按钮元素:', toggleKnowledgePanel);
-        
-        if (toggleKnowledgePanel) {
-            console.log('正在绑定知识库按钮点击事件');
-            toggleKnowledgePanel.onclick = function() {
-                console.log('知识库按钮被点击');
-                if (knowledgePanel) {
-                    knowledgePanel.style.display = knowledgePanel.style.display === 'none' ? 'block' : 'none';
-                    console.log('知识库面板显示状态切换为:', knowledgePanel.style.display);
-                }
-            };
-        } else {
-            console.error('找不到知识库切换按钮元素');
-        }
-        
-        // 知识库面板关闭按钮
-        const knowledgeToggle = document.querySelector('.knowledge-toggle');
-        if (knowledgeToggle) {
-            knowledgeToggle.addEventListener('click', function() {
-                if (knowledgePanel) {
-                    knowledgePanel.style.display = 'none';
-                }
-            });
-        }
-        
-        // 应用知识库设置
-        const applyKnowledgeButton = document.getElementById('applyKnowledge');
-        
-        if (applyKnowledgeButton) {
-            applyKnowledgeButton.addEventListener('click', function() {
-                // 收集所有选中的知识库选项
-                const knowledgeSettings = {
-                    tables: {
-                        outpatient: document.getElementById('outpatient').checked,
-                        target: document.getElementById('target').checked,
-                        drg: document.getElementById('drg').checked
-                    },
-                    dimensions: {
-                        department: document.getElementById('department').checked,
-                        specialty: document.getElementById('specialty').checked,
-                        target_completion: document.getElementById('target_completion').checked,
-                        trend: document.getElementById('trend').checked
-                    },
-                    timeRange: document.getElementById('allTime').checked ? 'all' : 
-                               document.getElementById('lastMonth').checked ? 'month' : 'week'
-                };
-                
-                // 将设置保存到localStorage
-                localStorage.setItem('knowledgeSettings', JSON.stringify(knowledgeSettings));
-                
-                // 显示提示
-                alert('知识库设置已应用！');
-            });
-        }
-        
-        // 加载保存的知识库设置
-        function loadKnowledgeSettings() {
-            const savedSettings = localStorage.getItem('knowledgeSettings');
-            if (savedSettings) {
-                try {
-                    const settings = JSON.parse(savedSettings);
-                    
-                    // 应用表设置
-                    document.getElementById('outpatient').checked = settings.tables.outpatient;
-                    document.getElementById('target').checked = settings.tables.target;
-                    document.getElementById('drg').checked = settings.tables.drg;
-                    
-                    // 应用维度设置
-                    document.getElementById('department').checked = settings.dimensions.department;
-                    document.getElementById('specialty').checked = settings.dimensions.specialty;
-                    document.getElementById('target_completion').checked = settings.dimensions.target_completion;
-                    document.getElementById('trend').checked = settings.dimensions.trend;
-                    
-                    // 应用时间范围设置
-                    document.getElementById('allTime').checked = settings.timeRange === 'all';
-                    document.getElementById('lastMonth').checked = settings.timeRange === 'month';
-                    document.getElementById('lastWeek').checked = settings.timeRange === 'week';
-                } catch (error) {
-                    console.error('解析知识库设置出错:', error);
-                }
-            }
-        }
-        
-        // 页面加载时加载设置
-        loadKnowledgeSettings();
-        
-        // 初始化模态框
-        const historyModalEl = document.getElementById('historyModal');
-        let historyModal = null;
-        
-        if (historyModalEl) {
-            historyModal = new bootstrap.Modal(historyModalEl);
-        }
-        
-        // 历史记录按钮
-        const historyButton = document.getElementById('historyButton');
-        if (historyButton) {
-            console.log('正在绑定历史记录按钮点击事件');
-            historyButton.onclick = function() {
-                console.log('历史记录按钮被点击');
-                if (historyModal) {
-                    historyModal.show();
-                    console.log('显示历史记录模态框');
-                } else {
-                    console.error('历史记录模态框未初始化');
-                    // 创建一个简单的弹出对话框
-                    alert('历史记录功能暂时不可用，请稍后再试');
-                }
-            };
-        } else {
-            console.error('找不到历史记录按钮元素');
-        }
-        
-        // 清空历史记录按钮
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        if (clearHistoryBtn) {
-            clearHistoryBtn.addEventListener('click', function() {
-                if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
-                    const historyList = document.getElementById('historyList');
-                    historyList.innerHTML = '<div class="text-center p-3 text-muted">没有历史记录</div>';
-                }
-            });
-        }
-        
-        // 清空聊天记录按钮
-        const clearChatButton = document.getElementById('clearChat');
-        if (clearChatButton) {
-            console.log('正在绑定清空聊天按钮点击事件');
-            clearChatButton.onclick = function() {
-                console.log('清空聊天按钮被点击');
-                if (confirm('确定要清空所有聊天记录吗？')) {
-                    const chatMessages = document.getElementById('chatMessages');
-                    if (chatMessages) {
-                        chatMessages.innerHTML = '';
-                        
-                        // 添加初始欢迎消息
-                        addAIMessage('您好，我是医院运营指标智能分析助手。请问有什么可以帮您解答的问题？');
-                    }
-                }
-            };
-        } else {
-            console.error('找不到清空聊天按钮元素');
-        }
-        
-        // 聊天功能
-        const chatInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('sendButton');
-        const chatMessages = document.getElementById('chatMessages');
-        
-        // 获取当前时间
-        function getCurrentTime() {
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            return `${hours}:${minutes}`;
-        }
-        
-        // 添加用户消息到聊天界面
-        function addUserMessage(message) {
-            const userMessageHTML = `
-                <div class="chat-message user">
-                    <div class="chat-avatar user">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="chat-bubble user">
-                        <div>${message}</div>
-                        <div class="chat-time">${getCurrentTime()}</div>
-                    </div>
-                </div>
-            `;
-            chatMessages.insertAdjacentHTML('beforeend', userMessageHTML);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // 向聊天区域添加新的AI消息
-        function addAIMessage(message, isLoading = false) {
-            const chatMessages = document.getElementById('chatMessages');
-            
-            // 创建消息容器
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
-            
-            // 创建头像
-            const avatarDiv = document.createElement('div');
-            avatarDiv.className = 'chat-avatar ai';
-            const avatarIcon = document.createElement('i');
-            avatarIcon.className = 'fas fa-robot';
-            avatarDiv.appendChild(avatarIcon);
-            
-            // 创建气泡
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'chat-bubble ai';
-            if (isLoading) {
-                bubbleDiv.classList.add('thinking');
-            }
-            
-            // 创建消息内容
-            const contentDiv = document.createElement('div');
-            
-            if (isLoading) {
-                // 创建一个容器来包含文本和动画
-                const thinkingContainer = document.createElement('div');
-                thinkingContainer.style.display = 'flex';
-                thinkingContainer.style.alignItems = 'center';
-                
-                // 添加文本
-                const textSpan = document.createElement('span');
-                textSpan.textContent = '思考中';
-                thinkingContainer.appendChild(textSpan);
-                
-                // 添加条状动画元素
-                const typingIndicator = document.createElement('div');
-                typingIndicator.className = 'typing-indicator';
-                for (let i = 0; i < 3; i++) {
-                    const dot = document.createElement('span');
-                    dot.textContent = ''; // 确保没有内容
-                    typingIndicator.appendChild(dot);
-                }
-                thinkingContainer.appendChild(typingIndicator);
-                
-                // 将容器添加到内容div
-                contentDiv.appendChild(thinkingContainer);
-            } else {
-                contentDiv.innerHTML = message;
-            }
-            
-            // 创建时间标记
-            const timeDiv = document.createElement('div');
-            timeDiv.className = 'chat-time';
-            timeDiv.textContent = getCurrentTime();
-            
-            // 组装消息
-            bubbleDiv.appendChild(contentDiv);
-            bubbleDiv.appendChild(timeDiv);
-            messageDiv.appendChild(avatarDiv);
-            messageDiv.appendChild(bubbleDiv);
-            
-            // 添加到聊天区域
-            chatMessages.appendChild(messageDiv);
-            
-            // 滚动到底部
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            return messageDiv;
-        }
-        
-        // 更新AI消息
-        function updateAIMessage(message) {
-            const chatMessages = document.getElementById('chatMessages');
-            const allMessages = chatMessages.querySelectorAll('.chat-message');
-            const lastMessage = allMessages[allMessages.length - 1];
-            
-            if (lastMessage) {
-                const bubble = lastMessage.querySelector('.chat-bubble.ai');
-                if (bubble && bubble.classList.contains('thinking')) {
-                    bubble.classList.remove('thinking');
-                    const contentDiv = bubble.querySelector('div:first-child');
-                    
-                    // 使用marked.js渲染Markdown内容
-                    contentDiv.innerHTML = `<div class="markdown-body">${marked.parse(message)}</div>`;
-                    
-                    // 应用代码高亮
-                    bubble.querySelectorAll('.markdown-body pre code').forEach((block) => {
-                        hljs.highlightBlock(block);
-                    });
-                    
-                    // 更新时间
-                    const timeDiv = bubble.querySelector('.chat-time');
-                    if (timeDiv) {
-                        timeDiv.textContent = getCurrentTime();
-                    }
-                }
-            }
-            
-            // 滚动到底部
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // 处理响应数据，增加对图表的支持
-        function handleResponse(data, responseType) {
-            let responseMessage = '';
-            
-            // 确保加载动画结束
-            const loadingMessage = document.querySelector('.chat-bubble.ai.thinking');
-            if (loadingMessage) {
-                loadingMessage.classList.remove('thinking');
-            }
-            
-            if (data && data.success !== false) {
-                // 提取响应消息
-                responseMessage = data.reply || '没有回复内容';
-                
-                // 处理查询结果
-                if (responseType === 'query') {
-                    // 处理可能的图表
-                    if (data.visualizations && data.visualizations.length > 0) {
-                        // 已经有文本内容了，继续处理图表
-                        setTimeout(() => {
-                            const aiMessageDiv = document.querySelector('.chat-bubble.ai div:first-child .markdown-body');
-                            if (aiMessageDiv) {
-                                // 创建图表容器
-                                const chartsContainer = document.createElement('div');
-                                chartsContainer.className = 'charts-container';
-                                
-                                data.visualizations.forEach((chartConfig, index) => {
-                                    const chartDiv = document.createElement('div');
-                                    chartDiv.className = 'chart-item';
-                                    chartDiv.id = 'chart-' + Date.now() + '-' + index;
-                                    chartDiv.style.width = '100%';
-                                    chartDiv.style.height = '350px';
-                                    chartDiv.style.marginTop = '15px';
-                                    chartsContainer.appendChild(chartDiv);
-                                    
-                                    // 添加图表标题
-                                    if (chartConfig.title) {
-                                        const titleDiv = document.createElement('div');
-                                        titleDiv.className = 'chart-title';
-                                        titleDiv.textContent = chartConfig.title;
-                                        chartDiv.appendChild(titleDiv);
-                                    }
-                                    
-                                    // 创建图表容器
-                                    const chartCanvas = document.createElement('div');
-                                    chartCanvas.style.width = '100%';
-                                    chartCanvas.style.height = '320px';
-                                    chartDiv.appendChild(chartCanvas);
-                                    
-                                    setTimeout(() => {
-                                        const chartInstance = echarts.init(chartCanvas);
-                                        chartInstance.setOption(chartConfig);
-                                        
-                                        // 响应窗口大小变化
-                                        window.addEventListener('resize', () => {
-                                            chartInstance.resize();
-                                        });
-                                    }, 0);
-                                });
-                                
-                                aiMessageDiv.appendChild(chartsContainer);
-                            }
-                        }, 100);
-                    }
-                }
-                
-                // 更新AI消息内容
-                updateAIMessage(responseMessage);
-            } else {
-                // 显示错误消息
-                const errorMessage = data && data.message ? data.message : 
-                                   (data && data.error ? data.error : "处理请求时出错");
-                updateAIMessage(errorMessage);
-            }
-        }
-        
-        // 发送消息
-        function sendMessage() {
-            const message = chatInput.value.trim();
-            
-            if (!message) return;
-            
-            // 清空输入框
-            chatInput.value = '';
-            
-            // 添加用户消息到聊天界面
-            addUserMessage(message);
-            
-            // 添加AI消息（加载状态）
-            addAIMessage('思考中', true);
-            
-            // 获取知识库设置
-            const knowledgeSettings = getKnowledgeSettings();
-            
-            console.log('发送消息:', message);
-            console.log('知识库设置:', knowledgeSettings);
-            
-            // 发送请求到后端
-            fetch('/api/ai-chat/query', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: message,
-                    data_source: knowledgeSettings.data_source
-                })
-            })
-            .then(response => {
-                console.log('收到响应:', response);
-                return response.json();
-            })
-            .then(data => {
-                console.log('解析的JSON数据:', data);
-                
-                // 检查响应是否成功
-                if (data && data.success) {
-                    // 确保响应中有message字段
-                    const responseMessage = data.message || "未收到有效回复";
-                    
-                    // 确定响应类型
-                    const responseType = data.type || "text";
-                    
-                    // 根据响应类型处理结果
-                    if (responseType === 'data_analysis' || responseType === 'data_only') {
-                        // 数据分析结果，包含图表数据
-                        const resultObj = {
-                            text: responseMessage,
-                            data: data.data || []
-                        };
-                        
-                        // 如果有图表数据，添加到结果对象
-                        if (data.charts) {
-                            resultObj.charts = data.charts;
-                        }
-                        
-                        handleResponse(resultObj, responseType);
-                    } 
-                    else if (responseType === 'excel_analysis' || responseType === 'file_analysis') {
-                        // 文件分析结果
-                        handleResponse(data, responseType);
-                    }
-                    else {
-                        // 普通文本响应
-                        handleResponse(data, responseType);
-                    }
-                } else {
-                    // 显示错误消息
-                    const errorMessage = data && data.message ? data.message : 
-                                       (data && data.error ? data.error : "处理请求时出错");
-                    handleResponse(data, responseType);
-                }
-            })
-            .catch(error => {
-                console.error('请求出错:', error);
-                handleResponse(error, responseType);
-            });
-        }
-        
-        // 获取文件类型
-        function getFileType(fileName) {
-            const extension = fileName.split('.').pop().toLowerCase();
-            
-            switch (extension) {
-                case 'pdf':
-                    return 'pdf';
-                case 'docx':
-                case 'doc':
-                    return 'word';
-                case 'txt':
-                    return 'text';
-                case 'jpg':
-                case 'jpeg':
-                case 'png':
-                case 'gif':
-                    return 'image';
-                default:
-                    return 'file';
-            }
-        }
-        
-        // 发送按钮点击事件
-            if (sendButton) {
-        sendButton.addEventListener('click', sendMessage);
-            }
-        
-        // 输入框回车事件
-            if (chatInput) {
-        chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-            }
-        
-        // 点击聊天建议
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('chat-suggestion')) {
-                chatInput.value = e.target.textContent;
-                sendMessage();
-            }
-        });
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
 
-            // 文件上传相关
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            const uploadedFiles = document.getElementById('uploadedFiles');
-            
-            // 点击上传区域触发文件选择
-            if (uploadArea && fileInput) {
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
-            });
-            
-            // 拖拽文件
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.style.borderColor = 'var(--primary-color)';
-                uploadArea.style.backgroundColor = 'var(--primary-light)';
-            });
-            
-            uploadArea.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                uploadArea.style.borderColor = 'var(--border-color)';
-                uploadArea.style.backgroundColor = 'transparent';
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.style.borderColor = 'var(--border-color)';
-                uploadArea.style.backgroundColor = 'transparent';
-                
-                const files = e.dataTransfer.files;
-                handleFiles(files);
-            });
-            
-            // 文件选择处理
-            fileInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
-                // 重置input，允许重复上传相同文件
-                fileInput.value = '';
-            });
-            }
-            
-            // 处理文件上传
-            function handleFiles(files) {
-                if (!files || files.length === 0) return;
-                
-                Array.from(files).forEach(file => {
-                    // 检查文件类型
-                    const allowedTypes = ['.pdf', '.docx', '.txt', '.xlsx', '.xls', '.csv'];
-                    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
-                    if (!allowedTypes.includes(fileExt)) {
-                        alert('不支持的文件格式！仅支持PDF、DOCX、TXT、XLSX、XLS和CSV文件。');
-                        return;
-                    }
-                    
-                    // 创建FormData对象
-                    const formData = new FormData();
-                    formData.append('document', file);
-                    
-                    // 显示上传中状态
-                    const tempFileItem = document.createElement('div');
-                    tempFileItem.className = 'file-item';
-                    tempFileItem.innerHTML = `
-                        <span class="file-name">${file.name} (上传中...)</span>
-                    `;
-                    uploadedFiles.appendChild(tempFileItem);
-                    
-                    // 发送文件到服务器
-                    fetch('/api/ai-chat/upload-document', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // 移除临时项
-                        tempFileItem.remove();
-                        
-                        if (data.success) {
-                            // 添加文件到列表
-                            addFileToList(file.name, data.filename);
-                        } else {
-                            alert('上传失败：' + (data.error || data.message || '未知错误'));
-                        }
-                    })
-                    .catch(error => {
-                        // 移除临时项
-                        tempFileItem.remove();
-                        console.error('Error:', error);
-                        alert('上传出错，请重试');
-                    });
-                });
-            }
-            
-            // 添加文件到显示列表
-            function addFileToList(fileName, fileId) {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span class="file-name">${fileName}</span>
-                    <span class="file-remove" data-file-id="${fileId}">
-                        <i class="fas fa-times"></i>
-                    </span>
-                `;
-                
-                // 添加删除功能
-                const removeBtn = fileItem.querySelector('.file-remove');
-                removeBtn.addEventListener('click', () => {
-                    fetch('/api/ai-chat/delete-document', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({filename: fileId})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            fileItem.remove();
-                        } else {
-                            alert('删除失败：' + (data.error || data.message || '未知错误'));
-                        }
-                    });
-                });
-                
-                uploadedFiles.appendChild(fileItem);
-            }
-
-        // 获取知识库设置
-        function getKnowledgeSettings() {
-            // 从本地存储获取设置，如果没有则使用默认值
-            const savedSettings = localStorage.getItem('knowledgeSettings');
-            let settings = {
-                data_source: 'auto'  // 默认为自动
-            };
-            
-            if (savedSettings) {
-                try {
-                    const parsed = JSON.parse(savedSettings);
-                    settings = { ...settings, ...parsed };
-                } catch (e) {
-                    console.error('解析存储的设置时出错:', e);
-                }
-            }
-            
-            // 如果页面上有数据源选择，则使用选择的值
-            const dataSourceRadios = document.querySelectorAll('input[name="data-source"]');
-            if (dataSourceRadios.length > 0) {
-                for (const radio of dataSourceRadios) {
-                    if (radio.checked) {
-                        settings.data_source = radio.value;
-                        break;
-                    }
-                }
-            }
-            
-            return settings;
-        }
-    });
-</script>
+<!-- 引入分离后的JS文件 -->
+<script src="{{ url_for('static', filename='js/ai-chat-utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat-api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat-upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 {% endblock %}

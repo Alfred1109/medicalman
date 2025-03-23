@@ -22,9 +22,9 @@ load_dotenv(dotenv_path=ENV_FILE)
 VOLCENGINE_API_KEY = os.getenv("VOLCENGINE_API_KEY", "3470059d-f774-4302-81e0-50fa017fea38")
 VOLCENGINE_API_URL = os.getenv("VOLCENGINE_API_URL", "https://ark.cn-beijing.volces.com/api/v3/chat/completions")
 VOLCENGINE_MODEL = os.getenv("VOLCENGINE_MODEL", "deepseek-v3-241226")
-REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "30"))
-MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))
-RETRY_DELAY = int(os.getenv("RETRY_DELAY", "1"))
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))  # 增加到60秒
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))  # 增加到3次
+RETRY_DELAY = int(os.getenv("RETRY_DELAY", "2"))  # 增加到2秒
 
 class BaseLLMService:
     """
@@ -71,6 +71,11 @@ class BaseLLMService:
             AI的回复，如果失败则返回None
         """
         try:
+            # 记录开始调用API的时间
+            start_time = time.time()
+            print(f"开始调用LLM API - 时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"系统提示长度: {len(system_prompt)}, 用户消息长度: {len(user_message)}")
+            
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.api_key}"
@@ -97,48 +102,94 @@ class BaseLLMService:
             # 实现重试逻辑
             for attempt in range(retries + 1):
                 try:
-                    response = requests.post(
-                        self.api_url,
-                        headers=headers,
-                        json=payload,
-                        timeout=self.timeout
-                    )
+                    print(f"API尝试 {attempt+1}/{retries+1}")
                     
-                    if response.status_code == 200:
-                        response_data = response.json()
+                    try:
+                        response = requests.post(
+                            self.api_url,
+                            headers=headers,
+                            json=payload,
+                            timeout=self.timeout
+                        )
                         
-                        if "choices" in response_data and len(response_data["choices"]) > 0:
-                            return response_data["choices"][0]["message"]["content"]
+                        # 记录API响应时间
+                        response_time = time.time() - start_time
+                        print(f"API响应耗时: {response_time:.2f}秒")
+                        
+                        if response.status_code == 200:
+                            response_data = response.json()
+                            
+                            if "choices" in response_data and len(response_data["choices"]) > 0:
+                                # 记录成功
+                                print(f"API调用成功 - 状态码: 200, 耗时: {response_time:.2f}秒")
+                                return response_data["choices"][0]["message"]["content"]
+                            else:
+                                print(f"警告: API响应没有包含有效的选择: {json.dumps(response_data, ensure_ascii=False)[:200]}...")
+                                # 如果不是最后一次尝试，则继续重试
+                                if attempt < retries:
+                                    print(f"等待 {self.retry_delay} 秒后重试...")
+                                    time.sleep(self.retry_delay)
+                                    continue
+                                return None
                         else:
-                            print(f"警告: API响应没有包含有效的选择: {response_data}")
-                            # 如果不是最后一次尝试，则继续重试
+                            print(f"警告: API返回状态码 {response.status_code}")
+                            print(f"响应详情: {response.text[:500]}...")
+                            
+                            # 如果是4xx错误(客户端错误)，可以输出更详细的请求信息以便调试
+                            if 400 <= response.status_code < 500:
+                                print(f"API请求详情:")
+                                print(f"- URL: {self.api_url}")
+                                print(f"- Model: {self.model_name}")
+                                print(f"- 系统提示长度: {len(system_prompt)}")
+                                print(f"- 用户消息长度: {len(user_message)}")
+                                print(f"- Temperature: {temperature}")
+                            
+                            # 如果不是最后一次尝试，则等待后重试
                             if attempt < retries:
+                                print(f"等待 {self.retry_delay} 秒后重试...")
                                 time.sleep(self.retry_delay)
                                 continue
-                            return None
-                    else:
-                        print(f"警告: API返回状态码 {response.status_code}: {response.text}")
-                        
-                        # 如果不是最后一次尝试，则等待后重试
+                            else:
+                                return None
+                    
+                    except requests.exceptions.Timeout:
+                        print(f"API请求超时 (尝试 {attempt+1}/{retries+1}): 超过了 {self.timeout} 秒")
+                        # 增加超时时间进行重试
                         if attempt < retries:
+                            self.timeout += 30  # 每次重试增加30秒超时时间
+                            print(f"增加超时时间到 {self.timeout} 秒并重试...")
                             time.sleep(self.retry_delay)
                             continue
                         else:
-                            return None
-                
-                except requests.exceptions.RequestException as e:
-                    print(f"API请求异常 (尝试 {attempt+1}/{retries+1}): {str(e)}")
+                            return "API请求超时，请稍后再试或简化您的问题。"
                     
-                    # 如果不是最后一次尝试，则等待后重试
+                    except requests.exceptions.RequestException as e:
+                        print(f"API请求异常 (尝试 {attempt+1}/{retries+1}): {str(e)}")
+                        
+                        # 如果不是最后一次尝试，则等待后重试
+                        if attempt < retries:
+                            print(f"等待 {self.retry_delay} 秒后重试...")
+                            time.sleep(self.retry_delay)
+                            continue
+                        else:
+                            return "API连接异常，请检查网络连接后重试。"
+                
+                except Exception as inner_e:
+                    print(f"API请求处理异常: {str(inner_e)}")
+                    print(traceback.format_exc())
+                    
                     if attempt < retries:
+                        print(f"等待 {self.retry_delay} 秒后重试...")
                         time.sleep(self.retry_delay)
                         continue
                     else:
-                        return None
+                        return "处理请求时出现异常，请稍后重试。"
             
-            return None
+            # 如果所有重试都失败，返回一个有用的错误消息而不是None
+            return "无法从AI服务获取响应，请稍后重试。"
         
         except Exception as e:
             print(f"调用LLM API时发生错误: {str(e)}")
             print(f"错误堆栈: {traceback.format_exc()}")
-            return None 
+            # 返回错误消息而不是None，这样用户会看到具体原因而不是无限等待
+            return f"系统发生错误: {str(e)}" 

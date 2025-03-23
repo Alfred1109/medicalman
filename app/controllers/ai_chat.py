@@ -103,35 +103,83 @@ def process_query():
                 # 使用工厂方法获取文本分析服务
                 text_service = LLMServiceFactory.get_text_analysis_service()
                 
-                # 准备上下文数据
-                context_data = {
-                    "text_content": result_data[0]['text_content'],
-                    "metadata": result_data[0]['metadata'],
-                    "file_type": result_data[0]['file_type'],
-                    "file_name": result_data[0]['file_name']
-                }
-                if result_data[0]['structured_data']:
-                    context_data["structured_data"] = result_data[0]['structured_data']
-                
-                # 生成文本分析
-                analysis_result = text_service.generate_text_analysis(
-                    user_query=user_query,
-                    context_data=json.dumps(context_data, ensure_ascii=False)
-                )
-                
-                if analysis_result:
-                    return jsonify(
-                        success=True,
-                        message=analysis_result.get('analysis', "数据分析完成。"),
-                        data=result_data,
-                        charts=analysis_result.get('charts', []),
-                        type="data_analysis"
+                # 准备上下文数据 - 添加防御性检查
+                try:
+                    context_data = {"query_result": result_data}
+                    
+                    # 只有当数据中包含这些字段时才添加它们
+                    if result_data and len(result_data) > 0:
+                        sample_record = result_data[0]
+                        
+                        # 检查并添加文本内容 (如果存在)
+                        if 'text_content' in sample_record:
+                            context_data["text_content"] = sample_record['text_content']
+                        
+                        # 检查并添加元数据 (如果存在)
+                        if 'metadata' in sample_record:
+                            context_data["metadata"] = sample_record['metadata']
+                        
+                        # 检查并添加文件类型 (如果存在)
+                        if 'file_type' in sample_record:
+                            context_data["file_type"] = sample_record['file_type']
+                        
+                        # 检查并添加文件名 (如果存在)
+                        if 'file_name' in sample_record:
+                            context_data["file_name"] = sample_record['file_name']
+                        
+                        # 检查并添加结构化数据 (如果存在)
+                        if 'structured_data' in sample_record and sample_record['structured_data']:
+                            context_data["structured_data"] = sample_record['structured_data']
+                    
+                    # 记录上下文数据的键，帮助调试
+                    print(f"上下文数据包含以下字段: {', '.join(context_data.keys())}")
+                    
+                    # 生成文本分析
+                    analysis_result = text_service.generate_sql_analysis(
+                        user_query=user_query,
+                        sql_query=sql_query,
+                        results=result_data[:100],  # 限制数据量
+                        has_chart=False
                     )
-                else:
-                    # 简单返回数据
+                    
+                    if analysis_result:
+                        # 尝试自动生成图表
+                        charts = text_service.generate_auto_charts(user_query, result_data[:100])
+                        
+                        # 如果成功生成了图表，则添加到响应中
+                        if charts and len(charts) > 0:
+                            print(f"生成了{len(charts)}个图表配置")
+                            return jsonify(
+                                success=True,
+                                message=analysis_result,
+                                data=result_data,
+                                charts=charts,
+                                type="data_analysis"
+                            )
+                        else:
+                            # 无图表的响应
+                            return jsonify(
+                                success=True,
+                                message=analysis_result,
+                                data=result_data,
+                                type="data_analysis"
+                            )
+                    else:
+                        # 简单返回数据
+                        return jsonify(
+                            success=True,
+                            message="查询结果如下，但无法提供详细分析。",
+                            data=result_data,
+                            type="data_only"
+                        )
+                except Exception as context_error:
+                    print(f"处理上下文数据时出错: {str(context_error)}")
+                    traceback.print_exc()
+                    
+                    # 出错时直接返回数据
                     return jsonify(
                         success=True,
-                        message="查询结果如下，但无法提供详细分析。",
+                        message="查询成功，但无法提供完整分析。",
                         data=result_data,
                         type="data_only"
                     )
