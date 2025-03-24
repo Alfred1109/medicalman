@@ -74,7 +74,22 @@ class BaseLLMService:
             # 记录开始调用API的时间
             start_time = time.time()
             print(f"开始调用LLM API - 时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"系统提示长度: {len(system_prompt)}, 用户消息长度: {len(user_message)}")
+            
+            # 检查并确保输入是字符串类型
+            if isinstance(system_prompt, str) and isinstance(user_message, str):
+                print(f"系统提示长度: {len(system_prompt)}, 用户消息长度: {len(user_message)}")
+            else:
+                # 处理非字符串类型
+                if not isinstance(system_prompt, str):
+                    system_prompt = str(system_prompt) if system_prompt is not None else ""
+                if not isinstance(user_message, str):
+                    if hasattr(user_message, 'to_string'):
+                        user_message = user_message.to_string()
+                    elif hasattr(user_message, '__str__'):
+                        user_message = str(user_message)
+                    else:
+                        user_message = "无法转换的用户消息"
+                print(f"系统提示类型转换为字符串, 用户消息类型转换为字符串")
             
             headers = {
                 "Content-Type": "application/json",

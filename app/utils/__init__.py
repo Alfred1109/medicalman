@@ -1,5 +1,6 @@
 """
-工具包初始化文件
+工具类包
+包含各种通用工具函数和类
 """
 from .validators import Validators
 from .helpers import Helpers

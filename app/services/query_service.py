@@ -321,6 +321,35 @@ def execute_sql_query(sql: str) -> pd.DataFrame:
         print(f"执行SQL查询时出错: {str(e)}")
         return pd.DataFrame()
 
+# 添加LangChain查询处理函数
+def process_query_with_langchain(user_message: str) -> Dict[str, Any]:
+    """
+    使用LangChain处理用户查询并生成SQL
+    
+    参数:
+        user_message: 用户查询信息
+        
+    返回:
+        包含SQL和解释的结果
+    """
+    try:
+        # 获取SQL服务实例
+        sql_service = LLMServiceFactory.get_sql_service()
+        
+        # 使用LangChain生成SQL
+        sql_result = sql_service.generate_sql_with_langchain(user_message)
+        
+        if not sql_result:
+            print("LangChain SQL生成失败")
+            return None
+            
+        return sql_result
+        
+    except Exception as e:
+        print(f"LangChain处理查询出错: {str(e)}")
+        traceback.print_exc()
+        return None
+
 # 使用改进后的方法处理用户查询
 def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
     """
@@ -402,10 +431,58 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
         # 步骤3: 知识库查询
         if knowledge_settings and knowledge_settings.get('enabled', False):
             # 执行知识库查询的代码
-            pass
+            try:
+                print(f"尝试从知识库检索与问题相关的内容: {user_message}")
+                # 获取知识库服务实例
+                kb_service = LLMServiceFactory.get_knowledge_base_service()
+                
+                # 使用LangChain向量搜索
+                try:
+                    # 首先尝试使用LangChain方法
+                    kb_response = kb_service.generate_knowledge_response_with_chain(user_message)
+                    
+                    if kb_response and not kb_response.startswith("未找到相关") and not kb_response.startswith("未能找到"):
+                        response_data.update({
+                            "success": True,
+                            "message": kb_response,
+                            "source": "knowledge_base_langchain"
+                        })
+                        return response_data
+                    
+                    print("LangChain知识库检索未返回满意结果，尝试传统方法")
+                except Exception as e:
+                    print(f"LangChain知识库检索出错: {str(e)}")
+                    traceback.print_exc()
+                
+                # 如果LangChain方法失败，使用传统方法
+                knowledge_chunks = kb_service.search_knowledge_base(user_message)
+                
+                if knowledge_chunks:
+                    kb_response = kb_service.generate_knowledge_response(user_message, knowledge_chunks)
+                    
+                    if kb_response and not kb_response.startswith("未找到相关"):
+                        response_data.update({
+                            "success": True,
+                            "message": kb_response,
+                            "source": "knowledge_base"
+                        })
+                        return response_data
+                    
+                print("在知识库中未找到相关内容，尝试其他方法")
+            except Exception as e:
+                print(f"处理知识库查询时出错: {str(e)}")
+                traceback.print_exc()
             
-        # 步骤4: 生成SQL查询
-        sql_result = analyze_user_query_and_generate_sql(user_message)
+        # 步骤4: 使用LangChain生成并执行SQL查询
+        langchain_sql_result = process_query_with_langchain(user_message)
+        
+        if langchain_sql_result:
+            print("使用LangChain生成SQL成功")
+            sql_result = langchain_sql_result
+        else:
+            # 如果LangChain失败，回退到原始方法
+            print("回退到原始SQL生成方法")
+            sql_result = analyze_user_query_and_generate_sql(user_message)
         
         if not sql_result:
             # 如果无法生成SQL，直接使用LLM生成回复
@@ -422,6 +499,66 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
         # 提取SQL和解释
         sql_query = sql_result.get('sql')
         explanation = sql_result.get('explanation')
+        
+        # 检查SQL是否有效
+        if sql_query and isinstance(sql_query, str):
+            # 检查是否包含错误信息
+            if "系统发生错误" in sql_query or "error" in sql_query.lower():
+                # 发现错误，使用文本服务生成回复
+                print(f"SQL生成中包含错误: {sql_query}")
+                text_service = LLMServiceFactory.get_text_analysis_service()
+                llm_response = text_service.generate_text_response(user_message)
+                
+                response_data.update({
+                    "success": True,
+                    "message": llm_response or f"查询处理出错，但我可以尝试直接回答您的问题。请问您需要了解哪方面的医疗数据？",
+                    "source": "llm",
+                    "error": sql_query
+                })
+                return response_data
+                
+            # 检查SQL是否包含JSON或Markdown格式
+            if sql_query.startswith("```") or (sql_query.startswith("{") and sql_query.endswith("}")):
+                # 尝试提取SQL
+                import re
+                
+                # 从Markdown代码块中提取
+                md_match = re.search(r'```(?:sql)?\s*(.*?)\s*```', sql_query, re.DOTALL)
+                if md_match:
+                    sql_query = md_match.group(1).strip()
+                    print(f"从Markdown中提取SQL: {sql_query[:100]}...")
+                
+                # 从JSON中提取
+                json_match = re.search(r'"sql":\s*"(.*?)"', sql_query, re.DOTALL)
+                if json_match:
+                    sql_query = json_match.group(1).strip()
+                    # 替换转义的引号
+                    sql_query = sql_query.replace('\\"', '"')
+                    print(f"从JSON中提取SQL: {sql_query[:100]}...")
+            
+            # 验证SQL是否为有效格式
+            if not sql_query.upper().strip().startswith(("SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER")):
+                print(f"SQL格式无效，不是标准SQL查询: {sql_query}")
+                text_service = LLMServiceFactory.get_text_analysis_service()
+                llm_response = text_service.generate_text_response(user_message)
+                
+                response_data.update({
+                    "success": True,
+                    "message": llm_response or "无法生成有效的SQL查询，但我可以尝试直接回答您的问题。",
+                    "source": "llm"
+                })
+                return response_data
+        else:
+            # SQL为空或非字符串类型
+            text_service = LLMServiceFactory.get_text_analysis_service()
+            llm_response = text_service.generate_text_response(user_message)
+            
+            response_data.update({
+                "success": True,
+                "message": llm_response or "无法生成有效的SQL查询，但我可以尝试直接回答您的问题。",
+                "source": "llm"
+            })
+            return response_data
         
         # 更新响应数据
         response_data.update({
@@ -456,17 +593,28 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
             chart_service = LLMServiceFactory.get_chart_service()
             chart_config = chart_service.generate_chart_config(
                 user_query=user_message, 
-                sql=sql_query, 
-                data=results[:100]  # 限制数据量
+                structured_data=json.dumps(results[:100], ensure_ascii=False)  # 限制数据量并转为JSON字符串
             )
             
             if chart_config:
+                # 为返回数据添加原始数据字段
+                response_data.update({
+                    "raw_data": results[:100],  # 提供原始数据供前端使用
+                })
+                
                 # 生成图表的HTML代码
                 charts = generate_dynamic_charts(chart_config, results[:100])
                 
                 if charts:
                     response_data.update({
                         "charts": charts,
+                        "has_chart": True
+                    })
+                else:
+                    # 如果动态生成失败，直接返回原始配置
+                    print("动态生成图表失败，返回原始图表配置")
+                    response_data.update({
+                        "charts": chart_config.get("charts", []),
                         "has_chart": True
                     })
             

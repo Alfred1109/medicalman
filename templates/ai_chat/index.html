@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}智能问答 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">智能问答</li>
+{% endblock %}
+
+{% block page_title %}智能问答助手{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-primary" id="clearChat">
+        <i class="fas fa-trash me-1"></i> 清空对话
+    </button>
+    <button class="btn btn-sm btn-outline-primary" id="historyButton">
+        <i class="fas fa-history me-1"></i> 历史记录
+    </button>
+    <button class="btn btn-sm btn-outline-primary" id="toggleKnowledgePanel">
+        <i class="fas fa-database me-1"></i> 知识库
+    </button>
+</div>
+{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-chat.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+{% endblock %}
+
+{% block content %}
+    <div class="chat-container">
+        <div class="chat-body" id="chatMessages">
+            <div class="chat-message">
+                <div class="chat-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="chat-bubble ai">
+                    <div>您好，我是医院运营指标智能分析助手。请问有什么可以帮您解答的问题？</div>
+                    <div class="chat-time">09:30</div>
+                    <div class="chat-suggestions">
+                        <div class="chat-suggestion">门诊目标的达成情况如何？</div>
+                        <div class="chat-suggestion">门诊量的整体趋势是怎样的？</div>
+                        <div class="chat-suggestion">如何分析科室绩效？</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-message user">
+                <div class="chat-avatar user">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="chat-bubble user">
+                    <div>请分析一下最近一周的门诊量变化趋势</div>
+                    <div class="chat-time">09:31</div>
+                </div>
+            </div>
+            
+            <div class="chat-message">
+                <div class="chat-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="chat-bubble ai">
+                    <div>根据数据分析，最近一周的门诊量呈现波动上升趋势：<br>
+                    周一：120人次<br>
+                    周二：132人次<br>
+                    周三：101人次<br>
+                    周四：134人次<br>
+                    周五：90人次<br>
+                    周六：230人次<br>
+                    周日：210人次<br><br>
+                    
+                    周末门诊量明显高于工作日，建议适当增加周末医护人员配置。周三和周五门诊量较低，可以考虑在这两天安排一些特色门诊或优惠活动来提升就诊人数。</div>
+                    <div class="chat-time">09:32</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-footer">
+            <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="message-input"></textarea>
+            <button class="chat-send" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- 知识库面板 -->
+    <div class="knowledge-panel" id="knowledgePanel">
+        <div class="knowledge-header">
+            <h3 class="knowledge-title">知识库设置</h3>
+            <button class="knowledge-toggle">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">数据源</h4>
+            <div class="knowledge-item">
+                <input type="radio" id="autoSource" name="data-source" value="auto" checked class="knowledge-checkbox">
+                <label for="autoSource" class="knowledge-label">自动选择</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="databaseSource" name="data-source" value="database" class="knowledge-checkbox">
+                <label for="databaseSource" class="knowledge-label">系统数据库</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="uploadSource" name="data-source" value="upload" class="knowledge-checkbox">
+                <label for="uploadSource" class="knowledge-label">上传的文件</label>
+            </div>
+        </div>
+
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">数据表</h4>
+            <div class="knowledge-item">
+                <input type="checkbox" id="outpatient" checked class="knowledge-checkbox">
+                <label for="outpatient" class="knowledge-label">门诊数据</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="target" checked class="knowledge-checkbox">
+                <label for="target" class="knowledge-label">绩效目标</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="drg" checked class="knowledge-checkbox">
+                <label for="drg" class="knowledge-label">DRG分组</label>
+            </div>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">分析维度</h4>
+            <div class="knowledge-item">
+                <input type="checkbox" id="department" checked class="knowledge-checkbox">
+                <label for="department" class="knowledge-label">科室维度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="specialty" checked class="knowledge-checkbox">
+                <label for="specialty" class="knowledge-label">专科维度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="target_completion" checked class="knowledge-checkbox">
+                <label for="target_completion" class="knowledge-label">目标完成度</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="checkbox" id="trend" checked class="knowledge-checkbox">
+                <label for="trend" class="knowledge-label">趋势分析</label>
+            </div>
+        </div>
+        
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">时间范围</h4>
+            <div class="knowledge-item">
+                <input type="radio" id="allTime" name="time-range" checked class="knowledge-checkbox">
+                <label for="allTime" class="knowledge-label">全部时间</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="lastMonth" name="time-range" class="knowledge-checkbox">
+                <label for="lastMonth" class="knowledge-label">最近30天</label>
+            </div>
+            <div class="knowledge-item">
+                <input type="radio" id="lastWeek" name="time-range" class="knowledge-checkbox">
+                <label for="lastWeek" class="knowledge-label">最近7天</label>
+            </div>
+        </div>
+        
+        <!-- 文档上传区域 -->
+        <div class="knowledge-section">
+            <h4 class="knowledge-section-title">文档上传</h4>
+            <div class="upload-section" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <div class="upload-text">
+                    拖放文件至此处，或点击上传
+                </div>
+                <input type="file" id="fileInput" style="display: none" multiple>
+            </div>
+            <div class="uploaded-files" id="uploadedFiles">
+                <!-- 已上传文件将显示在这里 -->
+            </div>
+        </div>
+        
+        <button id="applyKnowledge" class="knowledge-apply">
+            <i class="fas fa-check me-1"></i> 应用设置
+        </button>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">对话历史记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group" id="historyList">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>门诊量变化趋势分析</strong>
+                                <small class="text-muted">今天 09:30</small>
+                            </div>
+                            <p class="mb-1 text-truncate">请分析一下最近一周的门诊量变化趋势</p>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>科室绩效对比</strong>
+                                <small class="text-muted">昨天 15:45</small>
+                            </div>
+                            <p class="mb-1 text-truncate">各个科室的绩效对比如何？哪个科室表现最好？</p>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>住院收入分析</strong>
+                                <small class="text-muted">昨天 10:20</small>
+                            </div>
+                            <p class="mb-1 text-truncate">住院部收入是否达到了目标？主要来源于哪些科室？</p>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>门诊预约率</strong>
+                                <small class="text-muted">前天 16:12</small>
+                            </div>
+                            <p class="mb-1 text-truncate">请分析本月门诊的预约率情况并与上月对比</p>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>药品库存分析</strong>
+                                <small class="text-muted">3天前 11:05</small>
+                            </div>
+                            <p class="mb-1 text-truncate">哪些药品库存较低需要补充？哪些药品使用频率较高？</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-danger" id="clearHistoryBtn">清空历史记录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+
+<!-- 引入分离后的JS文件 -->
+<script src="{{ url_for('static', filename='js/ai-chat-utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat-api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat-upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
+{% endblock %}

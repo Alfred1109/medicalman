@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}图表调试 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('ai_chat.index') }}">智能问答</a></li>
+<li class="breadcrumb-item active">图表调试</li>
+{% endblock %}
+
+{% block page_title %}图表调试页面{% endblock %}
+
+{% block styles %}
+<style>
+    .chart-container {
+        margin-bottom: 2rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        background: white;
+    }
+    .chart-title {
+        margin-bottom: 1rem;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: #333;
+        text-align: center;
+    }
+    .chart-canvas {
+        height: 400px;
+        width: 100%;
+    }
+    .chart-json {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        font-size: 0.85rem;
+        color: #333;
+        overflow-x: auto;
+    }
+    .charts-section {
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>测试图表渲染</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">本页面用于测试echarts图表渲染功能，检查图表是否正确显示。</p>
+                
+                <div class="charts-section">
+                    {% for chart in charts %}
+                    <div class="chart-container">
+                        <div class="chart-title">{{ chart.title }}</div>
+                        <div class="chart-canvas" id="chart-{{ loop.index }}"></div>
+                        <div class="chart-json">{{ chart|tojson }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('页面加载完成，开始渲染图表');
+    
+    // 获取图表数据
+    const chartsData = {{ charts|tojson|safe }};
+    console.log('图表数据:', chartsData);
+    
+    // 渲染每个图表
+    chartsData.forEach((chartConfig, index) => {
+        console.log(`准备渲染图表 ${index+1}:`, chartConfig);
+        
+        // 获取图表容器
+        const chartContainer = document.getElementById(`chart-${index+1}`);
+        if (!chartContainer) {
+            console.error(`未找到图表容器 chart-${index+1}`);
+            return;
+        }
+        
+        try {
+            // 初始化echarts实例
+            const chart = echarts.init(chartContainer);
+            console.log(`已初始化图表 ${index+1}`);
+            
+            // 设置图表配置
+            chart.setOption(chartConfig);
+            console.log(`图表 ${index+1} 渲染成功`);
+            
+            // 监听窗口大小变化，自动调整图表大小
+            window.addEventListener('resize', function() {
+                chart.resize();
+            });
+        } catch (error) {
+            console.error(`图表 ${index+1} 渲染失败:`, error);
+            chartContainer.innerHTML = `<div class="alert alert-danger">图表渲染失败: ${error.message}</div>`;
+        }
+    });
+});
+</script>
+{% endblock %} 

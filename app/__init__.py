@@ -4,6 +4,8 @@ import os
 from datetime import timedelta, datetime
 from app.extensions import init_extensions
 from app.config import config
+import logging
+from logging.handlers import RotatingFileHandler
 
 # 初始化扩展
 session = Session()
@@ -36,23 +38,7 @@ def create_app(config_name=None):
     init_extensions(app)
     
     # 注册蓝图
-    from app.controllers.auth import auth_bp
-    from app.controllers.dashboard import dashboard_bp
-    from app.controllers.analysis import analysis_bp
-    from app.controllers.ai_chat import ai_chat_bp
-    from app.controllers.settings import settings_bp
-    from app.controllers.logs import logs_bp
-    from app.controllers.api import api_bp, upload_bp, auth_api_bp
-    
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(analysis_bp)
-    app.register_blueprint(ai_chat_bp)
-    app.register_blueprint(settings_bp)
-    app.register_blueprint(logs_bp)
-    app.register_blueprint(api_bp)
-    app.register_blueprint(upload_bp)
-    app.register_blueprint(auth_api_bp)
+    register_blueprints(app)
     
     # 注册错误处理
     register_error_handlers(app)
@@ -60,7 +46,34 @@ def create_app(config_name=None):
     # 注册上下文处理器
     register_context_processors(app)
     
+    # 初始化日志
+    init_logger(app)
+    
+    # 数据库初始化
+    from app.models.database import init_db
+    with app.app_context():
+        init_db(app)
+    
     return app
+
+def register_blueprints(app):
+    """注册蓝图"""
+    from app.routes.main_routes import main_bp, dashboard_bp
+    from app.routes.api_routes import api_bp
+    from app.routes.auth_routes import auth_bp
+    from app.routes.ai_chat_routes import ai_chat_bp
+    from app.routes.analytics_routes import analytics_bp
+    from app.routes.nlp_routes import nlp_bp
+    from app.routes.settings_routes import settings_bp
+    
+    app.register_blueprint(main_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(ai_chat_bp, url_prefix='/chat')
+    app.register_blueprint(analytics_bp, url_prefix='/analytics')
+    app.register_blueprint(nlp_bp, url_prefix='/nlp')
+    app.register_blueprint(settings_bp)
 
 def register_error_handlers(app):
     """注册错误处理器"""
@@ -78,4 +91,22 @@ def register_context_processors(app):
     
     @app.context_processor
     def inject_current_year():
-        return {'current_year': datetime.now().year} 
+        return {'current_year': datetime.now().year}
+
+def init_logger(app):
+    """初始化日志配置"""
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+        
+    file_handler = RotatingFileHandler('logs/medical_workload.log', 
+                                      maxBytes=10240, 
+                                      backupCount=10)
+    
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('医疗工作量系统启动') 

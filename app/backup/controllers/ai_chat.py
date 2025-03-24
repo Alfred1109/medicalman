@@ -44,20 +44,81 @@ def process_query():
                 type="text"
             )
             
+        # 知识库查询流程
+        if data_source == 'knowledge_base' or data_source == 'auto':
+            try:
+                print(f"尝试从知识库检索与问题相关的内容: {user_query}")
+                
+                # 获取知识库服务
+                kb_service = LLMServiceFactory.get_knowledge_base_service()
+                
+                # 使用LangChain检索QA链
+                try:
+                    # 首先尝试使用LangChain方法
+                    kb_response = kb_service.generate_knowledge_response_with_chain(user_query)
+                    
+                    if kb_response and not kb_response.startswith("未找到相关") and not kb_response.startswith("未能找到"):
+                        # 返回使用LangChain生成的回复
+                        return jsonify(
+                            success=True,
+                            message=kb_response,
+                            type="text",
+                            source="knowledge_base_langchain"
+                        )
+                    
+                    print("LangChain知识库检索未返回满意结果，尝试传统方法")
+                except Exception as e:
+                    print(f"LangChain知识库检索出错: {str(e)}")
+                    traceback.print_exc()
+                
+                # 回退到传统方法
+                # 检索知识库
+                knowledge_chunks = kb_service.search_knowledge_base(user_query)
+                
+                # 如果找到相关内容，生成回复
+                if knowledge_chunks:
+                    print(f"在知识库中找到 {len(knowledge_chunks)} 个相关内容块")
+                    
+                    # 生成基于知识库的回复
+                    kb_response = kb_service.generate_knowledge_response(user_query, knowledge_chunks)
+                    
+                    # 构建块ID列表，用于追踪引用
+                    chunk_ids = [chunk["id"] for chunk in knowledge_chunks]
+                    chunk_indexes = [chunk["chunk_index"] for chunk in knowledge_chunks]
+                    
+                    # 返回知识库回复
+                    return jsonify(
+                        success=True,
+                        message=kb_response,
+                        source="knowledge_base",
+                        reference_ids=chunk_ids,
+                        reference_indexes=chunk_indexes,
+                        type="knowledge_base"
+                    )
+                else:
+                    print("在知识库中未找到相关内容，尝试其他方法")
+            except Exception as kb_error:
+                print(f"知识库查询出错: {str(kb_error)}")
+                traceback.print_exc()
+                print("继续尝试其他查询方法")
+            
         # 默认流程：分析用户查询并生成SQL
         try:
             # 使用工厂方法获取SQL服务
             sql_service = LLMServiceFactory.get_sql_service()
             
             # 生成SQL查询
+            print(f"尝试为查询生成SQL: {user_query}")
             analysis_result = sql_service.generate_sql(user_query)
             
             if not analysis_result or 'sql' not in analysis_result:
+                print(f"未能生成SQL查询，analysis_result: {analysis_result}")
                 # 如果无法生成SQL查询，使用通用回答
                 system_prompt = """
                 你是一个专业的医疗助手，擅长回答医疗相关问题。
                 请根据用户的问题，提供专业、准确的回答。
                 如果问题超出你的知识范围，请诚实地表明。
+                请注意：如果问题涉及医疗数据的趋势，请尝试生成SQL查询。例如，"SELECT 日期, SUM(数量) as 总量 FROM 门诊量 GROUP BY strftime('%Y-%m', 日期) ORDER BY 日期"可以查询每月门诊总量。
                 """
                 
                 # 使用工厂方法获取基础服务

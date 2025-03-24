@@ -10,7 +10,10 @@ import sys
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-def import_excel_to_sqlite(excel_file='docs/医疗数据表.xlsx', db_file='medical_workload.db'):
+# 默认使用instance目录下的数据库
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "instance", "medical_workload.db")
+
+def import_excel_to_sqlite(excel_file='docs/医疗数据表.xlsx', db_file=None):
     """
     将Excel文件导入到SQLite数据库
     
@@ -18,6 +21,14 @@ def import_excel_to_sqlite(excel_file='docs/医疗数据表.xlsx', db_file='medi
         excel_file: Excel文件路径
         db_file: 数据库文件路径
     """
+    if db_file is None:
+        db_file = DEFAULT_DB_PATH
+        
+    print(f"将导入数据到数据库: {db_file}")
+    
+    # 确保instance目录存在
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
+    
     # 连接到SQLite数据库
     conn = sqlite3.connect(db_file)
     
@@ -71,13 +82,21 @@ def import_excel_to_sqlite(excel_file='docs/医疗数据表.xlsx', db_file='medi
     finally:
         conn.close()
 
-def create_users_table(db_file='medical_workload.db'):
+def create_users_table(db_file=None):
     """
     创建用户表
     
     参数:
         db_file: 数据库文件路径
     """
+    if db_file is None:
+        db_file = DEFAULT_DB_PATH
+        
+    print(f"将创建用户表到数据库: {db_file}")
+    
+    # 确保instance目录存在
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
+    
     # 连接到SQLite数据库
     conn = sqlite3.connect(db_file)
     

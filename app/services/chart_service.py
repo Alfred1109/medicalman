@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 import copy
 
 from app.services.base_llm_service import BaseLLMService
-from app.utils.json_helper import robust_json_parser
+from app.utils.json_helper import robust_json_parser, aggressive_json_fix, extract_json_object
 
 class ChartService(BaseLLMService):
     """
@@ -54,83 +54,19 @@ class ChartService(BaseLLMService):
                 print("生成图表配置时大模型返回为空")
                 return {"charts": []}
             
-            print(f"LLM原始响应 (截断至200字符): {response[:200]}...")
+            # 使用新的解析方法处理响应
+            result = self.parse_llm_response(response)
             
-            # 尝试提取JSON部分
-            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
-            if json_match:
-                json_content = json_match.group(1)
-                print("成功从Markdown代码块中提取JSON内容")
+            # 检查结果
+            if result and 'charts' in result and isinstance(result['charts'], list) and len(result['charts']) > 0:
+                print(f"成功生成 {len(result['charts'])} 个图表配置")
+                return result
             else:
-                # 如果没有代码块，尝试直接找到JSON对象
-                start = response.find('{')
-                if start >= 0:
-                    json_content = response[start:]
-                    print("从原始响应中直接提取JSON内容")
-                else:
-                    json_content = response
-                    print("未找到JSON开始标记，使用完整响应")
-            
-            # 预处理JSON字符串，修复常见格式问题
-            # 1. 修复月份相关的常见错误
-            if '"name": "月份"' in json_content:
-                pattern = r'"name":\s*"月份"\s*}\s*"yAxis"'
-                if re.search(pattern, json_content):
-                    json_content = re.sub(pattern, '"name": "月份" },\n"yAxis"', json_content)
-                    print("预处理：修复了'月份'属性后缺少逗号的问题")
-            
-            # 2. 修复xAxis和yAxis之间缺少逗号的问题
-            if '"xAxis":' in json_content and '"yAxis":' in json_content:
-                pattern = r'(}")\s*("yAxis")'
-                if re.search(pattern, json_content):
-                    json_content = re.sub(pattern, r'},\n\2', json_content)
-                    print("预处理：修复了xAxis和yAxis之间缺少逗号的问题")
-            
-            # 尝试使用健壮的JSON解析器
-            result = robust_json_parser(json_content)
-            
-            if result:
-                print("成功解析图表配置JSON")
-                # 验证结果的结构
-                if isinstance(result, dict) and 'charts' in result:
-                    # 确保每个图表配置有必要的字段
-                    charts = result['charts']
-                    if isinstance(charts, list):
-                        valid_charts = []
-                        for chart in charts:
-                            if self._validate_chart_config(chart):
-                                valid_charts.append(chart)
-                            else:
-                                print(f"图表配置无效，已跳过: {chart}")
-                        if valid_charts:
-                            result['charts'] = valid_charts
-                            return result
-                        else:
-                            print("所有图表配置都无效")
-                            return {"charts": []}
-                    else:
-                        print("'charts'字段不是列表")
-                        return {"charts": []}
-                else:
-                    # 如果结果是单个图表配置对象，则包装它
-                    if isinstance(result, dict) and self._validate_chart_config(result):
-                        return {"charts": [result]}
-                    else:
-                        print("JSON不是有效的图表配置")
-                        return {"charts": []}
-            else:
-                print("无法从LLM响应中解析有效的JSON")
-                
-                # 尝试从响应中提取图表配置
-                print("尝试使用提取方法获取图表配置...")
-                chart_configs = self.extract_chart_configs(response)
-                if chart_configs:
-                    return {"charts": chart_configs}
-                
+                print("未能生成有效的图表配置")
                 return {"charts": []}
         
         except Exception as e:
-            print(f"生成图表配置时发生错误: {str(e)}")
+            print(f"生成图表配置时出错: {str(e)}")
             traceback.print_exc()
             return {"charts": []}
     
@@ -272,17 +208,66 @@ class ChartService(BaseLLMService):
                 print(f"图表配置不是有效的字典对象: {type(chart)}")
                 return False
             
-            # 检查必要字段
-            required_fields = ['type', 'series']
-            if not all(field in chart for field in required_fields):
-                missing = [field for field in required_fields if field not in chart]
-                print(f"图表配置缺少必要字段: {missing}")
+            # 检查必要字段 - 更宽松的验证方式
+            if 'type' not in chart:
+                # 尝试从series[0].type获取类型
+                if 'series' in chart and isinstance(chart['series'], list) and len(chart['series']) > 0:
+                    if isinstance(chart['series'][0], dict) and 'type' in chart['series'][0]:
+                        chart['type'] = chart['series'][0]['type']
+                        print(f"从series[0].type获取图表类型: {chart['type']}")
+                    else:
+                        chart['type'] = 'bar'  # 默认类型
+                        print("未找到图表类型，使用默认的'bar'类型")
+                else:
+                    chart['type'] = 'bar'  # 默认类型
+                    print("未找到图表类型，使用默认的'bar'类型")
+                
+            # 检查series
+            if 'series' not in chart:
+                # 没有series时，看是否有数据可以构建
+                if 'data' in chart and isinstance(chart['data'], list):
+                    chart['series'] = [{'data': chart['data'], 'type': chart['type']}]
+                    print("从chart.data构建series")
+                else:
+                    print("图表配置缺少series且无法从数据构建")
+                    return False
+            elif not isinstance(chart['series'], list):
+                if isinstance(chart['series'], dict):
+                    # 将单个series对象转换为数组
+                    chart['series'] = [chart['series']]
+                    print("将单个series对象转换为数组")
+                else:
+                    print("series不是列表类型")
+                    return False
+            
+            # 确保series不为空
+            if not chart.get('series'):
+                print("series列表为空")
+                return False
+            
+            # 确保每个series都有类型和数据
+            for i, series in enumerate(chart['series']):
+                if not isinstance(series, dict):
+                    print(f"series[{i}]不是字典类型")
+                    return False
+                
+                if 'type' not in series:
+                    series['type'] = chart['type']
+                    print(f"为series[{i}]设置类型: {chart['type']}")
+                
+                if 'data' not in series:
+                    print(f"series[{i}]缺少data字段")
                 return False
             
             # 确保有标题，如果没有则添加默认标题
             if 'title' not in chart:
-                chart['title'] = "数据分析图表"
+                chart['title'] = {"text": "数据分析图表", "left": "center"}
                 print("添加了默认标题")
+            elif isinstance(chart['title'], str):
+                # 将字符串标题转换为对象格式
+                title_text = chart['title']
+                chart['title'] = {"text": title_text, "left": "center"}
+                print(f"将字符串标题 '{title_text}' 转换为对象格式")
             
             # 检查图表类型是否为支持的类型
             supported_types = ['line', 'bar', 'pie', 'scatter', 'radar', 'funnel', 'gauge', 'heatmap']
@@ -290,226 +275,317 @@ class ChartService(BaseLLMService):
                 print(f"不支持的图表类型 '{chart.get('type')}'，使用默认的'bar'类型")
                 chart['type'] = 'bar'  # 使用默认的柱状图类型
             
-            # 检查series是否为列表且不为空
-            if not isinstance(chart.get('series'), list):
-                print("series不是列表类型")
-                return False
-            
-            if not chart.get('series'):
-                print("series列表为空")
-                return False
+            # 处理饼图特殊情况
+            if chart['type'] == 'pie':
+                # 饼图不需要xAxis和yAxis
+                return True
             
             # 验证并修复xAxis
             if 'xAxis' not in chart:
+                # 尝试从系列数据中推断x轴数据
+                if chart['series'] and 'data' in chart['series'][0]:
+                    # 如果series[0].data是对象数组，尝试提取名称
+                    series_data = chart['series'][0]['data']
+                    if isinstance(series_data, list) and len(series_data) > 0:
+                        if isinstance(series_data[0], dict) and 'name' in series_data[0]:
+                            x_data = [item['name'] for item in series_data if isinstance(item, dict) and 'name' in item]
+                            chart['xAxis'] = {"type": "category", "data": x_data}
+                            print("从series[0].data中的name字段构建xAxis.data")
+                        else:
+                            # 默认x轴
+                            chart['xAxis'] = {"type": "category", "data": []}
+                            print("添加默认xAxis配置")
+                    else:
+                        chart['xAxis'] = {"type": "category", "data": []}
+                        print("添加默认xAxis配置")
+                else:
+                    chart['xAxis'] = {"type": "category", "data": []}
                 print("添加默认xAxis配置")
-                chart['xAxis'] = {"data": [], "name": "X轴"}
             elif not isinstance(chart['xAxis'], dict):
-                print("xAxis不是字典类型，使用默认配置")
-                chart['xAxis'] = {"data": [], "name": "X轴"}
-            else:
-                # 确保xAxis有正确的属性
-                if 'data' not in chart['xAxis']:
-                    chart['xAxis']['data'] = []
-                    print("在xAxis中添加了空的data数组")
-                
-                if 'name' not in chart['xAxis']:
-                    chart['xAxis']['name'] = "X轴"
-                    print("在xAxis中添加了默认name")
-                
-                # 确保xAxis中的data是列表
-                if not isinstance(chart['xAxis'].get('data'), list):
-                    print("xAxis中的data不是列表，使用空列表替代")
-                    chart['xAxis']['data'] = []
+                if isinstance(chart['xAxis'], list):
+                    # ECharts支持多x轴，保留列表格式
+                    pass
+                else:
+                    print("xAxis不是字典类型，使用默认配置")
+                    chart['xAxis'] = {"type": "category", "data": []}
             
             # 验证并修复yAxis
             if 'yAxis' not in chart:
                 print("添加默认yAxis配置")
-                chart['yAxis'] = {"name": "Y轴"}
+                chart['yAxis'] = {"type": "value"}
             elif not isinstance(chart['yAxis'], dict):
-                print("yAxis不是字典类型，使用默认配置")
-                chart['yAxis'] = {"name": "Y轴"}
-            else:
-                # 确保yAxis有正确的属性
-                if 'name' not in chart['yAxis']:
-                    chart['yAxis']['name'] = "Y轴"
-                    print("在yAxis中添加了默认name")
-            
-            # 验证并修复series中的每个项目
-            valid_series = []
-            for i, item in enumerate(chart.get('series', [])):
-                if not isinstance(item, dict):
-                    print(f"series中的第{i+1}项不是字典对象，已跳过")
-                    continue
-                
-                # 确保series项中有name和data
-                if 'name' not in item:
-                    item['name'] = f"数据系列{i+1}"
-                    print(f"为series中的第{i+1}项添加了默认name")
-                
-                if 'data' not in item:
-                    item['data'] = []
-                    print(f"为series中的第{i+1}项添加了空的data数组")
-                
-                # 确保data是列表类型
-                if not isinstance(item.get('data'), list):
-                    print(f"series中第{i+1}项的data不是列表，使用空列表替代")
-                    item['data'] = []
-                
-                # 确保有type字段，且与chart.type一致
-                if 'type' not in item:
-                    item['type'] = chart['type']
-                    print(f"为series中的第{i+1}项添加了type: {chart['type']}")
-                
-                valid_series.append(item)
-            
-            # 更新series数组
-            if valid_series:
-                chart['series'] = valid_series
-            else:
-                print("没有有效的series项")
-                return False
+                if isinstance(chart['yAxis'], list):
+                    # ECharts支持多y轴，保留列表格式
+                    pass
+                else:
+                    print("yAxis不是字典类型，使用默认配置")
+                    chart['yAxis'] = {"type": "value"}
             
             return True
-            
         except Exception as e:
             print(f"验证图表配置时出错: {str(e)}")
-            traceback.print_exc()
             return False
     
-    def _generate_chart_prompt(self, user_query, structured_data):
+    def _generate_chart_prompt(self, user_query: str, structured_data: str) -> str:
         """
-        生成用于图表分析的提示
+        生成用于请求图表配置的提示词
         
         参数:
             user_query: 用户查询
-            structured_data: 结构化数据
+            structured_data: 结构化数据（JSON格式）
             
         返回:
-            生成的提示词
+            提示词
         """
-        return f"""你是一个专业的医疗数据分析师，现在需要根据以下数据和用户查询生成合适的图表配置。你必须返回格式严格正确的JSON，没有任何格式错误。
+        return f"""
+请分析以下用户查询和数据，生成2-3个最合适的图表配置，用于可视化分析结果。
 
-用户查询: {user_query}
+用户查询:
+{user_query}
 
-数据:
+数据（JSON格式）:
 {structured_data}
 
-你的任务是生成一个严格有效的JSON对象，其中包含一个名为"charts"的数组。这个JSON必须能被Python的json.loads()函数直接解析，不能有任何格式错误！
+请使用标准的ECharts配置格式，生成一个包含"charts"数组的JSON对象。每个图表对象必须包含：
+- type: 图表类型（例如：bar, line, pie 等）
+- title: 图表标题
+- xAxis: 横轴配置 (包含data数组)
+- yAxis: 纵轴配置
+- series: 系列数组，每个系列包含data字段
 
-【极其重要的格式规则】
-1. 所有JSON对象的属性必须用逗号分隔，最后一个属性后不能有逗号
-2. 所有数组元素必须用逗号分隔，最后一个元素后不能有逗号
-3. 所有属性名和字符串值必须使用双引号，不能用单引号
-4. 必须严格遵循以下固定模板结构，不能改变基本格式
+请务必遵循以下规则：
+1. 返回的必须是完全有效的JSON对象，严格检查格式正确性
+2. 确保所有大括号和中括号正确闭合，属性名使用双引号
+3. 属性之间使用逗号分隔，最后一个属性后不要加逗号
+4. 所有字段名使用英文，值可以使用中文
+5. 针对用户查询提供最有信息量的可视化
+6. 简单、清晰的图表比复杂的更好
+7. 返回的格式必须是带有"charts"数组的JSON对象
 
-【图表JSON模板】 - 请严格按照此模板格式：
+示例格式：
+```json
 {{
   "charts": [
     {{
-      "title": "图表标题",
-      "type": "图表类型",
+      "type": "bar",
+      "title": {{
+        "text": "门诊量趋势分析",
+        "left": "center"
+      }},
       "xAxis": {{
         "type": "category",
-        "data": ["数据1", "数据2", "数据3"],
-        "name": "横轴名称"
+        "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
       }},
       "yAxis": {{
         "type": "value",
-        "name": "纵轴名称"
+        "name": "门诊量"
       }},
       "series": [
         {{
-          "name": "数据系列名称",
-          "data": [值1, 值2, 值3],
-          "type": "系列类型"
+          "data": [120, 200, 150, 80, 70, 110, 130],
+          "type": "bar"
+        }}
+      ]
+    }},
+    {{
+      "type": "line",
+      "title": {{
+        "text": "同环比分析",
+        "left": "center"
+      }},
+      "xAxis": {{
+        "type": "category",
+        "data": ["1月", "2月", "3月", "4月", "5月", "6月"]
+      }},
+      "yAxis": {{
+        "type": "value",
+        "name": "增长率%"
+      }},
+      "series": [
+        {{
+          "name": "同比增长",
+          "data": [10, -2, 5, 8, -4, 6],
+          "type": "line"
+        }},
+        {{
+          "name": "环比增长",
+          "data": [5, 3, -1, 4, -2, 3],
+          "type": "line"
         }}
       ]
     }}
   ]
 }}
-
-【必须注意的关键点】
-1. 所有属性之后都必须有逗号，除了对象或数组的最后一个属性
-2. 每个对象的结束花括号后，如果还有下一个属性，必须加逗号
-3. "xAxis"对象的结束花括号后面必须有逗号，再写"yAxis"属性
-4. "name": "月份"后面必须有逗号（这是最容易错的地方）
-
-【错误模式1】: 最常见的错误是"name": "月份"后缺少逗号
-错误:
-```json
-{{
-  "xAxis": {{
-    "type": "category",
-    "data": ["1月", "2月", "3月"],
-    "name": "月份"
-  }}
-  "yAxis": {{...}}
-}}
 ```
 
-正确:
-```json
-{{
-  "xAxis": {{
-    "type": "category",
-    "data": ["1月", "2月", "3月"],
-    "name": "月份"
-  }},
-  "yAxis": {{...}}
-}}
-```
+只返回符合要求的JSON对象，不要有其他文字说明，确保图表配置完全符合ECharts格式规范。
+""" 
 
-【错误模式2】: 对象属性之间缺少逗号
-错误:
-```json
-{{
-  "xAxis": {{...}}
-  "yAxis": {{...}}
-  "series": [...]
-}}
-```
-
-正确:
-```json
-{{
-  "xAxis": {{...}},
-  "yAxis": {{...}},
-  "series": [...]
-}}
-```
-
-【错误模式3】: 以下这种格式(缺少逗号)绝对会导致JSON解析错误，必须避免！
-错误：
-```json
-  "xAxis": {{
-    "type": "category",
-    "data": ["1月", "2月", "3月"],
-    "name": "月份"
-  }}
-  "yAxis": {{
-    "type": "value",
-    "name": "指标"
-  }}
-```
-
-正确：
-```json
-  "xAxis": {{
-    "type": "category",
-    "data": ["1月", "2月", "3月"],
-    "name": "月份"
-  }},
-  "yAxis": {{
-    "type": "value",
-    "name": "指标"
-  }}
-```
-
-【生成步骤】
-1. 分析数据结构和用户查询
-2. 选择适合的图表类型
-3. 按照模板格式生成JSON，确保句法完全正确
-4. 检查每个对象和属性后是否需要添加逗号
-5. 特别检查中文属性值后面是否有逗号
-
-请生成符合要求的JSON图表配置：""" 
+    def parse_llm_response(self, response: str) -> Dict[str, Any]:
+        """
+        解析LLM响应中的图表配置JSON
+        
+        参数:
+            response: LLM响应文本
+            
+        返回:
+            解析后的图表配置
+        """
+        try:
+            if not response or not isinstance(response, str):
+                print("LLM响应为空或非字符串类型")
+                return {"charts": []}
+            
+            print(f"LLM原始响应 (截断至200字符): {response[:200]}...")
+            
+            # 1. 首先尝试提取Markdown代码块
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
+            if json_match:
+                extracted_json = json_match.group(1).strip()
+                print("成功从Markdown代码块中提取JSON内容")
+            else:
+                # 2. 尝试提取大括号内容
+                json_start = response.find('{')
+                json_end = response.rfind('}')
+                if json_start >= 0 and json_end > json_start:
+                    extracted_json = response[json_start:json_end+1].strip()
+                    print(f"从原始响应中提取JSON内容，长度为 {len(extracted_json)}")
+                else:
+                    extracted_json = response
+                    print("未找到JSON标记，使用完整响应")
+                
+            # 安全解析部分
+            result = None
+            try:
+                result = robust_json_parser(extracted_json)
+                if not result:
+                    print("使用健壮JSON解析器无法获取有效图表配置")
+            except Exception as e:
+                print(f"使用健壮JSON解析器时出错: {str(e)}")
+                result = None
+            
+            # 如果健壮解析器无法解析，尝试更激进的修复
+            if not result:
+                try:
+                    # 尝试修复JSON
+                    fixed_json = aggressive_json_fix(extracted_json)
+                    if fixed_json:
+                        result = json.loads(fixed_json)
+                except Exception as e:
+                    print(f"使用激进JSON修复时出错: {str(e)}")
+                    result = None
+                
+                # 如果激进修复失败，尝试提取JSON对象
+                if not result:
+                    try:
+                        json_obj = extract_json_object(extracted_json)
+                        if json_obj:
+                            result = json.loads(json_obj)
+                    except Exception as e:
+                        print(f"提取JSON对象时出错: {str(e)}")
+                        result = None
+            
+            # 处理解析结果
+            if result:
+                # 处理包含charts数组的对象
+                if isinstance(result, dict) and 'charts' in result:
+                    charts = result['charts']
+                    if isinstance(charts, list):
+                        valid_charts = []
+                        for chart in charts:
+                            if self._validate_chart_config(chart):
+                                self._add_field_mapping(chart)
+                                valid_charts.append(chart)
+                        
+                        if valid_charts:
+                            print(f"成功验证 {len(valid_charts)} 个有效图表配置")
+                            result['charts'] = valid_charts
+                            return result
+                        else:
+                            print("所有图表配置都无效")
+                            return {"charts": []}
+                
+                # 处理单个图表对象
+                elif isinstance(result, dict) and self._validate_chart_config(result):
+                    print("发现单个图表配置，封装到charts数组中")
+                    self._add_field_mapping(result)
+                    return {"charts": [result]}
+                
+                # 处理图表配置数组
+                elif isinstance(result, list):
+                    valid_charts = []
+                    for chart in result:
+                        if isinstance(chart, dict) and self._validate_chart_config(chart):
+                            self._add_field_mapping(chart)
+                            valid_charts.append(chart)
+                    
+                    if valid_charts:
+                        print(f"从数组中提取 {len(valid_charts)} 个有效图表配置")
+                        return {"charts": valid_charts}
+            
+            # 如果所有尝试都失败
+            print("无法提取有效的图表配置")
+            return {"charts": []}
+        
+        except Exception as e:
+            print(f"解析LLM响应时出错: {str(e)}")
+            traceback.print_exc()
+            return {"charts": []}
+    
+    def _add_field_mapping(self, chart: Dict[str, Any]) -> None:
+        """
+        为图表配置添加必要的字段映射
+        
+        参数:
+            chart: 图表配置字典
+        """
+        if 'field_mapping' not in chart or not chart['field_mapping']:
+            chart_type = chart.get('type', '')
+            field_mapping = {}
+            
+            # 从图表配置中推断字段映射
+            if chart_type in ['bar', 'line']:
+                # 从xAxis和series中获取实际字段名
+                if 'xAxis' in chart and isinstance(chart['xAxis'], dict) and 'data' in chart['xAxis']:
+                    # 如果xAxis数据是一个列表，通常是直接的类别值而不是字段引用
+                    # 我们需要找出这是哪个字段的值，暂时使用通用字段名
+                    field_mapping['x'] = chart.get('xAxis', {}).get('name', '日期')
+                
+                # 获取y轴数据
+                if 'series' in chart and isinstance(chart['series'], list):
+                    if len(chart['series']) == 1:
+                        # 单系列
+                        series = chart['series'][0]
+                        field_name = series.get('name')
+                        # 使用series名称作为字段名，如果没有则使用通用名称
+                        field_mapping['y'] = field_name if field_name else '数值'
+                    else:
+                        # 多系列，每个系列使用自己的名称
+                        series_names = []
+                        for s in chart['series']:
+                            name = s.get('name')
+                            if name:
+                                series_names.append(name)
+                            else:
+                                # 如果没有名称，使用索引
+                                series_names.append(f'系列{len(series_names)+1}')
+                        
+                        field_mapping['y'] = series_names
+            
+            elif chart_type == 'pie':
+                # 饼图默认字段映射
+                field_mapping = {
+                    'name': '类别',
+                    'value': '数值'
+                }
+                
+            elif chart_type == 'scatter':
+                # 散点图默认字段映射
+                field_mapping = {
+                    'x': 'x轴',
+                    'y': 'y轴'
+                }
+            
+            # 添加字段映射到图表配置
+            chart['field_mapping'] = field_mapping
+            print(f"为 {chart.get('title', chart_type)} 图表添加了默认字段映射: {field_mapping}") 

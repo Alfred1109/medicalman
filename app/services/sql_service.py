@@ -5,10 +5,18 @@ import json
 import re
 import traceback
 from typing import Dict, Any, Optional
+from flask import current_app
+import sqlite3
 
 from app.services.base_llm_service import BaseLLMService
 from app.utils.db import get_database_schema
 from app.prompts import DATABASE_SYSTEM_PROMPT
+
+# 导入LangChain相关库
+from langchain_community.utilities import SQLDatabase
+from langchain.chains import create_sql_query_chain
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 
 class SQLService(BaseLLMService):
     """
@@ -26,6 +34,173 @@ class SQLService(BaseLLMService):
         """
         super().__init__(model_name, api_key, api_url)
         print(f"初始化SQLService，使用模型: {self.model_name}")
+        
+        # 初始化表名映射字典
+        self.table_name_mapping = {
+            "outpatient": "门诊量",
+            "target": "目标值",
+            "drg_records": "drg_records"
+        }
+        
+        # 初始化LangChain SQLDatabase对象
+        self._init_langchain_db()
+    
+    def _init_langchain_db(self):
+        """初始化LangChain SQLDatabase对象"""
+        try:
+            db_path = current_app.config.get('DATABASE_PATH', 'medical_workload.db')
+            self.langchain_db = SQLDatabase.from_uri(f"sqlite:///{db_path}", 
+                                                     include_tables=list(self.table_name_mapping.values()))
+            print(f"LangChain SQLDatabase初始化成功: {db_path}")
+        except Exception as e:
+            print(f"LangChain SQLDatabase初始化失败: {str(e)}")
+            self.langchain_db = None
+    
+    def generate_sql_with_langchain(self, user_message: str) -> Optional[Dict[str, Any]]:
+        """
+        使用LangChain生成SQL查询
+        
+        参数:
+            user_message: 用户消息
+            
+        返回:
+            包含SQL查询和解释的字典，如果失败则返回None
+        """
+        try:
+            if self.langchain_db is None:
+                self._init_langchain_db()
+                if self.langchain_db is None:
+                    print("LangChain数据库初始化失败，回退到普通方法")
+                    return self.generate_sql(user_message)
+            
+            # 创建SQL生成链
+            template = """
+            你是一个医疗数据库专家，需要将用户问题转换为SQL查询。
+            
+            数据库信息:
+            {schema}
+            
+            注意: 
+            1. 请使用中文表名和字段名。我们的表名是中文，如"门诊量"、"目标值"等。
+            2. 在SQLite中，使用strftime('%Y-%m', 日期)来格式化日期。
+            3. 确保生成的SQL语法正确且满足用户需求。
+            
+            用户问题: {question}
+            
+            必须仅返回有效的SQL查询语句，不要添加解释或其他文本。
+            """
+            
+            prompt = ChatPromptTemplate.from_template(template)
+            
+            # 创建查询链
+            chain = (
+                prompt | 
+                self._langchain_llm_invoke |
+                StrOutputParser() 
+            )
+            
+            # 执行链
+            sql_query = chain.invoke({
+                "schema": self.langchain_db.get_table_info(),
+                "question": user_message
+            })
+            
+            # 清理SQL查询
+            sql_query = sql_query.strip()
+            
+            # 尝试从可能的JSON或Markdown格式中提取纯SQL
+            if sql_query.startswith("```") or "{" in sql_query:
+                # 尝试从Markdown代码块中提取
+                md_match = re.search(r'```(?:sql)?\s*(.*?)\s*```', sql_query, re.DOTALL)
+                if md_match:
+                    sql_query = md_match.group(1).strip()
+                
+                # 尝试从JSON中提取
+                json_match = re.search(r'"sql":\s*"(.*?)"', sql_query, re.DOTALL)
+                if json_match:
+                    sql_query = json_match.group(1).strip()
+                    # 替换转义的引号
+                    sql_query = sql_query.replace('\\"', '"')
+                
+                print(f"从复杂输出中提取SQL: {sql_query[:100]}...")
+            
+            # 最后验证是否为有效SQL
+            if not sql_query.upper().startswith(("SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER")):
+                print(f"提取的SQL无效: {sql_query}")
+                return None
+            
+            # 生成解释
+            explanation = self._generate_sql_explanation(sql_query, user_message)
+            
+            return {
+                "sql": sql_query,
+                "explanation": explanation,
+                "purpose": f"解答用户的问题：{user_message}",
+                "recommendations": ["可以进一步按需求细化查询"]
+            }
+        
+        except Exception as e:
+            print(f"使用LangChain生成SQL时出错: {str(e)}")
+            traceback.print_exc()
+            return self.generate_sql(user_message)  # 回退到普通生成方法
+    
+    def _langchain_llm_invoke(self, prompt):
+        """为LangChain链调用LLM"""
+        try:
+            # 确保prompt是字符串
+            if not isinstance(prompt, str):
+                # 尝试转换为字符串
+                if hasattr(prompt, 'to_string'):
+                    prompt = prompt.to_string()
+                elif hasattr(prompt, 'to_messages'):
+                    # 如果是ChatPromptValue，尝试获取消息
+                    messages = prompt.to_messages()
+                    prompt_text = ""
+                    for msg in messages:
+                        role = getattr(msg, 'type', 'unknown')
+                        content = getattr(msg, 'content', '')
+                        prompt_text += f"{role}: {content}\n"
+                    prompt = prompt_text
+                else:
+                    prompt = str(prompt)
+            
+            response = self.call_api(
+                system_prompt=DATABASE_SYSTEM_PROMPT,
+                user_message=prompt,
+                temperature=0.3,
+                top_p=0.9
+            )
+            return response
+        except Exception as e:
+            print(f"LangChain LLM调用失败: {str(e)}")
+            return f"系统发生错误: {str(e)}"
+    
+    def _generate_sql_explanation(self, sql_query: str, user_message: str) -> str:
+        """生成SQL查询的解释"""
+        try:
+            # 使用LLM生成解释
+            prompt = f"""
+            请解释以下SQL查询的含义和目的:
+            
+            用户问题: {user_message}
+            
+            SQL查询:
+            {sql_query}
+            
+            请给出简明的解释，说明查询的目的和结果含义。
+            """
+            
+            explanation = self.call_api(
+                system_prompt="你是一个医疗数据专家，擅长解释SQL查询的含义。",
+                user_message=prompt,
+                temperature=0.3,
+                max_tokens=150
+            )
+            
+            return explanation
+        except Exception as e:
+            print(f"生成SQL解释时出错: {str(e)}")
+            return f"此查询用于分析{user_message}相关的数据。"
     
     def generate_sql(self, user_message: str) -> Optional[Dict[str, Any]]:
         """
@@ -37,6 +212,12 @@ class SQLService(BaseLLMService):
         返回:
             包含SQL查询和解释的字典，如果失败则返回None
         """
+        # 尝试使用LangChain方法
+        result = self.generate_sql_with_langchain(user_message)
+        if result:
+            return result
+            
+        # 以下为原始生成方法，作为备用
         try:
             # 获取数据库模式
             schema = get_database_schema()
@@ -50,6 +231,28 @@ class SQLService(BaseLLMService):
 数据库结构信息：
 {schema_info}
 
+常用查询示例：
+1. 查询门诊量的月度趋势：
+   SELECT strftime('%Y-%m', 日期) as 月份, SUM(数量) as 总门诊量 
+   FROM 门诊量 
+   GROUP BY strftime('%Y-%m', 日期) 
+   ORDER BY 月份
+
+2. 查询各科室的门诊量趋势：
+   SELECT 科室, strftime('%Y-%m', 日期) as 月份, SUM(数量) as 门诊量 
+   FROM 门诊量 
+   GROUP BY 科室, strftime('%Y-%m', 日期) 
+   ORDER BY 科室, 月份
+
+3. 查询门诊量与目标的完成情况：
+   SELECT a.科室, a.专科, strftime('%Y-%m', a.日期) as 月份, 
+          SUM(a.数量) as 实际量, b.目标值,
+          ROUND(SUM(a.数量)*100.0/b.目标值, 2) as 完成率
+   FROM 门诊量 a
+   JOIN 目标值 b ON a.科室=b.科室 AND a.专科=b.专科
+   WHERE strftime('%Y',a.日期)=b.年 AND strftime('%m',a.日期)=b.月
+   GROUP BY a.科室, a.专科, 月份
+
 要求：
 1. 设计能够准确回答上述需求的SQL查询语句
 2. 提供查询设计的医学解释
@@ -59,17 +262,19 @@ class SQLService(BaseLLMService):
 返回格式必须是严格的JSON格式，示例如下：
 ```json
 {
-  "sql": "SELECT patient_id, diagnosis, treatment_date FROM patients WHERE age > 60 ORDER BY treatment_date DESC",
-  "explanation": "此查询筛选出60岁以上患者的诊断和治疗日期信息，按治疗日期降序排列",
-  "purpose": "用于分析老年患者的诊断分布和治疗时间趋势",
+  "sql": "SELECT strftime('%Y-%m', 日期) as 月份, SUM(数量) as 总门诊量 FROM 门诊量 GROUP BY strftime('%Y-%m', 日期) ORDER BY 月份",
+  "explanation": "此查询计算每个月的总门诊人次，按月份排序，用于分析门诊量的时间趋势",
+  "purpose": "用于了解医院门诊量的月度变化趋势，帮助医院进行资源规划和绩效评估",
   "recommendations": [
-    "可考虑按性别分组进行进一步分析",
-    "建议增加对治疗效果的统计分析"
+    "可进一步按科室分组，分析不同科室的门诊趋势",
+    "可与目标值表联合查询，分析完成率情况"
   ]
 }
 ```
 
 请仅返回JSON格式的响应，不要添加任何其他文本或标记。确保JSON格式严格正确，所有属性名和字符串值使用双引号，数组元素用逗号分隔，没有多余的逗号。
+
+对于门诊趋势分析，请确保查询能够按照日期进行分组和排序，以便展示随时间的变化情况。
 """
             
             # 使用更安全的字符串替换方式

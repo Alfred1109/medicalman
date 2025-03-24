@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}预警通知 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">预警通知</li>
+{% endblock %}
+
+{% block page_title %}预警通知{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-outline-primary" id="refresh-alerts">
+    <i class="fas fa-sync-alt me-1"></i> 刷新
+</button>
+<button class="btn btn-primary" id="mark-all-read">
+    <i class="fas fa-check-double me-1"></i> 全部标为已读
+</button>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .alerts-filter {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .alert-item {
+        display: flex;
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        margin-bottom: var(--spacing-md);
+        background-color: white;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .alert-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .alert-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: var(--spacing-md);
+        flex-shrink: 0;
+    }
+    
+    .alert-icon.high {
+        background-color: var(--danger-light);
+        color: var(--danger-color);
+    }
+    
+    .alert-icon.medium {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+    
+    .alert-icon.low {
+        background-color: var(--info-light);
+        color: var(--info-color);
+    }
+    
+    .alert-content {
+        flex: 1;
+    }
+    
+    .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .alert-title {
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .alert-time {
+        font-size: var(--font-size-sm);
+        color: var(--text-light);
+    }
+    
+    .alert-description {
+        margin-bottom: var(--spacing-sm);
+        color: var(--text-secondary);
+    }
+    
+    .alert-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .alert-metrics {
+        display: flex;
+        gap: var(--spacing-md);
+    }
+    
+    .alert-metric {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: var(--font-size-sm);
+    }
+    
+    .alert-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+    }
+    
+    .alert-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--border-radius-pill);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .alert-badge.high {
+        background-color: var(--danger-light);
+        color: var(--danger-color);
+    }
+    
+    .alert-badge.medium {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+    
+    .alert-badge.low {
+        background-color: var(--info-light);
+        color: var(--info-color);
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: var(--spacing-lg);
+        gap: var(--spacing-xs);
+    }
+    
+    .pagination-item {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .pagination-item:hover {
+        background-color: var(--primary-light);
+    }
+    
+    .pagination-item.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="alerts-filter">
+    <button class="btn btn-outline-primary active">全部</button>
+    <button class="btn btn-outline-primary">高优先级</button>
+    <button class="btn btn-outline-primary">中优先级</button>
+    <button class="btn btn-outline-primary">低优先级</button>
+</div>
+
+<div class="alert-list">
+    <!-- 高优先级预警 -->
+    <div class="alert-item">
+        <div class="alert-icon high">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+            <div class="alert-header">
+                <h3 class="alert-title">急诊科就诊量异常增加</h3>
+                <span class="alert-time">今天 08:15</span>
+            </div>
+            <div class="alert-description">
+                急诊科就诊量在过去3小时内增加了35%，超过了预警阈值。建议增派医护人员支援急诊科。
+            </div>
+            <div class="alert-footer">
+                <div class="alert-metrics">
+                    <div class="alert-metric">
+                        <i class="fas fa-chart-line text-danger"></i>
+                        <span>增长率: +35%</span>
+                    </div>
+                    <div class="alert-metric">
+                        <i class="fas fa-user-injured"></i>
+                        <span>当前等待: 27人</span>
+                    </div>
+                </div>
+                <div class="alert-actions">
+                    <span class="alert-badge high">高优先级</span>
+                    <button class="btn btn-sm btn-outline-primary">查看详情</button>
+                    <button class="btn btn-sm btn-outline-success">标记已读</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 中优先级预警 -->
+    <div class="alert-item">
+        <div class="alert-icon medium">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="alert-content">
+            <div class="alert-header">
+                <h3 class="alert-title">内科药品库存不足</h3>
+                <span class="alert-time">昨天 16:42</span>
+            </div>
+            <div class="alert-description">
+                内科常用药品"阿司匹林"库存低于安全阈值。目前剩余库存可供应约3天用量，请及时补充。
+            </div>
+            <div class="alert-footer">
+                <div class="alert-metrics">
+                    <div class="alert-metric">
+                        <i class="fas fa-pills text-warning"></i>
+                        <span>剩余库存: 43盒</span>
+                    </div>
+                    <div class="alert-metric">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>可用天数: 3天</span>
+                    </div>
+                </div>
+                <div class="alert-actions">
+                    <span class="alert-badge medium">中优先级</span>
+                    <button class="btn btn-sm btn-outline-primary">查看详情</button>
+                    <button class="btn btn-sm btn-outline-success">标记已读</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 低优先级预警 -->
+    <div class="alert-item">
+        <div class="alert-icon low">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="alert-content">
+            <div class="alert-header">
+                <h3 class="alert-title">儿科门诊满意度下降</h3>
+                <span class="alert-time">2天前</span>
+            </div>
+            <div class="alert-description">
+                过去一周儿科门诊患者满意度评分下降了8%，从4.6降至4.2。主要投诉集中在等待时间过长。
+            </div>
+            <div class="alert-footer">
+                <div class="alert-metrics">
+                    <div class="alert-metric">
+                        <i class="fas fa-smile text-info"></i>
+                        <span>当前评分: 4.2/5</span>
+                    </div>
+                    <div class="alert-metric">
+                        <i class="fas fa-chart-line"></i>
+                        <span>变化: -8%</span>
+                    </div>
+                </div>
+                <div class="alert-actions">
+                    <span class="alert-badge low">低优先级</span>
+                    <button class="btn btn-sm btn-outline-primary">查看详情</button>
+                    <button class="btn btn-sm btn-outline-success">标记已读</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="pagination">
+    <div class="pagination-item"><i class="fas fa-chevron-left"></i></div>
+    <div class="pagination-item active">1</div>
+    <div class="pagination-item">2</div>
+    <div class="pagination-item">3</div>
+    <div class="pagination-item"><i class="fas fa-chevron-right"></i></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 筛选按钮
+        $('.alerts-filter .btn').on('click', function() {
+            $('.alerts-filter .btn').removeClass('active');
+            $(this).addClass('active');
+            // 这里可以添加筛选逻辑
+        });
+        
+        // 刷新预警
+        $('#refresh-alerts').on('click', function() {
+            // 这里添加刷新逻辑
+            showToast('success', '预警列表已刷新');
+        });
+        
+        // 全部标为已读
+        $('#mark-all-read').on('click', function() {
+            // 这里添加标记已读逻辑
+            showToast('success', '所有预警已标记为已读');
+        });
+        
+        // 单个预警标记已读
+        $('.alert-actions .btn-outline-success').on('click', function() {
+            let alertItem = $(this).closest('.alert-item');
+            alertItem.fadeOut(300, function() {
+                // 可以选择移除或隐藏
+                // alertItem.remove();
+            });
+            showToast('success', '预警已标记为已读');
+        });
+    });
+</script>
+{% endblock %}

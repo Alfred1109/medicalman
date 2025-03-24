@@ -1,18 +1,48 @@
+# 基础框架
 flask==3.0.2
-flask-session==0.5.0
-pandas==2.2.0
-pillow==10.2.0
-requests==2.31.0
-werkzeug==3.0.1
+flask-login==0.6.3
+flask-migrate==4.1.0
+flask-session==0.6.0
+flask-sqlalchemy==3.1.1
+sqlalchemy==2.0.39
 python-dotenv==1.0.1
+werkzeug==3.0.1
+
+# 数据处理
+pandas==2.2.0
+numpy==1.26.3
+matplotlib==3.8.2
+plotly==6.0.1
+scikit-learn==1.4.0
+scipy==1.15.2
+seaborn==0.13.2
 openpyxl==3.1.2
 xlrd==2.0.1
 odfpy==1.4.1
-matplotlib==3.8.2
-numpy==1.26.3
-scikit-learn==1.4.0
+
+# 数据可视化和报告
+ydata-profiling==4.15.1
+
+# NLP 和文本处理
+nltk==3.8.1
+jieba_fast==0.53
+
+# 文档处理
+pillow==10.2.0
 PyPDF2==3.0.1
 pdfplumber==0.10.3
 python-docx==1.1.0
 pytesseract==0.3.10
-nltk==3.8.1 
+
+# LLM 和 AI 相关
+langchain==0.3.21
+langchain-community==0.3.20
+langchain-core==0.3.47
+langchain-openai==0.3.9
+langchain-text-splitters==0.3.7
+openai==1.68.2
+
+# 工具类
+requests==2.31.0
+tqdm==4.67.1
+pyyaml==6.0.2 

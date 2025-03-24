@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}数据分析 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">数据分析</li>
+{% endblock %}
+
+{% block page_title %}数据分析{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">数据分析工具</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">本模块提供各种数据分析和可视化功能，包括：</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chart-line fa-3x mb-3 text-primary"></i>
+                                <h5 class="card-title">门诊量分析</h5>
+                                <p class="card-text">分析门诊量趋势、科室对比和目标完成情况</p>
+                                <a href="{{ url_for('analytics.outpatient_analysis') }}" class="btn btn-primary">查看分析</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-table fa-3x mb-3 text-success"></i>
+                                <h5 class="card-title">数据透视表</h5>
+                                <p class="card-text">创建动态数据透视表，多维度分析数据</p>
+                                <button class="btn btn-success" disabled>即将上线</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-brain fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">AI辅助分析</h5>
+                                <p class="card-text">使用AI技术辅助数据分析和决策</p>
+                                <a href="{{ url_for('analytics.test_langchain_page') }}" class="btn btn-info">测试功能</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

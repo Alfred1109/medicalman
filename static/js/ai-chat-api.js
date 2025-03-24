@@ -64,20 +64,37 @@ function handleResponse(data, responseType) {
         const markdownDiv = document.createElement('div');
         markdownDiv.className = 'markdown-body';
         
+        // 添加知识库引用标记 (如果存在)
+        let kbReferenceHtml = '';
+        if (data && data.type === 'knowledge_base' && data.reference_ids && data.reference_ids.length > 0) {
+            console.log('添加知识库引用信息');
+            kbReferenceHtml = `
+                <div class="knowledge-reference">
+                    <div class="reference-icon"><i class="fas fa-book"></i></div>
+                    <div class="reference-text">回答基于知识库内容</div>
+                </div>
+            `;
+        }
+        
         // 尝试解析Markdown内容
         try {
             console.log('将要渲染的Markdown内容:', responseMessage);
             const parsedContent = parseMarkdown(responseMessage);
             console.log('解析后的HTML内容:', parsedContent);
-            contentDiv.innerHTML = `<div class="markdown-body">${parsedContent}</div>`;
+            
+            // 添加知识库引用标记和Markdown内容
+            contentDiv.innerHTML = `
+                ${kbReferenceHtml}
+                <div class="markdown-body">${parsedContent}</div>
+            `;
             console.log('HTML内容已设置到DOM');
         } catch (error) {
             console.error('渲染Markdown时出错:', error);
-            contentDiv.innerHTML = `<div class="markdown-body">${responseMessage}</div>`;
+            contentDiv.innerHTML = `
+                ${kbReferenceHtml}
+                <div class="markdown-body">${responseMessage}</div>
+            `;
         }
-        
-        // 添加到内容容器
-        contentDiv.appendChild(markdownDiv);
         
         // 应用代码高亮
         try {
@@ -100,16 +117,20 @@ function handleResponse(data, responseType) {
         // 处理图表数据
         if (data && data.charts && Array.isArray(data.charts) && data.charts.length > 0) {
             console.log(`处理${data.charts.length}个图表`);
+            console.log('图表数据详情:', JSON.stringify(data.charts));
             
             // 添加图表容器
             const chartsContainer = document.createElement('div');
             chartsContainer.className = 'charts-container';
-            markdownDiv.appendChild(chartsContainer);
+            contentDiv.appendChild(chartsContainer);
             
             // 延迟初始化图表，确保DOM已经更新
             setTimeout(() => {
                 data.charts.forEach((chartConfig, index) => {
                     console.log(`处理图表 ${index+1}:`, chartConfig);
+                    console.log(`图表类型: ${chartConfig.type || '未指定'}`);
+                    console.log(`是否有xAxis: ${'xAxis' in chartConfig}`);
+                    console.log(`是否有series: ${'series' in chartConfig}`);
                     
                     // 创建图表容器
                     const chartDiv = document.createElement('div');
@@ -120,12 +141,19 @@ function handleResponse(data, responseType) {
                     chartsContainer.appendChild(chartDiv);
                     
                     // 添加图表标题
-                    if (chartConfig.title) {
-                        const titleDiv = document.createElement('div');
-                        titleDiv.className = 'chart-title';
-                        titleDiv.textContent = chartConfig.title;
-                        chartDiv.appendChild(titleDiv);
+                    let titleText = '';
+                    if (typeof chartConfig.title === 'string') {
+                        titleText = chartConfig.title;
+                    } else if (chartConfig.title && chartConfig.title.text) {
+                        titleText = chartConfig.title.text;
+                    } else {
+                        titleText = `图表 ${index+1}`;
                     }
+                    
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'chart-title';
+                    titleDiv.textContent = titleText;
+                    chartDiv.appendChild(titleDiv);
                     
                     // 创建图表画布
                     const chartCanvas = document.createElement('div');
@@ -137,7 +165,29 @@ function handleResponse(data, responseType) {
                     try {
                         console.log(`初始化图表 ${index+1}`);
                         const chart = echarts.init(chartCanvas);
-                        chart.setOption(chartConfig);
+                        
+                        // 处理直接使用config属性的情况
+                        if (chartConfig.config) {
+                            console.log('使用chartConfig.config作为图表配置');
+                            // 适配Chart.js格式到ECharts格式
+                            const adaptedConfig = adaptChartJsToECharts(chartConfig.config);
+                            chart.setOption(adaptedConfig);
+                        } else {
+                            // 确保图表配置符合echarts要求
+                            let finalConfig = {...chartConfig};
+                            
+                            // 处理标题格式
+                            if (typeof finalConfig.title === 'string') {
+                                finalConfig.title = {
+                                    text: finalConfig.title,
+                                    left: 'center'
+                                };
+                            }
+                            
+                            // 设置图表配置
+                            console.log('最终图表配置:', JSON.stringify(finalConfig));
+                            chart.setOption(finalConfig);
+                        }
                         
                         // 适应窗口大小变化
                         window.addEventListener('resize', () => {
@@ -147,6 +197,7 @@ function handleResponse(data, responseType) {
                         console.log(`图表 ${index+1} 渲染成功`);
                     } catch (e) {
                         console.error(`图表渲染错误:`, e);
+                        console.error('错误的图表配置:', JSON.stringify(chartConfig));
                         const errorDiv = document.createElement('div');
                         errorDiv.className = 'chart-error';
                         errorDiv.textContent = `图表渲染失败: ${e.message}`;
@@ -156,6 +207,12 @@ function handleResponse(data, responseType) {
             }, 100);
         } else {
             console.log('没有图表数据需要渲染');
+            console.log('data对象包含以下字段:', Object.keys(data || {}));
+            if (data) {
+                console.log('data.charts是否存在:', 'charts' in data);
+                console.log('data.charts的类型:', data.charts ? typeof data.charts : 'undefined');
+                console.log('data.charts的值:', data.charts);
+            }
         }
         
     } catch (error) {
@@ -194,14 +251,14 @@ function sendMessage() {
     console.log('知识库设置:', knowledgeSettings);
     
     // 发送请求到后端
-    fetch('/api/ai-chat/query', {
+    fetch('/chat/query', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            message: message,
-            data_source: knowledgeSettings.data_source
+            query: message,
+            knowledge_settings: knowledgeSettings
         })
     })
     .then(response => {
@@ -213,7 +270,27 @@ function sendMessage() {
             throw new Error(`服务器响应错误: ${response.status}`);
         }
         
-        return response.json();
+        // 以文本形式获取响应，然后手动解析
+        return response.text().then(text => {
+            try {
+                // 处理NaN、Infinity等特殊值
+                const cleanedText = text.replace(/:\s*NaN\b/g, ': "NaN"')
+                                       .replace(/:\s*Infinity\b/g, ': "Infinity"')
+                                       .replace(/:\s*-Infinity\b/g, ': "-Infinity"')
+                                       .replace(/:\s*undefined\b/g, ': null');
+                
+                // 尝试解析清理后的JSON
+                return JSON.parse(cleanedText);
+            } catch (e) {
+                console.error('JSON解析错误:', e, '原始文本:', text);
+                // 返回一个错误对象而不是抛出异常，这样可以在后续处理
+                return {
+                    success: false,
+                    message: `JSON解析错误: ${e.message}`,
+                    originalText: text.substring(0, 500) // 限制长度以避免过大的日志
+                };
+            }
+        });
     })
     .then(data => {
         console.log('解析的JSON数据:', data);
@@ -362,4 +439,48 @@ function addFileToList(fileName, fileId) {
     });
     
     uploadedFiles.appendChild(fileItem);
+}
+
+// 将Chart.js格式转换为ECharts格式
+function adaptChartJsToECharts(chartJsConfig) {
+    const config = chartJsConfig || {};
+    const chartType = config.type || 'bar';
+    const datasets = (config.data && config.data.datasets) || [];
+    const labels = (config.data && config.data.labels) || [];
+    
+    // 创建ECharts配置
+    const echartsConfig = {
+        title: {
+            text: config.options && config.options.plugins && config.options.plugins.title 
+                ? config.options.plugins.title.text : '数据图表',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: datasets.map(ds => ds.label || '数据'),
+            top: '8%'
+        },
+        xAxis: {
+            type: 'category',
+            data: labels
+        },
+        yAxis: {
+            type: 'value'
+        },
+        series: datasets.map(ds => {
+            return {
+                name: ds.label || '数据',
+                type: ds.type || chartType,
+                data: ds.data,
+                itemStyle: {
+                    color: ds.backgroundColor || '#5470c6'
+                }
+            }
+        })
+    };
+    
+    console.log('转换后的ECharts配置:', echartsConfig);
+    return echartsConfig;
 } 

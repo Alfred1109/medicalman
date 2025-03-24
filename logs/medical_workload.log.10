@@ -1,0 +1,67 @@
+2025-03-24 18:02:52,452 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:02:52,453 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:02:52,453 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:05:56,595 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:05:56,596 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:05:56,597 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:05:56,604 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:05:56,616 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:05:56,616 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:05:57,077 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:05:57,078 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:05:57,078 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:28,294 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:28,294 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:28,294 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:28,297 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:28,297 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:28,297 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:28,297 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:28,297 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:28,297 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:45,567 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:45,567 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:45,567 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:45,570 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:45,570 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:45,570 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:06:45,571 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:06:45,571 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:06:45,572 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:07:17,054 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:07:17,054 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:07:17,054 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:07:17,057 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:07:17,058 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:07:17,058 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:07:17,060 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:07:17,060 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:07:17,060 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:08:01,655 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:08:01,655 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:08:01,655 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:08:07,356 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:08:07,356 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:08:07,356 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:08:57,917 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:08:57,917 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:08:57,917 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:09:05,598 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:111]
+2025-03-24 18:09:05,599 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
+2025-03-24 18:09:05,599 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
+2025-03-24 18:09:12,272 INFO: Locating template 'login.html':
+    1: trying loader of application 'app'
+       class: jinja2.loaders.FileSystemLoader
+       encoding: 'utf-8'
+       followlinks: False
+       searchpath:
+         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
+       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/login.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]
+2025-03-24 18:09:23,210 INFO: Locating template 'register.html':
+    1: trying loader of application 'app'
+       class: jinja2.loaders.FileSystemLoader
+       encoding: 'utf-8'
+       followlinks: False
+       searchpath:
+         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
+       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/register.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]

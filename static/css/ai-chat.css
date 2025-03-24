@@ -430,35 +430,35 @@
     background-color: var(--light-bg);
 }
 
-/* 图表样式 */
+/* 图表相关样式 */
 .charts-container {
-    margin-top: 20px;
-    border-top: 1px solid var(--border-color);
-    padding-top: 20px;
+    margin-top: 15px;
+    width: 100%;
 }
 
 .chart-item {
-    margin-bottom: 25px;
-    background-color: #fff;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    background-color: #fff;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .chart-title {
-    padding: 12px 15px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text-color);
-    background-color: var(--background-light);
-    border-bottom: 1px solid var(--border-color);
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
 }
 
-/* 添加错误信息样式 */
 .chart-error {
-    color: #e74c3c;
+    color: #d9534f;
     padding: 10px;
-    background-color: #fadbd8;
+    border: 1px solid #f5c6cb;
     border-radius: 4px;
+    background-color: #f8d7da;
     margin-top: 10px;
 }
 
@@ -553,4 +553,26 @@
         transform: scaleY(1.5);
         opacity: 0.8;
     }
+}
+
+/* 知识库引用样式 */
+.knowledge-reference {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    border-left: 3px solid var(--primary-color);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.reference-icon {
+    margin-right: 8px;
+    color: var(--primary-color);
+}
+
+.reference-text {
+    color: var(--text-color);
+    font-weight: 500;
 } 

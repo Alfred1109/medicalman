@@ -8,6 +8,7 @@ from app.services.base_llm_service import BaseLLMService
 from app.services.sql_service import SQLService
 from app.services.chart_service import ChartService
 from app.services.text_analysis_service import TextAnalysisService
+from app.services.knowledge_base_service import KnowledgeBaseService
 
 # 导入环境变量中定义的模型配置
 VOLCENGINE_MODEL = os.getenv("VOLCENGINE_MODEL", "deepseek-v3-241226")
@@ -50,6 +51,22 @@ class LLMServiceFactory:
         key = f"chart_{model_name or VOLCENGINE_MODEL}"
         if key not in cls._instances:
             cls._instances[key] = ChartService(model_name)
+        return cls._instances[key]
+    
+    @classmethod
+    def get_knowledge_base_service(cls, model_name=None):
+        """
+        获取知识库服务实例
+        
+        参数:
+            model_name: 可选的模型名称，默认使用环境变量中的配置
+            
+        返回:
+            KnowledgeBaseService实例
+        """
+        key = f"kb_{model_name or VOLCENGINE_MODEL}"
+        if key not in cls._instances:
+            cls._instances[key] = KnowledgeBaseService(model_name)
         return cls._instances[key]
     
     @classmethod

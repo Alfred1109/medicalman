@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}LangChain测试 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('analytics.analytics_home') }}">数据分析</a></li>
+<li class="breadcrumb-item active">LangChain测试</li>
+{% endblock %}
+
+{% block page_title %}LangChain集成测试{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">LangChain测试</h5>
+            </div>
+            <div class="card-body">
+                <p class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    此页面用于测试LangChain与系统的集成功能，目前处于实验阶段。
+                </p>
+                
+                <div class="mt-4">
+                    <form id="langchainForm">
+                        <div class="mb-3">
+                            <label for="query" class="form-label">查询内容</label>
+                            <textarea class="form-control" id="query" rows="4" placeholder="输入您的查询，例如：请分析2023年内科和外科的门诊量对比情况"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">分析</button>
+                    </form>
+                </div>
+                
+                <div class="mt-4" id="result-container" style="display: none;">
+                    <h5>分析结果</h5>
+                    <div class="p-3 border rounded bg-light" id="result-content">
+                        <!-- 结果将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('langchainForm');
+        const resultContainer = document.getElementById('result-container');
+        const resultContent = document.getElementById('result-content');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value.trim();
+            if (!query) {
+                alert('请输入查询内容');
+                return;
+            }
+            
+            // 显示加载状态
+            resultContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在分析，请稍候...</p></div>';
+            resultContainer.style.display = 'block';
+            
+            // 发送请求
+            fetch('{{ url_for('analytics.test_langchain') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    resultContent.innerHTML = `<p>${data.result.replace(/\n/g, '<br>')}</p>`;
+                }
+            })
+            .catch(error => {
+                resultContent.innerHTML = `<div class="alert alert-danger">请求失败: ${error.message}</div>`;
+            });
+        });
+    });
+</script>
+{% endblock %} 

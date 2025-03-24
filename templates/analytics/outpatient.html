@@ -1,0 +1,301 @@
+{% block scripts %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    // 初始化日期
+    function initDates() {
+        const today = new Date();
+        const lastMonth = new Date();
+        lastMonth.setMonth(today.getMonth() - 1);
+        
+        document.getElementById('endDate').valueAsDate = today;
+        document.getElementById('startDate').valueAsDate = lastMonth;
+    }
+
+    // 加载科室和专科选项
+    function loadOptions() {
+        // 加载科室选项
+        fetch('/api/departments')
+            .then(response => response.json())
+            .then(data => {
+                const departmentSelect = document.getElementById('department');
+                
+                // 清空现有选项（保留"全部"选项）
+                while (departmentSelect.options.length > 1) {
+                    departmentSelect.remove(1);
+                }
+                
+                // 添加新选项
+                data.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    departmentSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('加载科室出错:', error));
+        
+        // 加载专科选项
+        fetch('/api/specialties')
+            .then(response => response.json())
+            .then(data => {
+                const specialtySelect = document.getElementById('specialty');
+                
+                // 清空现有选项（保留"全部"选项）
+                while (specialtySelect.options.length > 1) {
+                    specialtySelect.remove(1);
+                }
+                
+                // 添加新选项
+                data.forEach(spec => {
+                    const option = document.createElement('option');
+                    option.value = spec;
+                    option.textContent = spec;
+                    specialtySelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('加载专科出错:', error));
+    }
+
+    // 加载指定科室下的专科
+    function loadSpecialtiesByDepartment(department) {
+        if (!department) {
+            // 如果未选择科室，加载所有专科
+            fetch('/api/specialties')
+                .then(response => response.json())
+                .then(updateSpecialtyOptions)
+                .catch(error => console.error('加载专科出错:', error));
+            return;
+        }
+        
+        // 加载指定科室下的专科
+        fetch(`/api/specialties-by-department?department=${encodeURIComponent(department)}`)
+            .then(response => response.json())
+            .then(updateSpecialtyOptions)
+            .catch(error => console.error('加载科室专科出错:', error));
+    }
+
+    // 更新专科选项
+    function updateSpecialtyOptions(data) {
+        const specialtySelect = document.getElementById('specialty');
+        
+        // 清空现有选项（保留"全部"选项）
+        while (specialtySelect.options.length > 1) {
+            specialtySelect.remove(1);
+        }
+        
+        // 添加新选项
+        data.forEach(spec => {
+            const option = document.createElement('option');
+            option.value = spec;
+            option.textContent = spec;
+            specialtySelect.appendChild(option);
+        });
+    }
+
+    // 加载门诊量趋势数据
+    function loadTrendData() {
+        const department = document.getElementById('department').value;
+        const specialty = document.getElementById('specialty').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const groupBy = document.getElementById('groupBy').value;
+        
+        fetch('/analytics/api/outpatient/trends', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                department: department,
+                specialty: specialty,
+                start_date: startDate,
+                end_date: endDate,
+                group_by: groupBy
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新趋势图
+                if (data.chart_data) {
+                    Plotly.newPlot('trendChart', data.chart_data.data, data.chart_data.layout);
+                }
+                
+                // 更新概览数据
+                updateSummary(data.analysis);
+            } else {
+                alert('获取门诊量趋势数据失败: ' + data.error);
+            }
+        })
+        .catch(error => console.error('获取门诊量趋势数据出错:', error));
+    }
+
+    // 加载完成率数据
+    function loadCompletionData() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        const groupBy = document.getElementById('groupBy').value;
+        
+        fetch('/analytics/api/outpatient/completion-rate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                year: year,
+                month: month,
+                group_by: groupBy
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新完成率图
+                if (data.chart_data) {
+                    Plotly.newPlot('completionChart', data.chart_data.data, data.chart_data.layout);
+                }
+                
+                // 更新完成率统计
+                updateCompletionStats(data.analysis);
+            } else {
+                alert('获取目标完成率数据失败: ' + data.error);
+            }
+        })
+        .catch(error => console.error('获取目标完成率数据出错:', error));
+    }
+
+    // 加载科室对比数据
+    function loadDepartmentData() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        fetch('/analytics/api/outpatient/department-comparison', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新科室对比图
+                if (data.chart_data) {
+                    Plotly.newPlot('departmentChart', data.chart_data.data, data.chart_data.layout);
+                }
+            } else {
+                alert('获取科室对比数据失败: ' + data.error);
+            }
+        })
+        .catch(error => console.error('获取科室对比数据出错:', error));
+    }
+
+    // 更新数据概览
+    function updateSummary(analysis) {
+        if (analysis && !analysis.error) {
+            document.getElementById('totalVisits').textContent = analysis.总量 ? analysis.总量.toFixed(0) : '--';
+            document.getElementById('avgVisits').textContent = analysis.平均量 ? analysis.平均量.toFixed(1) : '--';
+            
+            // 更新环比增长率，根据正负值设置样式
+            const growthRateElement = document.getElementById('growthRate');
+            if (analysis.最近环比增长率 !== null && analysis.最近环比增长率 !== undefined) {
+                const growthRate = analysis.最近环比增长率.toFixed(2) + '%';
+                growthRateElement.textContent = growthRate;
+                
+                if (analysis.最近环比增长率 > 0) {
+                    growthRateElement.parentElement.className = 'summary-item positive';
+                    growthRateElement.innerHTML = '↑ ' + growthRate;
+                } else if (analysis.最近环比增长率 < 0) {
+                    growthRateElement.parentElement.className = 'summary-item negative';
+                    growthRateElement.innerHTML = '↓ ' + growthRate;
+                } else {
+                    growthRateElement.parentElement.className = 'summary-item neutral';
+                }
+            } else {
+                growthRateElement.textContent = '--';
+                growthRateElement.parentElement.className = 'summary-item neutral';
+            }
+        }
+    }
+
+    // 更新完成率统计
+    function updateCompletionStats(analysis) {
+        if (analysis && !analysis.error) {
+            const tbody = document.getElementById('completionStats');
+            
+            // 清空现有行
+            tbody.innerHTML = '';
+            
+            // 添加新行
+            const rows = [
+                { label: '平均完成率', value: analysis.平均完成率 ? analysis.平均完成率.toFixed(2) + '%' : '--' },
+                { label: '最低完成率', value: analysis.最低完成率 ? analysis.最低完成率.toFixed(2) + '%' : '--' },
+                { label: '最高完成率', value: analysis.最高完成率 ? analysis.最高完成率.toFixed(2) + '%' : '--' },
+                { label: '超额完成数量', value: analysis.超额完成数量 || '--' },
+                { label: '未完成数量', value: analysis.未完成数量 || '--' },
+                { label: '超额完成比例', value: analysis.超额完成比例 ? analysis.超额完成比例.toFixed(2) + '%' : '--' },
+                { label: '未完成比例', value: analysis.未完成比例 ? analysis.未完成比例.toFixed(2) + '%' : '--' }
+            ];
+            
+            // 更新完成率概览
+            const completionRateElement = document.getElementById('completionRate');
+            if (analysis.平均完成率) {
+                const rate = analysis.平均完成率.toFixed(2) + '%';
+                completionRateElement.textContent = rate;
+                
+                if (analysis.平均完成率 >= 100) {
+                    completionRateElement.parentElement.className = 'summary-item positive';
+                } else if (analysis.平均完成率 >= 80) {
+                    completionRateElement.parentElement.className = 'summary-item neutral';
+                } else {
+                    completionRateElement.parentElement.className = 'summary-item negative';
+                }
+            } else {
+                completionRateElement.textContent = '--';
+                completionRateElement.parentElement.className = 'summary-item neutral';
+            }
+            
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                const tdLabel = document.createElement('td');
+                tdLabel.textContent = row.label;
+                
+                const tdValue = document.createElement('td');
+                tdValue.textContent = row.value;
+                
+                tr.appendChild(tdLabel);
+                tr.appendChild(tdValue);
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initDates();
+        loadOptions();
+        
+        // 科室变更时联动专科
+        document.getElementById('department').addEventListener('change', function() {
+            loadSpecialtiesByDepartment(this.value);
+        });
+        
+        // 注册筛选按钮点击事件
+        document.getElementById('filterBtn').addEventListener('click', function() {
+            loadTrendData();
+            loadCompletionData();
+            loadDepartmentData();
+        });
+        
+        // 初始加载
+        loadTrendData();
+        loadCompletionData();
+        loadDepartmentData();
+    });
+</script>
+{% endblock %} 

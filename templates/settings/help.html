@@ -1,0 +1,513 @@
+{% extends 'base.html' %}
+
+{% block title %}帮助中心 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">帮助中心</li>
+{% endblock %}
+
+{% block page_title %}帮助中心{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-outline-primary">
+    <i class="fas fa-bookmark me-1"></i> 收藏常见问题
+</button>
+<button class="btn btn-primary">
+    <i class="fas fa-headset me-1"></i> 联系客服
+</button>
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .help-title {
+            margin-bottom: 0;
+        }
+        
+        .help-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .help-tab {
+            padding: var(--spacing-md) var(--spacing-lg);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-fast);
+        }
+        
+        .help-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .help-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .help-section {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .help-section-title {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    
+    .help-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+        }
+        
+        .faq-item {
+            margin-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--border-color-light);
+        padding-bottom: var(--spacing-md);
+    }
+    
+    .faq-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        }
+        
+        .faq-question {
+            font-weight: 500;
+        margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .faq-question:hover {
+        color: var(--primary-color);
+        }
+        
+        .faq-answer {
+        color: var(--text-secondary);
+        margin-top: var(--spacing-sm);
+        padding-left: var(--spacing-md);
+        border-left: 3px solid var(--border-color-light);
+        }
+        
+        .feedback-form {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: var(--spacing-lg);
+        }
+        
+        .form-group {
+        margin-bottom: var(--spacing-md);
+        }
+        
+        .form-label {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+            font-weight: 500;
+        }
+        
+        .form-control {
+        width: 100%;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+        background-color: white;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+    .tutorial-card {
+        display: flex;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-md);
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .tutorial-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .tutorial-image {
+        width: 200px;
+        background-color: var(--background-light);
+            display: flex;
+            align-items: center;
+        justify-content: center;
+    }
+    
+    .tutorial-image i {
+        font-size: 32px;
+        color: var(--primary-color);
+    }
+    
+    .tutorial-content {
+        flex: 1;
+            padding: var(--spacing-md);
+    }
+    
+    .tutorial-title {
+        font-weight: 500;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .tutorial-description {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-sm);
+        font-size: 0.9rem;
+    }
+    
+    .tutorial-meta {
+            display: flex;
+        justify-content: space-between;
+        color: var(--text-tertiary);
+        font-size: 0.8rem;
+    }
+    
+    .support-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .support-option {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: var(--spacing-lg);
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .support-option:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .support-icon {
+        width: 60px;
+        height: 60px;
+            border-radius: 50%;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        margin: 0 auto var(--spacing-md);
+    }
+    
+    .support-icon i {
+        font-size: 24px;
+    }
+    
+    .support-title {
+        font-weight: 500;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .support-description {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-md);
+        font-size: 0.9rem;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @media (max-width: 768px) {
+        .support-options {
+            grid-template-columns: 1fr;
+        }
+        
+        .tutorial-card {
+            flex-direction: column;
+        }
+        
+        .tutorial-image {
+            width: 100%;
+            height: 120px;
+        }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="help-tabs">
+    <div class="help-tab active" data-tab="faqs">常见问题</div>
+    <div class="help-tab" data-tab="tutorials">使用教程</div>
+    <div class="help-tab" data-tab="support">联系支持</div>
+    <div class="help-tab" data-tab="feedback">意见反馈</div>
+</div>
+
+<div class="tab-content active" id="faqs-content">
+    <div class="help-section">
+        <h3 class="help-section-title">基础使用问题</h3>
+        <div class="help-card">
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>如何查看科室KPI指标？</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    您可以在"运营概览"页面中查看全院的KPI指标，也可以在"科室分析"页面中选择特定科室，查看该科室的KPI指标详情。系统支持多维度数据筛选与时间范围选择，帮助您全面了解科室运营状况。
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>如何导出数据报表？</span>
+                    <i class="fas fa-chevron-down"></i>
+            </div>
+                <div class="faq-answer">
+                    在各个分析页面，您都可以看到"导出报告"按钮，点击即可将当前数据以Excel或PDF格式导出。您也可以在"报表中心"页面，创建自定义报表并进行导出，支持多种格式与数据维度定制。
+            </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>如何设置预警通知？</span>
+                    <i class="fas fa-chevron-down"></i>
+            </div>
+                <div class="faq-answer">
+                    进入"预警通知"页面，点击"新建预警"按钮，可以设置针对特定指标的预警规则。您可以设置阈值、触发条件和通知方式，当指标达到阈值时，系统将通过您设置的方式发送通知。
+            </div>
+            </div>
+        </div>
+            </div>
+            
+            <div class="help-section">
+        <h3 class="help-section-title">数据分析问题</h3>
+        <div class="help-card">
+                <div class="faq-item">
+                    <div class="faq-question">
+                    <span>如何理解CMI指数的含义？</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                    CMI（病例组合指数）是衡量医院收治病例复杂程度的指标。CMI值越高，表示医院收治的病例越复杂，通常也意味着消耗的医疗资源越多。在DRG分析页面，您可以看到详细的CMI指数分析和趋势图表。
+                </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                    <span>如何分析医生绩效数据？</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                    在"医生绩效"页面，系统提供了多维度的医生绩效分析，包括接诊量、手术量、患者满意度、医疗质量等指标。您可以通过筛选不同科室和时间段，比较医生间的绩效差异，并通过排名和趋势分析发现潜在问题和优化机会。
+                </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                    <span>财务分析包含哪些维度？</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                    财务分析模块提供了收入构成、成本分析、盈亏分析和趋势预测等多个维度。您可以按科室、病种、时间等维度进行细分分析，了解各项业务的财务表现，为管理决策提供支持。系统还提供了同比环比分析，帮助您快速识别异常变化。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="tutorials-content">
+    <div class="help-section">
+        <h3 class="help-section-title">系统操作教程</h3>
+        
+        <div class="tutorial-card">
+            <div class="tutorial-image">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="tutorial-content">
+                <h4 class="tutorial-title">如何使用多维度分析功能</h4>
+                <p class="tutorial-description">本教程详细介绍了如何使用系统的多维度分析功能，包括科室分析、医生绩效、患者分析和财务分析等模块的操作方法，帮助您快速掌握数据分析技巧。</p>
+                <div class="tutorial-meta">
+                    <span>更新时间：2023年5月15日</span>
+                    <span><i class="fas fa-clock"></i> 10分钟</span>
+                </div>
+                    </div>
+                </div>
+                
+        <div class="tutorial-card">
+            <div class="tutorial-image">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="tutorial-content">
+                <h4 class="tutorial-title">智能问答系统使用指南</h4>
+                <p class="tutorial-description">学习如何有效使用智能问答系统，包括如何提问、如何理解AI回答、如何利用智能分析功能深入挖掘数据价值，提高工作效率。</p>
+                <div class="tutorial-meta">
+                    <span>更新时间：2023年6月2日</span>
+                    <span><i class="fas fa-clock"></i> 8分钟</span>
+                </div>
+            </div>
+                    </div>
+        
+        <div class="tutorial-card">
+            <div class="tutorial-image">
+                <i class="fas fa-file-export"></i>
+                    </div>
+            <div class="tutorial-content">
+                <h4 class="tutorial-title">报表定制与导出</h4>
+                <p class="tutorial-description">本教程介绍了如何创建自定义报表、设置报表模板、定时生成和导出报表的方法，帮助您实现数据分析结果的高效共享与应用。</p>
+                <div class="tutorial-meta">
+                    <span>更新时间：2023年4月28日</span>
+                    <span><i class="fas fa-clock"></i> 12分钟</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="support-content">
+    <div class="help-section">
+        <h3 class="help-section-title">获取帮助</h3>
+        
+        <div class="support-options">
+            <div class="support-option">
+                <div class="support-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h4 class="support-title">在线客服</h4>
+                <p class="support-description">工作日9:00-18:00为您提供实时在线支持，解答使用问题</p>
+                <button class="btn btn-primary">立即咨询</button>
+            </div>
+            
+            <div class="support-option">
+                <div class="support-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h4 class="support-title">邮件支持</h4>
+                <p class="support-description">发送邮件至support@medisystem.com，我们将在24小时内回复</p>
+                <button class="btn btn-primary">发送邮件</button>
+            </div>
+            
+            <div class="support-option">
+                <div class="support-icon">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <h4 class="support-title">电话支持</h4>
+                <p class="support-description">工作日9:00-18:00，拨打400-123-4567获取电话支持</p>
+                <button class="btn btn-primary">拨打电话</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="feedback-content">
+    <div class="help-section">
+                <h3 class="help-section-title">提交反馈</h3>
+                
+        <div class="feedback-form">
+                        <div class="form-group">
+                            <label class="form-label">反馈类型</label>
+                            <select class="form-control">
+                                <option>功能建议</option>
+                    <option>错误报告</option>
+                    <option>体验改进</option>
+                    <option>其他反馈</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">标题</label>
+                            <input type="text" class="form-control" placeholder="请简要描述您的反馈">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">详细描述</label>
+                <textarea class="form-control" placeholder="请详细描述您的反馈，如遇到错误，请提供复现步骤"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">附件</label>
+                <input type="file" class="form-control">
+                <small class="text-muted">可上传截图或相关文件，最大支持10MB</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">联系方式（选填）</label>
+                <input type="text" class="form-control" placeholder="邮箱或电话，方便我们与您联系">
+            </div>
+            
+            <button class="btn btn-primary">提交反馈</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+    
+{% block scripts %}
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 标签页切换
+    const tabs = document.querySelectorAll('.help-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // 移除所有标签的active类
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // 添加当前标签的active类
+            this.classList.add('active');
+            
+            // 隐藏所有内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 显示对应的内容
+            const tabId = this.getAttribute('data-tab');
+            document.getElementById(tabId + '-content').classList.add('active');
+        });
+    });
+    
+    // FAQ问答切换
+    const questions = document.querySelectorAll('.faq-question');
+    questions.forEach(question => {
+        question.addEventListener('click', function() {
+            const answer = this.nextElementSibling;
+            
+            // 切换答案的显示/隐藏状态
+            if (answer.style.display === 'none' || answer.style.display === '') {
+                answer.style.display = 'block';
+                this.querySelector('i').classList.replace('fa-chevron-down', 'fa-chevron-up');
+            } else {
+                answer.style.display = 'none';
+                this.querySelector('i').classList.replace('fa-chevron-up', 'fa-chevron-down');
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %} 

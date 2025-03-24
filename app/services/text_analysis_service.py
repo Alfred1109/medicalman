@@ -4,6 +4,7 @@
 import traceback
 from typing import Dict, Any, Optional
 import re
+import json
 
 from app.services.base_llm_service import BaseLLMService
 
@@ -80,6 +81,21 @@ class TextAnalysisService(BaseLLMService):
                 results_str = "[]"
                 total_count = 0
             
+            # 检查数据库中的日期范围
+            try:
+                from app.models.database import Database
+                date_range_query = "SELECT MIN(日期), MAX(日期) FROM 门诊量;"
+                date_range_df = Database.query_to_dataframe(date_range_query)
+                if not date_range_df.empty:
+                    min_date = date_range_df.iloc[0, 0]
+                    max_date = date_range_df.iloc[0, 1]
+                    date_range_info = f"\n\n数据库中包含从 {min_date} 到 {max_date} 的数据。"
+                else:
+                    date_range_info = ""
+            except Exception as e:
+                print(f"获取日期范围时出错: {str(e)}")
+                date_range_info = ""
+            
             # 构建SQL分析提示词
             prompt = f"""请分析以下SQL查询结果并生成专业、通俗易懂的解释：
 
@@ -90,7 +106,7 @@ class TextAnalysisService(BaseLLMService):
 {sql_query}
 
 查询结果 (共{total_count}条记录，显示前{min(10, total_count)}条)：
-{results_str}
+{results_str}{date_range_info}
 
 {'图表已生成用于可视化这些数据。' if has_chart else '未生成图表。'}
 
@@ -103,11 +119,12 @@ class TextAnalysisService(BaseLLMService):
 
 你的分析应当准确、客观、全面，并以清晰的医学视角进行解读。
 使用专业但易于理解的语言，适合医疗管理人员阅读。
+如果数据库中包含多个月份的数据，请确保在回答中提及所有可用的月份数据，而不仅仅是其中的一部分。
 """
             
             # 调用LLM API
             response = self.call_api(
-                system_prompt="你是一位医疗数据分析专家，擅长解读SQL查询结果并提供医学见解。",
+                system_prompt="你是一位医疗数据分析专家，擅长解读SQL查询结果并提供医学见解。请确保分析所有可用的数据，不要仅关注部分数据。",
                 user_message=prompt,
                 temperature=0.4,
                 top_p=0.9
@@ -173,6 +190,10 @@ class TextAnalysisService(BaseLLMService):
                 elif len(set(values)) < len(values) * 0.5:  # 如果唯一值少于总数的一半，视为类别
                     category_fields.append(field)
             
+            print(f"发现数值字段: {numeric_fields}")
+            print(f"发现类别字段: {category_fields}")
+            print(f"发现日期字段: {date_fields}")
+            
             # 生成柱状图/折线图 (数值 vs 类别/日期)
             if numeric_fields and (category_fields or date_fields):
                 # 选择X轴（优先使用日期，其次使用类别）
@@ -228,9 +249,15 @@ class TextAnalysisService(BaseLLMService):
                 
                 # 创建图表配置
                 chart_type = "line" if date_fields else "bar"
+                
+                # 创建符合ECharts要求的图表配置
                 chart = {
-                    "title": f"{y_field} vs {x_field}",
-                    "type": chart_type,
+                    "title": {
+                        "text": f"{y_field} vs {x_field}",
+                        "left": "center"
+                    },
+                    "tooltip": {"trigger": "axis"},
+                    "legend": {"data": [y_field]},
                     "xAxis": {
                         "type": "category",
                         "data": x_values,
@@ -249,6 +276,7 @@ class TextAnalysisService(BaseLLMService):
                     ]
                 }
                 
+                print(f"生成的图表配置: {json.dumps(chart, ensure_ascii=False)}")
                 charts.append(chart)
             
             # 如果有多个数值字段，为每个字段创建一个图表
@@ -274,37 +302,24 @@ class TextAnalysisService(BaseLLMService):
                         x_values.append(str(x))
                         y_values.append(y)
                     
-                    # 对日期或数字类型的X值进行排序
-                    if x_values and len(x_values) > 0:
-                        try:
-                            # 检查是否为日期格式
-                            if date_fields and all(re.match(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', x) for x in x_values):
-                                # 日期排序
-                                sorted_data = sorted(zip(x_values, y_values), 
-                                                    key=lambda item: [int(n) for n in re.split(r'[-/]', item[0])])
-                                x_values = [item[0] for item in sorted_data]
-                                y_values = [item[1] for item in sorted_data]
-                            # 检查是否为月份格式 (例如: "1月", "2月"...)
-                            elif all(re.match(r'(\d+)月?', x) for x in x_values):
-                                # 月份排序
-                                sorted_data = sorted(zip(x_values, y_values), 
-                                                    key=lambda item: int(re.match(r'(\d+)月?', item[0]).group(1)))
-                                x_values = [item[0] for item in sorted_data]
-                                y_values = [item[1] for item in sorted_data]
-                            # 检查是否为纯数字
-                            elif all(re.match(r'^\d+$', x) for x in x_values):
-                                # 数字排序
-                                sorted_data = sorted(zip(x_values, y_values), key=lambda item: int(item[0]))
-                                x_values = [item[0] for item in sorted_data]
-                                y_values = [item[1] for item in sorted_data]
-                        except Exception as sort_error:
-                            print(f"排序X轴数据时出错: {str(sort_error)}")
+                    # 尝试排序
+                    try:
+                        if date_fields and all(re.match(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', x) for x in x_values):
+                            sorted_data = sorted(zip(x_values, y_values), 
+                                               key=lambda item: [int(n) for n in re.split(r'[-/]', item[0])])
+                            x_values = [item[0] for item in sorted_data]
+                            y_values = [item[1] for item in sorted_data]
+                    except Exception as e:
+                        print(f"排序第二个字段数据时出错: {str(e)}")
                     
-                    # 创建图表配置
                     chart_type = "line" if date_fields else "bar"
                     chart = {
-                        "title": f"{y_field} vs {x_field}",
-                        "type": chart_type,
+                        "title": {
+                            "text": f"{y_field} vs {x_field}",
+                            "left": "center"
+                        },
+                        "tooltip": {"trigger": "axis"},
+                        "legend": {"data": [y_field]},
                         "xAxis": {
                             "type": "category",
                             "data": x_values,
@@ -323,6 +338,7 @@ class TextAnalysisService(BaseLLMService):
                         ]
                     }
                     
+                    print(f"生成的第二个图表配置: {json.dumps(chart, ensure_ascii=False)}")
                     charts.append(chart)
             
             # 饼图（如果只有一个数值字段和一个类别字段，且类别不超过10个）
@@ -348,19 +364,41 @@ class TextAnalysisService(BaseLLMService):
                         pie_data.append({"name": str(cat), "value": val})
                     
                     chart = {
-                        "title": f"{value_field} 按 {category_field} 分布",
-                        "type": "pie",
+                        "title": {
+                            "text": f"{value_field} 按 {category_field} 分布",
+                            "left": "center"
+                        },
+                        "tooltip": {
+                            "trigger": "item",
+                            "formatter": "{a} <br/>{b} : {c} ({d}%)"
+                        },
+                        "legend": {
+                            "orient": "vertical",
+                            "left": "left",
+                            "data": [str(cat) for cat in data_map.keys()]
+                        },
                         "series": [
                             {
+                                "name": value_field,
                                 "type": "pie",
-                                "radius": "60%",
-                                "data": pie_data
+                                "radius": "55%",
+                                "center": ["50%", "60%"],
+                                "data": pie_data,
+                                "emphasis": {
+                                    "itemStyle": {
+                                        "shadowBlur": 10,
+                                        "shadowOffsetX": 0,
+                                        "shadowColor": "rgba(0, 0, 0, 0.5)"
+                                    }
+                                }
                             }
                         ]
                     }
                     
+                    print(f"生成的饼图配置: {json.dumps(chart, ensure_ascii=False)}")
                     charts.append(chart)
             
+            print(f"总共生成了 {len(charts)} 个图表配置")
             return charts
             
         except Exception as e:

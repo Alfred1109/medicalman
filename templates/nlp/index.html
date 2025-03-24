@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}NLP文本分析 - 医疗管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">NLP文本分析</li>
+{% endblock %}
+
+{% block page_title %}NLP文本分析{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">医学文本分析工具</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">本模块提供各种医学文本分析功能，包括：</p>
+                <ul class="list-group">
+                    <li class="list-group-item">中文分词</li>
+                    <li class="list-group-item">关键词提取</li>
+                    <li class="list-group-item">医疗实体识别</li>
+                    <li class="list-group-item">文本分类</li>
+                    <li class="list-group-item">相似度计算</li>
+                    <li class="list-group-item">诊断提取</li>
+                    <li class="list-group-item">药物提取</li>
+                    <li class="list-group-item">检验值提取</li>
+                </ul>
+                <div class="mt-4">
+                    <p>您可以通过API接口调用这些功能，具体文档参考帮助页面。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
