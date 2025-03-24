@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .report-subtitle {
+            font-size: 16px;
+            color: #666;
+        }
+        .report-section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1a73e8;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .subsection-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+            color: #1a73e8;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        .chart-container {
+            margin: 20px 0;
+            max-width: 100%;
+            page-break-inside: avoid;
+        }
+        .chart-title {
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .chart-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .correlation-table td {
+            text-align: center;
+        }
+        .correlation-positive {
+            color: #2e7d32;
+        }
+        .correlation-negative {
+            color: #c62828;
+        }
+        .correlation-neutral {
+            color: #757575;
+        }
+        .insights-list {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .insights-list li {
+            margin-bottom: 8px;
+        }
+        .highlighted-insight {
+            background-color: #fffde7;
+            padding: 10px;
+            border-left: 3px solid #ffd600;
+            margin-bottom: 10px;
+        }
+        .report-footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">{{ title }}</div>
+        <div class="report-subtitle">生成时间: {{ generated_time }}</div>
+    </div>
+    
+    <!-- 数据概览 -->
+    <div class="report-section">
+        <div class="section-title">数据概览</div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">总记录数</div>
+                <div class="stat-value">{{ stats.row_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">字段数</div>
+                <div class="stat-value">{{ stats.column_count }}</div>
+            </div>
+            
+            <!-- 可以添加更多统计指标 -->
+        </div>
+        
+        <div class="subsection-title">数据类型分布</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>字段名</th>
+                    <th>数据类型</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for col_name, dtype in stats.data_types.items() %}
+                <tr>
+                    <td>{{ col_name }}</td>
+                    <td>{{ dtype }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="subsection-title">缺失值统计</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>字段名</th>
+                    <th>缺失值数量</th>
+                    <th>缺失比例</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for col_name, missing_count in stats.missing_values.items() %}
+                <tr>
+                    <td>{{ col_name }}</td>
+                    <td>{{ missing_count }}</td>
+                    <td>{{ "%.2f"|format(missing_count / stats.row_count * 100) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 描述性统计 -->
+    <div class="report-section">
+        <div class="section-title">描述性统计</div>
+        {{ describe_stats|safe }}
+    </div>
+    
+    <!-- 样本数据 -->
+    <div class="report-section">
+        <div class="section-title">数据样本</div>
+        {{ sample_data|safe }}
+    </div>
+    
+    <!-- 数据可视化 -->
+    {% if chart_images %}
+    <div class="page-break"></div>
+    <div class="report-section">
+        <div class="section-title">数据可视化</div>
+        {% for chart_name, chart_image in chart_images.items() %}
+        {% if chart_image %}
+        <div class="chart-container">
+            <div class="chart-title">{{ chart_name }}</div>
+            <img class="chart-image" src="data:image/png;base64,{{ chart_image }}" alt="{{ chart_name }}">
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- 相关性分析 -->
+    {% if analysis_results.correlation is defined %}
+    <div class="page-break"></div>
+    <div class="report-section">
+        <div class="section-title">相关性分析</div>
+        
+        {% if analysis_results.correlation_html %}
+        {{ analysis_results.correlation_html|safe }}
+        {% endif %}
+        
+        {% if analysis_results.top_correlations %}
+        <div class="subsection-title">主要相关性</div>
+        <ul class="insights-list">
+            {% for corr in analysis_results.top_correlations %}
+            <li>
+                <strong>{{ corr.field1 }}</strong> 和 <strong>{{ corr.field2 }}</strong>: 
+                <span class="correlation-{{ corr.strength }}">{{ corr.value }}</span>
+                {% if corr.description %}
+                <br>
+                <small>{{ corr.description }}</small>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- 关键发现 -->
+    {% if analysis_results.insights %}
+    <div class="report-section">
+        <div class="section-title">关键发现</div>
+        
+        {% if analysis_results.key_insight %}
+        <div class="highlighted-insight">
+            {{ analysis_results.key_insight|safe }}
+        </div>
+        {% endif %}
+        
+        <ul class="insights-list">
+            {% for insight in analysis_results.insights %}
+            <li>{{ insight|safe }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <!-- 附加信息 -->
+    {% if analysis_results.additional_info %}
+    <div class="report-section">
+        <div class="section-title">附加信息</div>
+        {{ analysis_results.additional_info|safe }}
+    </div>
+    {% endif %}
+    
+    <div class="report-footer">
+        <p>本报告由医疗管理系统自动生成，仅供参考</p>
+        <p>版权所有 © {{ generated_time.split(' ')[0].split('-')[0] }} 医疗管理系统</p>
+    </div>
+</body>
+</html> 

@@ -58,7 +58,8 @@ def create_app(config_name=None):
 
 def register_blueprints(app):
     """注册蓝图"""
-    from app.routes.main_routes import main_bp, dashboard_bp
+    from app.routes.main_routes import main_bp, dashboard_bp as main_dashboard_bp
+    from app.routes.dashboard_routes import dashboard_bp
     from app.routes.api_routes import api_bp
     from app.routes.auth_routes import auth_bp
     from app.routes.ai_chat_routes import ai_chat_bp
@@ -67,7 +68,8 @@ def register_blueprints(app):
     from app.routes.settings_routes import settings_bp
     
     app.register_blueprint(main_bp)
-    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(main_dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(dashboard_bp)  # 仪表盘API路由，已有url_prefix
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(ai_chat_bp, url_prefix='/chat')

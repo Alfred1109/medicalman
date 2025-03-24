@@ -737,13 +737,8 @@ const Dashboard = (function() {
             format: 'pdf'
         };
         
-        // 模拟导出过程
-        setTimeout(function() {
-            Utils.dom.showNotification('报告已生成，正在下载...', 'success');
-            
-            // 实际应用中，这里应该触发文件下载
-            // window.location.href = `/api/dashboard/export?${new URLSearchParams(params)}`;
-        }, 1500);
+        // 触发文件下载
+        window.location.href = `/api/dashboard/export?${new URLSearchParams(params)}`;
     }
     
     // 显示加载状态

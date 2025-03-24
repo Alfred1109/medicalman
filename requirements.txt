@@ -45,4 +45,9 @@ openai==1.68.2
 # 工具类
 requests==2.31.0
 tqdm==4.67.1
-pyyaml==6.0.2 
+pyyaml==6.0.2
+
+# 报告生成
+weasyprint==60.1
+pdfkit==1.0.0
+wkhtmltopdf==0.2 

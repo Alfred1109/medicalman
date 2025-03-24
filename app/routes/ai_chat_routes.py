@@ -1,15 +1,17 @@
 """
 AI聊天路由模块 - 处理AI智能助手相关功能
 """
-from flask import Blueprint, render_template, request, jsonify, current_app, session
+from flask import Blueprint, render_template, request, jsonify, current_app, session, make_response
 import json
 import traceback
 import time
+from datetime import datetime
 
 from app.services.query_service import process_user_query
 from app.services.chart_service import ChartService
 from app.utils.logger import log_user_query
 from app.utils.json_helper import safe_json_dumps
+from app.utils.nlp_utils import TextProcessor
 from app.routes.auth_routes import login_required, api_login_required
 
 # 创建蓝图
@@ -174,4 +176,71 @@ def debug_charts():
         current_app.logger.error(traceback.format_exc())
     
     # 渲染调试页面
-    return render_template('ai_chat/debug_charts.html', charts=test_charts) 
+    return render_template('ai_chat/debug_charts.html', charts=test_charts)
+
+@ai_chat_bp.route('/export-report', methods=['POST'])
+@api_login_required
+def export_chat_report():
+    """导出聊天内容为PDF报告"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': '请求数据为空'}), 400
+            
+        chat_history = data.get('chat_history', [])
+        title = data.get('title', '智能问答记录')
+        
+        if not chat_history:
+            return jsonify({'error': '聊天记录为空'}), 400
+        
+        # 提取聊天内容生成摘要
+        chat_texts = []
+        for msg in chat_history:
+            if msg.get('role') == 'user':
+                chat_texts.append(f"用户: {msg.get('content', '')}")
+            elif msg.get('role') == 'ai':
+                chat_texts.append(f"AI: {msg.get('content', '')}")
+        
+        # 使用NLP工具生成摘要
+        chat_summary = None
+        key_insights = []
+        try:
+            text_processor = TextProcessor()
+            combined_text = "\n".join(chat_texts)
+            if len(combined_text) > 100:  # 只有内容足够长时才生成摘要
+                chat_summary = text_processor.generate_summary(combined_text, max_length=200)
+                # 尝试提取关键点
+                medical_terms = text_processor.extract_medical_terms(combined_text)
+                if medical_terms and len(medical_terms) > 0:
+                    key_insights = [f"{term}：在对话中被提及" for term in medical_terms[:5]]
+        except Exception as e:
+            current_app.logger.warning(f"生成聊天摘要出错: {str(e)}")
+            # 出错不阻止报告生成，继续执行
+        
+        # 导入报告生成工具
+        from app.utils.report_generator import ReportGenerator
+        
+        # 生成PDF报告
+        context = {
+            'title': title,
+            'chat_history': chat_history,
+            'chat_summary': chat_summary,
+            'key_insights': key_insights,
+            'generated_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        pdf_data = ReportGenerator.generate_custom_report(
+            template_name="reports/chat_report.html",
+            context=context
+        )
+        
+        # 设置响应头
+        filename = f"ai_chat_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        response = make_response(pdf_data)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"导出报告出错: {str(e)}"}), 500 

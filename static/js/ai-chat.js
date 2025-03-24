@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const knowledgePanel = document.getElementById('knowledgePanel');
     const historyButton = document.getElementById('historyButton');
     const clearChatButton = document.getElementById('clearChat');
+    const exportReportButton = document.getElementById('exportReport');
     
     // 初始化模态框
     const historyModalEl = document.getElementById('historyModal');
@@ -121,6 +122,28 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     } else {
         console.error('找不到清空聊天按钮元素');
+    }
+    
+    // 导出报告按钮
+    if (exportReportButton) {
+        console.log('正在绑定导出报告按钮点击事件');
+        exportReportButton.addEventListener('click', function() {
+            console.log('导出报告按钮被点击');
+            // 获取当前聊天的第一个问题作为标题
+            let title = '智能问答记录';
+            const firstUserMessage = document.querySelector('.chat-message.user .chat-bubble.user > div:first-child');
+            if (firstUserMessage) {
+                const question = firstUserMessage.textContent.trim();
+                if (question.length > 0) {
+                    title = `智能问答: ${question.substring(0, 30)}${question.length > 30 ? '...' : ''}`;
+                }
+            }
+            
+            // 调用导出函数
+            exportChatReport(title);
+        });
+    } else {
+        console.error('找不到导出报告按钮元素');
     }
     
     // 发送按钮点击事件

@@ -327,4 +327,141 @@ function loadKnowledgeSettings() {
             console.error('解析知识库设置出错:', error);
         }
     }
+}
+
+// 导出聊天记录为PDF报告
+function exportChatReport(title) {
+    console.log('准备导出聊天记录');
+    
+    // 获取所有聊天消息
+    const chatMessages = document.querySelectorAll('.chat-message');
+    if (!chatMessages || chatMessages.length === 0) {
+        console.error('没有可导出的聊天内容');
+        showToast('没有可导出的聊天内容', 'error');
+        return;
+    }
+    
+    // 构建聊天历史数据
+    const chatHistory = [];
+    chatMessages.forEach(messageElem => {
+        // 确定消息类型
+        const isAI = messageElem.querySelector('.chat-avatar.ai') !== null;
+        const role = isAI ? 'ai' : 'user';
+        
+        // 获取消息内容
+        let content = '';
+        const contentElem = messageElem.querySelector('.chat-bubble > div:first-child');
+        if (contentElem) {
+            // 如果是AI消息，可能包含markdown或图表
+            if (isAI) {
+                const markdownElem = contentElem.querySelector('.markdown-body');
+                if (markdownElem) {
+                    content = markdownElem.innerHTML;
+                } else {
+                    content = contentElem.innerHTML;
+                }
+            } else {
+                content = contentElem.textContent;
+            }
+        }
+        
+        // 获取时间
+        let time = '';
+        const timeElem = messageElem.querySelector('.chat-time');
+        if (timeElem) {
+            time = timeElem.textContent;
+        }
+        
+        // 获取图表信息
+        const charts = [];
+        const chartElems = messageElem.querySelectorAll('.chart-container');
+        chartElems.forEach(chartElem => {
+            const titleElem = chartElem.querySelector('.chart-title');
+            const title = titleElem ? titleElem.textContent : '图表';
+            
+            // 目前无法导出图表图像，只记录图表标题
+            charts.push({
+                title: title
+            });
+        });
+        
+        // 添加到聊天历史
+        chatHistory.push({
+            role: role,
+            content: content,
+            content_type: isAI ? 'markdown' : 'text',
+            time: time,
+            charts: charts.length > 0 ? charts : null
+        });
+    });
+    
+    // 默认标题
+    if (!title) {
+        title = '智能问答记录 - ' + new Date().toLocaleDateString();
+    }
+    
+    // 显示加载提示
+    showToast('正在生成报告，请稍候...', 'info');
+    
+    // 请求生成报告
+    fetch('/chat/export-report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_history: chatHistory,
+            title: title
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`服务器响应错误: ${response.status}`);
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // 创建下载链接
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `chat_report_${new Date().getTime()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showToast('报告生成成功', 'success');
+    })
+    .catch(error => {
+        console.error('导出报告失败:', error);
+        showToast('导出报告失败: ' + error.message, 'error');
+    });
+}
+
+// 显示提示消息
+function showToast(message, type = 'info') {
+    // 检查是否存在Utils全局对象
+    if (window.Utils && Utils.dom && Utils.dom.showNotification) {
+        Utils.dom.showNotification(message, type);
+        return;
+    }
+    
+    // 没有全局Utils对象时的简单替代方案
+    const toast = document.createElement('div');
+    toast.className = `chat-toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // 显示toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // 几秒后隐藏
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
 } 
