@@ -1,98 +1,36 @@
-2025-03-24 21:47:57,957 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 21:48:01,335 INFO: Locating template 'ai_chat/index.html':
+2025-03-25 10:03:56,389 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "SQL执行错误: no such table: visits", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT department, COUNT(*) as visit_count\n        FROM visits\n        WHERE date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY department\n        ORDER BY visit_count DESC\n        LIMIT 10\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,395 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "查询转DataFrame失败: no such table: visits", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,397 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "数据库连接错误: no such table: admissions", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,398 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "SQL执行错误: no such table: admissions", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT diagnosis_group, COUNT(*) as patient_count\n        FROM admissions\n        WHERE admission_date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY diagnosis_group\n        ORDER BY patient_count DESC\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,399 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "查询转DataFrame失败: no such table: admissions", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,400 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "数据库连接错误: no such table: alerts", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,401 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "SQL执行错误: no such table: alerts", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT alert_id, alert_time, alert_type, description, status\n        FROM alerts\n        WHERE alert_time BETWEEN '2025-03-25' AND '2025-03-26'\n        ORDER BY alert_time DESC\n        LIMIT 5\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,401 ERROR: 系统错误: {"timestamp": "2025-03-25 10:03:56", "message": "查询转DataFrame失败: no such table: alerts", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:03:56,408 INFO: Locating template 'reports/dashboard_report.html':
     1: trying loader of application 'app'
        class: jinja2.loaders.FileSystemLoader
        encoding: 'utf-8'
        followlinks: False
        searchpath:
          - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/ai_chat/index.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 21:48:01,350 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 21:49:34,060 INFO: 查询处理完成，耗时: 90.99秒 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/ai_chat_routes.py:50]
-2025-03-24 21:53:27,110 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 21:53:27,110 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 21:53:27,110 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 21:53:33,753 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 21:53:33,753 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 21:53:33,753 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 21:53:34,678 INFO: Locating template 'ai_chat/index.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/ai_chat/index.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 21:53:34,688 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /usr/local/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 22:04:29,116 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:04:29,116 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:04:29,117 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:04:35,727 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:04:35,728 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:04:35,728 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:08:32,093 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:08:32,093 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:08:32,093 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:08:37,868 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:08:37,868 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:08:37,868 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:09:32,044 INFO: Locating template 'ai_chat/index.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/ai_chat/index.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 22:09:32,064 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 22:19:01,026 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:19:01,026 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:19:01,026 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:19:05,864 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:19:05,865 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:19:05,865 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-24 22:19:09,329 INFO: 为登录页生成新验证码: KFQ4 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:138]
-2025-03-24 22:19:09,330 INFO: Locating template 'auth/login.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/auth/login.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 22:19:10,445 INFO: Locating template 'errors/404.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/errors/404.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-24 22:19:27,448 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
-2025-03-24 22:19:27,448 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-24 22:19:27,449 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-25 08:01:05,465 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:114]
-2025-03-25 08:01:05,466 INFO: 初始化数据库: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:19]
-2025-03-25 08:01:05,466 INFO: 数据库已存在，跳过初始化 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/models/database.py:68]
-2025-03-25 08:01:10,982 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:114]
+       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/reports/dashboard_report.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
+2025-03-25 10:04:22,176 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: visits", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,177 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: visits", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT COUNT(*) as total \n        FROM visits \n        WHERE visit_date BETWEEN '2025-03-25' AND '2025-03-26'\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,178 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: visits", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,178 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: visits", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT date as date, COUNT(*) as count\n        FROM visits\n        WHERE visit_type='门诊' AND date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY date\n        ORDER BY date\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,178 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "查询转DataFrame失败: no such table: visits", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,180 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: revenue", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,180 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: revenue", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT revenue_type, SUM(amount) as total\n        FROM revenue\n        WHERE date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY revenue_type\n        ORDER BY total DESC\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,180 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "查询转DataFrame失败: no such table: revenue", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,182 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: visits", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,182 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: visits", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT department, COUNT(*) as visit_count\n        FROM visits\n        WHERE date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY department\n        ORDER BY visit_count DESC\n        LIMIT 10\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,182 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "查询转DataFrame失败: no such table: visits", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,184 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: admissions", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,185 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: admissions", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT diagnosis_group, COUNT(*) as patient_count\n        FROM admissions\n        WHERE admission_date BETWEEN '2025-03-25' AND '2025-03-26'\n        GROUP BY diagnosis_group\n        ORDER BY patient_count DESC\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,185 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "查询转DataFrame失败: no such table: admissions", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,186 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "数据库连接错误: no such table: alerts", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,187 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "SQL执行错误: no such table: alerts", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT alert_id, alert_time, alert_type, description, status\n        FROM alerts\n        WHERE alert_time BETWEEN '2025-03-25' AND '2025-03-26'\n        ORDER BY alert_time DESC\n        LIMIT 5\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:04:22,187 ERROR: 系统错误: {"timestamp": "2025-03-25 10:04:22", "message": "查询转DataFrame失败: no such table: alerts", "error_code": 1002, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
+2025-03-25 10:07:25,978 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
+2025-03-25 10:07:25,979 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
+2025-03-25 10:07:26,028 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]

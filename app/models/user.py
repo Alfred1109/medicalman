@@ -4,7 +4,8 @@
 from typing import Dict, List, Any, Optional
 import hashlib
 import os
-from .database import Database
+# 移除对已删除模块的导入
+# from .database import Database
 from app.extensions import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash

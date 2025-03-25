@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, current_app
 from app.routes.auth_routes import login_required
 import datetime
+from app.utils.database import db_cursor
 
 # 创建蓝图
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
@@ -27,7 +28,6 @@ def update_profile():
         # 更新用户信息
         user_id = session.get('user_id')
         try:
-            from app.utils.db import db_cursor
             with db_cursor() as cursor:
                 cursor.execute(
                     "UPDATE users SET email = ?, department = ? WHERE id = ?",
@@ -58,7 +58,6 @@ def feedback():
         
         # 保存反馈信息
         try:
-            from app.utils.db import db_cursor
             with db_cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO feedback (user_id, type, title, content, created_at) VALUES (?, ?, ?, ?, ?)",

@@ -10,7 +10,15 @@ import random
 import string
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
-from app.utils.db import db_cursor
+from datetime import datetime, timedelta
+import secrets
+import logging
+import json
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+from app.utils.database import db_cursor
+from app.utils.security import verify_captcha, generate_captcha
+from app.utils.logger import log_user_login, log_error
 
 # 创建蓝图
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')

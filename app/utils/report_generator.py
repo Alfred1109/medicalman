@@ -16,69 +16,74 @@ class ReportGenerator:
     """报告生成器类，提供各种报告生成功能"""
     
     @staticmethod
-    def generate_pdf_from_html(html_content: str, css_files: List[str] = None, 
-                              base_url: str = None) -> bytes:
+    def generate_pdf_from_html(html_content, css_file=None):
         """
-        将HTML内容转换为PDF
+        从HTML生成PDF
         
         参数:
             html_content: HTML内容
-            css_files: CSS文件列表
-            base_url: 用于解析相对URL的基础URL
+            css_file: CSS文件路径（可选）
             
         返回:
-            PDF文件的二进制内容
+            PDF二进制内容
         """
         try:
-            # 检查是否安装了WeasyPrint
+            # 尝试使用WeasyPrint
+            from weasyprint import HTML, CSS
+            
+            # 判断css_file是否为URL
+            css_obj = None
+            if css_file:
+                if css_file.startswith(('http://', 'https://')):
+                    css_obj = CSS(url=css_file)
+                else:
+                    css_obj = CSS(filename=css_file) if os.path.exists(css_file) else None
+            
+            # 使用WeasyPrint生成PDF
+            html = HTML(string=html_content)
+            if css_obj:
+                return html.write_pdf(stylesheets=[css_obj])
+            else:
+                return html.write_pdf()
+        except ImportError:
+            # WeasyPrint不可用，尝试使用pdfkit
             try:
-                from weasyprint import HTML, CSS
-                print("使用WeasyPrint生成PDF")
-            except ImportError:
-                # 如果未安装WeasyPrint，尝试使用pdfkit
                 import pdfkit
-                print("使用pdfkit生成PDF")
                 
+                # 设置pdfkit选项
                 options = {
+                    'quiet': '',
                     'page-size': 'A4',
-                    'margin-top': '0.75in',
-                    'margin-right': '0.75in',
-                    'margin-bottom': '0.75in',
-                    'margin-left': '0.75in',
                     'encoding': 'UTF-8',
-                    'no-outline': None
+                    'margin-top': '1cm',
+                    'margin-right': '1cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '1cm'
                 }
                 
-                # 写入临时HTML文件
-                with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp_html:
-                    temp_html.write(html_content.encode('utf-8'))
-                    temp_html_path = temp_html.name
+                # 如果有css，添加到选项中
+                if css_file and os.path.exists(css_file):
+                    options['user-style-sheet'] = css_file
+                    
+                # 使用pdfkit生成PDF
+                return pdfkit.from_string(html_content, False, options=options)
+            except (ImportError, OSError) as e:
+                # 记录警告
+                current_app.logger.warning(f"PDF生成失败，将返回HTML内容: {str(e)}")
                 
-                try:
-                    # 转换HTML到PDF
-                    pdf_content = pdfkit.from_file(temp_html_path, False, options=options)
-                    return pdf_content
-                finally:
-                    # 删除临时文件
-                    if os.path.exists(temp_html_path):
-                        os.remove(temp_html_path)
-            
-            # 使用WeasyPrint
-            css_data = []
-            if css_files:
-                for css_file in css_files:
-                    if os.path.isfile(css_file):
-                        with open(css_file, 'r') as f:
-                            css_data.append(CSS(string=f.read()))
-                    else:
-                        css_data.append(CSS(filename=css_file))
-            
-            html = HTML(string=html_content, base_url=base_url)
-            return html.write_pdf(stylesheets=css_data)
-            
-        except Exception as e:
-            print(f"生成PDF报告出错: {str(e)}")
-            raise
+                # 都不可用，返回HTML内容并添加消息
+                html_message = f"""
+                <div style="background-color: #fff3cd; color: #856404; padding: 15px; margin: 20px 0; border: 1px solid #ffeeba; border-radius: 5px;">
+                    <p><strong>注意:</strong> PDF生成组件不可用，显示的是HTML版本。要生成PDF，请安装以下依赖:</p>
+                    <ol>
+                        <li>WeasyPrint: <code>pip install weasyprint</code></li>
+                        <li>或 pdfkit: <code>pip install pdfkit</code> 和 wkhtmltopdf (https://wkhtmltopdf.org/downloads.html)</li>
+                    </ol>
+                </div>
+                """ + html_content
+                
+                # 返回HTML内容（UTF-8编码）
+                return html_message.encode('utf-8')
     
     @staticmethod
     def generate_dashboard_report(data: Dict[str, Any], title: str = "仪表盘报告",
@@ -99,10 +104,14 @@ class ReportGenerator:
         """
         # 获取应用的静态文件夹路径
         static_folder = current_app.static_folder
-        css_files = [
-            os.path.join(static_folder, 'css', 'bootstrap.min.css'),
-            os.path.join(static_folder, 'css', 'style.css')
-        ]
+        
+        # 检查CSS文件是否存在，使用绝对路径确保能找到文件
+        css_path = os.path.join(static_folder, 'css', 'bootstrap.min.css')
+        if not os.path.exists(css_path):
+            # 回退到默认的在线Bootstrap CSS
+            css_files = ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css']
+        else:
+            css_files = [css_path]
         
         # 获取当前日期时间
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -131,8 +140,7 @@ class ReportGenerator:
         # 生成PDF
         return ReportGenerator.generate_pdf_from_html(
             html_content=html_content,
-            css_files=css_files,
-            base_url=current_app.config['SERVER_NAME']
+            css_file=css_files[0] if css_files else None
         )
     
     @staticmethod
@@ -217,8 +225,7 @@ class ReportGenerator:
         # 生成PDF
         return ReportGenerator.generate_pdf_from_html(
             html_content=html_content,
-            css_files=css_files,
-            base_url=current_app.config['SERVER_NAME']
+            css_file=css_files[0]
         )
     
     @staticmethod
@@ -230,19 +237,21 @@ class ReportGenerator:
         参数:
             template_name: 模板名称
             context: 模板上下文
-            css_files: CSS文件列表
+            css_files: CSS文件路径列表
             
         返回:
             PDF报告的二进制内容
         """
-        if css_files is None:
-            # 获取应用的静态文件夹路径
+        # 如果未提供CSS文件，使用默认的Bootstrap CSS
+        if not css_files:
             static_folder = current_app.static_folder
-            css_files = [
-                os.path.join(static_folder, 'css', 'bootstrap.min.css'),
-                os.path.join(static_folder, 'css', 'style.css')
-            ]
-        
+            css_path = os.path.join(static_folder, 'css', 'bootstrap.min.css')
+            if not os.path.exists(css_path):
+                # 回退到默认的在线Bootstrap CSS
+                css_files = ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css']
+            else:
+                css_files = [css_path]
+                
         # 添加生成时间到上下文
         if 'generated_time' not in context:
             context['generated_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -253,6 +262,5 @@ class ReportGenerator:
         # 生成PDF
         return ReportGenerator.generate_pdf_from_html(
             html_content=html_content,
-            css_files=css_files,
-            base_url=current_app.config['SERVER_NAME']
+            css_file=css_files[0] if css_files else None
         ) 

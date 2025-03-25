@@ -6,6 +6,22 @@ from app.extensions import init_extensions
 from app.config import config
 import logging
 from logging.handlers import RotatingFileHandler
+from flask_login import LoginManager
+
+# 修改导入ydata_profiling的方式，使其不会重复打印提示信息
+try:
+    import ydata_profiling
+    YDATA_PROFILING_AVAILABLE = True
+except ImportError:
+    try:
+        # 有时候包名与导入名不一致，尝试其他方式
+        from pandas_profiling import ProfileReport
+        YDATA_PROFILING_AVAILABLE = True
+    except ImportError:
+        YDATA_PROFILING_AVAILABLE = False
+        # 仅在实际运行而非导入时打印
+        if __name__ != 'app':
+            print("提示: ydata_profiling 包未安装，将使用替代方案提供基本数据分析功能")
 
 # 初始化扩展
 session = Session()
@@ -50,9 +66,12 @@ def create_app(config_name=None):
     init_logger(app)
     
     # 数据库初始化
-    from app.models.database import init_db
+    from app.utils.database import init_database
     with app.app_context():
-        init_db(app)
+        # 初始化数据库
+        app.logger.info('开始初始化数据库...')
+        init_database()
+        app.logger.info('数据库初始化完成')
     
     return app
 

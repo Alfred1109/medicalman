@@ -8,8 +8,9 @@ import json
 import traceback
 import pandas as pd
 
-from app.models.database import Database
-from app.utils.data_helpers import date_range_to_dates
+# 修改为使用新的数据库工具
+from app.utils.database import execute_query, execute_query_to_dataframe
+from app.utils.utils import date_range_to_dates  # 数据帮助工具已合并到utils.py
 from app.utils.decorators import api_login_required
 
 # 创建蓝图
@@ -29,29 +30,8 @@ def get_dashboard_data(start_date=None, end_date=None, date_range='week'):
     """
     # 如果未提供日期范围，则根据date_range参数生成
     if not start_date or not end_date:
-        # 根据date_range参数计算日期范围
-        today = datetime.now().date()
-        
-        if date_range == 'today':
-            start_date = today.strftime('%Y-%m-%d')
-            end_date = start_date
-        elif date_range == 'yesterday':
-            yesterday = today - timedelta(days=1)
-            start_date = yesterday.strftime('%Y-%m-%d')
-            end_date = start_date
-        elif date_range == 'week':
-            start_date = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
-        elif date_range == 'month':
-            start_date = f"{today.year}-{today.month:02d}-01"
-            end_date = today.strftime('%Y-%m-%d')
-        elif date_range == 'quarter':
-            quarter_start_month = ((today.month - 1) // 3) * 3 + 1
-            start_date = f"{today.year}-{quarter_start_month:02d}-01"
-            end_date = today.strftime('%Y-%m-%d')
-        elif date_range == 'year':
-            start_date = f"{today.year}-01-01"
-            end_date = today.strftime('%Y-%m-%d')
+        # 使用公共日期工具函数获取日期范围
+        start_date, end_date = date_range_to_dates(date_range)
     
     try:
         # 获取核心指标数据
@@ -102,7 +82,7 @@ def get_core_metrics(start_date, end_date):
         FROM visits 
         WHERE visit_date BETWEEN '{start_date}' AND '{end_date}'
         """
-        patient_result = Database.execute_query(patient_query)
+        patient_result = execute_query(patient_query)
         patient_count = patient_result[0]['total'] if patient_result else 0
         
         # 获取收入总额
@@ -111,7 +91,7 @@ def get_core_metrics(start_date, end_date):
         FROM revenue 
         WHERE date BETWEEN '{start_date}' AND '{end_date}'
         """
-        revenue_result = Database.execute_query(revenue_query)
+        revenue_result = execute_query(revenue_query)
         revenue_total = revenue_result[0]['total'] if revenue_result else 0
         
         # 获取平均住院日
@@ -120,7 +100,7 @@ def get_core_metrics(start_date, end_date):
         FROM admissions 
         WHERE admission_date BETWEEN '{start_date}' AND '{end_date}'
         """
-        los_result = Database.execute_query(los_query)
+        los_result = execute_query(los_query)
         avg_los = round(los_result[0]['avg_los'], 1) if los_result and los_result[0]['avg_los'] else 0
         
         # 获取手术台次
@@ -129,7 +109,7 @@ def get_core_metrics(start_date, end_date):
         FROM surgeries 
         WHERE surgery_date BETWEEN '{start_date}' AND '{end_date}'
         """
-        surgery_result = Database.execute_query(surgery_query)
+        surgery_result = execute_query(surgery_query)
         surgery_count = surgery_result[0]['total'] if surgery_result else 0
         
         return {
@@ -158,7 +138,7 @@ def get_outpatient_trend(start_date, end_date):
         ORDER BY date
         """
         
-        df = Database.query_to_dataframe(query)
+        df = execute_query_to_dataframe(query)
         
         if df.empty:
             # 返回空数据结构
@@ -196,7 +176,7 @@ def get_revenue_composition(start_date, end_date):
         ORDER BY total DESC
         """
         
-        df = Database.query_to_dataframe(query)
+        df = execute_query_to_dataframe(query)
         
         if df.empty:
             # 返回空数据结构
@@ -227,7 +207,7 @@ def get_department_workload(start_date, end_date):
         LIMIT 10
         """
         
-        df = Database.query_to_dataframe(query)
+        df = execute_query_to_dataframe(query)
         
         if df.empty:
             # 返回空数据结构
@@ -257,7 +237,7 @@ def get_inpatient_distribution(start_date, end_date):
         ORDER BY patient_count DESC
         """
         
-        df = Database.query_to_dataframe(query)
+        df = execute_query_to_dataframe(query)
         
         if df.empty:
             # 返回空数据结构
@@ -304,7 +284,7 @@ def get_alerts(start_date, end_date):
         LIMIT 5
         """
         
-        df = Database.query_to_dataframe(query)
+        df = execute_query_to_dataframe(query)
         
         if df.empty:
             # 返回空列表
@@ -369,45 +349,58 @@ def dashboard_data():
             'error': f"获取仪表盘数据出错: {str(e)}"
         }), 500
 
-@dashboard_bp.route('/export', methods=['GET'])
-@api_login_required
+@dashboard_bp.route('/export_dashboard', methods=['GET'])
 def export_dashboard():
-    """导出仪表盘报告"""
+    """导出报表"""
     try:
-        # 获取请求参数
+        # 获取参数
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        date_range = request.args.get('date_range', 'week')
+        date_range = request.args.get('date_range', '30days')
         report_format = request.args.get('format', 'pdf').lower()
         
         # 获取仪表盘数据
         dashboard_data = get_dashboard_data(start_date, end_date, date_range)
         
+        # 根据格式导出
         if report_format == 'pdf':
-            # 导入报告生成工具
-            from app.utils.report_generator import ReportGenerator
-            
-            # 生成PDF报告
+            # 生成PDF报表
             pdf_data = ReportGenerator.generate_dashboard_report(
                 data=dashboard_data,
-                title="医疗管理系统仪表盘报告",
+                title="医疗工作量仪表盘报告",
                 start_date=start_date,
                 end_date=end_date
             )
             
-            # 设置响应头
-            filename = f"dashboard_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            response = make_response(pdf_data)
-            response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            # 检查是否返回的是HTML（当PDF生成失败时）
+            content_type = 'application/pdf'
+            filename = f'dashboard_report_{datetime.now().strftime("%Y%m%d%H%M%S")}.pdf'
             
+            # 检查是否为HTML内容（根据内容开头判断）
+            if pdf_data.startswith(b'<') and b'</html>' in pdf_data:
+                content_type = 'text/html'
+                filename = f'dashboard_report_{datetime.now().strftime("%Y%m%d%H%M%S")}.html'
+            
+            # 返回报表
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = content_type
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
+        
         elif report_format == 'excel':
-            # 为将来扩展提供Excel导出功能
-            # TODO: 实现Excel报告生成
-            return jsonify({"error": "Excel导出功能尚未实现"}), 501
+            # 导出Excel
+            excel_data = dashboard_service.export_dashboard_excel(dashboard_data)
+            
+            # 返回Excel文件
+            response = make_response(excel_data)
+            response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            response.headers['Content-Disposition'] = f'attachment; filename="dashboard_report_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx"'
+            return response
+        
         else:
-            return jsonify({"error": f"不支持的格式: {report_format}"}), 400
+            # 不支持的格式
+            return jsonify({'error': f'不支持的导出格式: {report_format}'}), 400
+            
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": f"导出报告出错: {str(e)}"}), 500 
+        current_app.logger.error(f"导出报表失败: {str(e)}")
+        return jsonify({'error': f'导出报表失败: {str(e)}'}), 500 

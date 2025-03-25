@@ -9,7 +9,7 @@ from flask import current_app
 import sqlite3
 
 from app.services.base_llm_service import BaseLLMService
-from app.utils.db import get_database_schema
+from app.utils.database import get_database_schema
 from app.prompts import DATABASE_SYSTEM_PROMPT
 
 # 导入LangChain相关库

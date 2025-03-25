@@ -7,7 +7,32 @@ function handleResponse(data, responseType) {
     
     // 根据不同情况提取消息内容
     if (data && typeof data === 'object') {
-        if (data.message) {
+        // 检查是否有结构化分析结果（analysis、charts、tables等）
+        if (data.analysis || (data.tables && data.tables.length > 0) || (data.summary && data.recommendations)) {
+            console.log('检测到结构化分析数据，处理为格式化内容');
+            
+            // 构建格式化的Markdown响应
+            let formattedResponse = '';
+            
+            // 添加分析内容
+            if (data.analysis) {
+                formattedResponse += `${data.analysis}\n\n`;
+            }
+            
+            // 添加汇总部分
+            if (data.summary) {
+                formattedResponse += `## 分析摘要\n\n${data.summary}\n\n`;
+            }
+            
+            // 添加建议部分
+            if (data.recommendations) {
+                formattedResponse += `## 建议\n\n${data.recommendations}\n\n`;
+            }
+            
+            // 不添加表格和图表的描述，因为我们会单独处理它们
+            
+            responseMessage = formattedResponse;
+        } else if (data.message) {
             responseMessage = data.message;
         } else if (data.text) {
             responseMessage = data.text;
@@ -18,15 +43,90 @@ function handleResponse(data, responseType) {
         } else if (data.error) {
             responseMessage = `错误: ${data.error}`;
         } else {
-            // 尝试JSON序列化整个对象
-            try {
-                responseMessage = "收到的数据: " + JSON.stringify(data, null, 2);
-            } catch (e) {
-                responseMessage = "收到无法显示的数据";
+            // 尝试检查是否有JSON格式的字符串
+            if (typeof data.message === 'string' && (data.message.startsWith('{') || data.message.startsWith('['))) {
+                try {
+                    const jsonData = JSON.parse(data.message);
+                    
+                    // 如果解析成功且有结构化数据，则格式化显示
+                    if (jsonData.analysis || jsonData.summary || jsonData.recommendations) {
+                        let formattedResponse = '';
+                        
+                        // 添加分析内容
+                        if (jsonData.analysis) {
+                            formattedResponse += `${jsonData.analysis}\n\n`;
+                        }
+                        
+                        // 添加汇总部分
+                        if (jsonData.summary) {
+                            formattedResponse += `## 分析摘要\n\n${jsonData.summary}\n\n`;
+                        }
+                        
+                        // 添加建议部分
+                        if (jsonData.recommendations) {
+                            formattedResponse += `## 建议\n\n${jsonData.recommendations}\n\n`;
+                        }
+                        
+                        responseMessage = formattedResponse;
+                        
+                        // 更新data对象，以便后续处理图表和表格
+                        if (jsonData.charts) data.charts = jsonData.charts;
+                        if (jsonData.tables) data.tables = jsonData.tables;
+                    } else {
+                        responseMessage = data.message;
+                    }
+                } catch (e) {
+                    // 如果解析失败，则使用原始消息
+                    responseMessage = data.message;
+                }
+            } else {
+                // 尝试JSON序列化整个对象
+                try {
+                    responseMessage = "收到的数据: " + JSON.stringify(data, null, 2);
+                } catch (e) {
+                    responseMessage = "收到无法显示的数据";
+                }
             }
         }
     } else if (typeof data === 'string') {
-        responseMessage = data;
+        // 尝试检查字符串是否是JSON格式
+        if (data.startsWith('{') || data.startsWith('[')) {
+            try {
+                const jsonData = JSON.parse(data);
+                
+                // 如果解析成功且有结构化数据，则格式化显示
+                if (jsonData.analysis || jsonData.summary || jsonData.recommendations) {
+                    let formattedResponse = '';
+                    
+                    // 添加分析内容
+                    if (jsonData.analysis) {
+                        formattedResponse += `${jsonData.analysis}\n\n`;
+                    }
+                    
+                    // 添加汇总部分
+                    if (jsonData.summary) {
+                        formattedResponse += `## 分析摘要\n\n${jsonData.summary}\n\n`;
+                    }
+                    
+                    // 添加建议部分
+                    if (jsonData.recommendations) {
+                        formattedResponse += `## 建议\n\n${jsonData.recommendations}\n\n`;
+                    }
+                    
+                    responseMessage = formattedResponse;
+                    
+                    // 更新data为解析后的对象，以便后续处理图表和表格
+                    data = jsonData;
+                } else {
+                    responseMessage = data;
+                }
+            } catch (e) {
+                // 如果解析失败，则使用原始字符串
+                responseMessage = data;
+            }
+        } else {
+            responseMessage = data;
+        }
     } else {
         responseMessage = "收到未知响应";
     }

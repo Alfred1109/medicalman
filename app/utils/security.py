@@ -6,6 +6,9 @@ import os
 import re
 import secrets
 from typing import Tuple, Optional
+import random
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
 
 class Security:
     """安全工具类"""
@@ -142,4 +145,95 @@ class Security:
             if keyword in query_upper:
                 return False
         
-        return True 
+        return True
+
+def generate_captcha(width=240, height=100, length=4):
+    """
+    生成图形验证码
+    
+    参数:
+        width: 图片宽度
+        height: 图片高度
+        length: 验证码长度
+        
+    返回:
+        (验证码文本, 图片二进制数据)
+    """
+    # 生成随机验证码文本
+    chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    captcha_text = ''.join(random.choices(chars, k=length))
+    
+    # 创建图片
+    image = Image.new('RGB', (width, height), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    
+    # 尝试加载字体
+    try:
+        font = ImageFont.truetype('arial.ttf', 70)
+    except IOError:
+        try:
+            font = ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf', 70)
+        except IOError:
+            font = ImageFont.load_default()
+    
+    # 绘制文本
+    try:
+        # 较新的Pillow版本
+        if hasattr(font, 'getbbox'):
+            bbox = font.getbbox(captcha_text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+        # 较旧版本
+        elif hasattr(draw, 'textsize'):
+            text_width, text_height = draw.textsize(captcha_text, font=font)
+        else:
+            # 默认情况
+            text_width, text_height = width-40, height-40
+    except Exception:
+        text_width, text_height = width-40, height-40
+        
+    x = (width - text_width) // 2
+    y = (height - text_height) // 2
+    
+    # 添加干扰线
+    for i in range(8):
+        x1 = random.randint(0, width)
+        y1 = random.randint(0, height)
+        x2 = random.randint(0, width)
+        y2 = random.randint(0, height)
+        draw.line([(x1, y1), (x2, y2)], fill=(200, 200, 200), width=2)
+    
+    # 绘制字符
+    for i, char in enumerate(captcha_text):
+        char_x = x + i * (text_width // length)
+        char_y = y + random.randint(-10, 10)
+        draw.text((char_x, char_y), char, font=font, fill=(0, 0, 139))
+    
+    # 添加干扰点
+    for _ in range(100):
+        x = random.randint(0, width)
+        y = random.randint(0, height)
+        draw.point((x, y), fill=(220, 220, 220))
+    
+    # 将图片保存到字节流
+    out = BytesIO()
+    image.save(out, 'PNG')
+    out.seek(0)
+    
+    return captcha_text, out.getvalue()
+
+def verify_captcha(user_input, stored_captcha):
+    """
+    验证用户输入的验证码
+    
+    参数:
+        user_input: 用户输入的验证码
+        stored_captcha: 存储的验证码
+        
+    返回:
+        验证结果(布尔值)
+    """
+    if not user_input or not stored_captcha:
+        return False
+        
+    return user_input.upper() == stored_captcha.upper() 

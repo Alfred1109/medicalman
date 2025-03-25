@@ -9,13 +9,18 @@ from datetime import datetime
 
 from app.services.query_service import process_user_query
 from app.services.chart_service import ChartService
+from app.services.ai_chat_service import AIChatService
+from app.utils.report_generator import ReportGenerator
 from app.utils.logger import log_user_query
-from app.utils.json_helper import safe_json_dumps
+from app.utils.utils import safe_json_dumps
 from app.utils.nlp_utils import TextProcessor
 from app.routes.auth_routes import login_required, api_login_required
 
 # 创建蓝图
 ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/chat')
+
+# 创建AI聊天服务实例
+ai_chat_service = AIChatService()
 
 @ai_chat_bp.route('/')
 @login_required
@@ -178,99 +183,91 @@ def debug_charts():
     # 渲染调试页面
     return render_template('ai_chat/debug_charts.html', charts=test_charts)
 
-@ai_chat_bp.route('/export-report', methods=['POST'])
-@api_login_required
+@ai_chat_bp.route('/export_chat_report', methods=['GET'])
 def export_chat_report():
-    """导出聊天内容为PDF报告"""
+    """导出聊天报告"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': '请求数据为空'}), 400
-            
-        chat_history = data.get('chat_history', [])
-        title = data.get('title', '智能问答记录')
+        # 获取参数
+        chat_id = request.args.get('chat_id', '')
+        format_type = request.args.get('format', 'pdf').lower()
+        
+        if not chat_id:
+            return jsonify({'error': '未提供chat_id'}), 400
+        
+        # 获取聊天历史
+        chat_history = ai_chat_service.get_chat_history(chat_id)
         
         if not chat_history:
-            return jsonify({'error': '聊天记录为空'}), 400
+            return jsonify({'error': '找不到指定的聊天记录'}), 404
         
-        # 提取聊天内容生成摘要
-        chat_texts = []
-        for msg in chat_history:
-            if msg.get('role') == 'user':
-                chat_texts.append(f"用户: {msg.get('content', '')}")
-            elif msg.get('role') == 'ai':
-                chat_texts.append(f"AI: {msg.get('content', '')}")
+        # 获取聊天标题
+        chat_title = ai_chat_service.get_chat_title(chat_id) or "AI医疗助手对话"
         
-        # 使用NLP工具生成摘要
-        chat_summary = None
-        key_insights = []
-        try:
-            text_processor = TextProcessor()
-            combined_text = "\n".join(chat_texts)
-            if len(combined_text) > 100:  # 只有内容足够长时才生成摘要
-                chat_summary = text_processor.generate_summary(combined_text, max_length=200)
-                # 尝试提取关键点
-                medical_terms = text_processor.extract_medical_terms(combined_text)
-                if medical_terms and len(medical_terms) > 0:
-                    key_insights = [f"{term}：在对话中被提及" for term in medical_terms[:5]]
-        except Exception as e:
-            current_app.logger.warning(f"生成聊天摘要出错: {str(e)}")
-            # 出错不阻止报告生成，继续执行
-        
-        # 导入报告生成工具
-        from app.utils.report_generator import ReportGenerator
-        
-        # 处理每条消息中的表格数据，确保它们能在报告中正确显示
-        for msg in chat_history:
-            # 检查并处理表格数据
-            if msg.get('role') == 'ai' and msg.get('tables') and isinstance(msg['tables'], list):
-                current_app.logger.info(f"处理AI消息中的表格数据: {len(msg['tables'])}个表格")
+        # 处理每条消息中的表格数据
+        for message in chat_history:
+            if 'tables' in message and message['tables']:
+                tables_data = message['tables']
                 
-                # 确保表格数据格式正确
-                for table in msg['tables']:
-                    if not isinstance(table, dict):
-                        continue
-                        
-                    # 确保表格有标题
-                    if 'title' not in table or not table['title']:
-                        table['title'] = '数据表格'
-                        
-                    # 确保表格类型正确
-                    if 'type' not in table or table['type'] not in ['detail', 'summary']:
-                        table['type'] = 'detail'
-                        
-                    # 确保有表头和行数据
-                    if 'headers' not in table or not isinstance(table['headers'], list):
-                        table['headers'] = []
-                        
-                    if 'rows' not in table or not isinstance(table['rows'], list):
-                        table['rows'] = []
-            else:
-                # 如果没有表格数据，确保表格字段存在但为空列表
-                if msg.get('role') == 'ai' and ('tables' not in msg or msg['tables'] is None):
-                    msg['tables'] = []
+                # 确保tables_data是列表
+                if isinstance(tables_data, dict):
+                    tables_data = [tables_data]
+                elif isinstance(tables_data, str):
+                    try:
+                        tables_data = json.loads(tables_data)
+                        if isinstance(tables_data, dict):
+                            tables_data = [tables_data]
+                    except:
+                        tables_data = []
+                
+                # 处理每个表格
+                for table in tables_data:
+                    if isinstance(table, dict):
+                        # 确保表格有标题
+                        if 'title' not in table:
+                            table['title'] = '数据表格'
+                            
+                        # 确保有type字段
+                        if 'type' not in table:
+                            table['type'] = 'table'
+                            
+                        # 确保有headers和rows
+                        if 'headers' not in table or not table['headers']:
+                            table['headers'] = []
+                            
+                        if 'rows' not in table or not table['rows']:
+                            table['rows'] = []
         
-        # 生成PDF报告
-        context = {
-            'title': title,
-            'chat_history': chat_history,
-            'chat_summary': chat_summary,
-            'key_insights': key_insights,
-            'generated_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        
-        pdf_data = ReportGenerator.generate_custom_report(
-            template_name="reports/chat_report.html",
-            context=context
-        )
-        
-        # 设置响应头
-        filename = f"ai_chat_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        response = make_response(pdf_data)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-        
-        return response
+        # 生成报告
+        if format_type == 'pdf':
+            # 生成PDF报告
+            pdf_data = ReportGenerator.generate_custom_report(
+                template_name='reports/chat_report.html',
+                context={
+                    'title': f"聊天记录: {chat_title}",
+                    'chat_history': chat_history,
+                    'generated_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
+            
+            # 检查是否返回的是HTML（当PDF生成失败时）
+            content_type = 'application/pdf'
+            filename = f'chat_report_{datetime.now().strftime("%Y%m%d%H%M%S")}.pdf'
+            
+            # 检查是否为HTML内容（根据内容开头判断）
+            if pdf_data.startswith(b'<') and b'</html>' in pdf_data:
+                content_type = 'text/html'
+                filename = f'chat_report_{datetime.now().strftime("%Y%m%d%H%M%S")}.html'
+            
+            # 返回报告
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = content_type
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        else:
+            # 不支持的格式
+            return jsonify({'error': f'不支持的导出格式: {format_type}'}), 400
+            
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": f"导出报告出错: {str(e)}"}), 500 
+        current_app.logger.error(f"导出聊天报告失败: {str(e)}")
+        return jsonify({'error': f'导出聊天报告失败: {str(e)}'}), 500 

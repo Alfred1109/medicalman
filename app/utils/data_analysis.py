@@ -11,20 +11,20 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import importlib.util
 import sys
+import io
+import json
+import base64
+from typing import Dict, List, Any, Optional, Tuple, Union
+import importlib
 
-# 尝试导入ydata_profiling，如果不存在则不使用该功能
-HAS_PROFILING = importlib.util.find_spec("ydata_profiling") is not None
-try:
-    if HAS_PROFILING:
-        from ydata_profiling import ProfileReport  # 替代pandas_profiling
-except ImportError:
-    HAS_PROFILING = False
+# 在app/__init__.py中我们已经判断了ydata_profiling的可用性，这里直接导入全局变量
+from app import YDATA_PROFILING_AVAILABLE
 
-if not HAS_PROFILING:
-    print("提示: ydata_profiling 包未安装，将使用替代方案提供基本数据分析功能")
+# 尝试导入ydata_profiling
+if YDATA_PROFILING_AVAILABLE:
+    from ydata_profiling import ProfileReport  # 替代pandas_profiling
 
-from app.models.database import Database
-from app.utils.db import execute_query_to_dataframe
+from app.utils.database import execute_query_to_dataframe
 
 class DataAnalyzer:
     """
@@ -45,7 +45,7 @@ class DataAnalyzer:
             报告HTML字符串
         """
         try:
-            if not HAS_PROFILING:
+            if not YDATA_PROFILING_AVAILABLE:
                 return "<p>未安装ydata_profiling包，数据分析报告功能不可用</p>"
                 
             # 设置中文显示
@@ -74,7 +74,7 @@ class DataAnalyzer:
             报告HTML字符串
         """
         try:
-            if not HAS_PROFILING:
+            if not YDATA_PROFILING_AVAILABLE:
                 return "<p>未安装ydata_profiling包，数据分析报告功能不可用</p>"
                 
             # 执行查询
@@ -864,7 +864,7 @@ def generate_profile_report(df, title="数据分析报告", mode="html", **kwarg
     if df is None or df.empty:
         return "<p>数据为空，无法生成分析报告</p>"
     
-    if HAS_PROFILING:
+    if YDATA_PROFILING_AVAILABLE:
         try:
             # 生成报告
             profile = ProfileReport(df, title=title, **kwargs)
@@ -894,7 +894,7 @@ def generate_minimal_report(df, title="数据概览"):
     if df is None or df.empty:
         return "<p>数据为空，无法生成分析报告</p>"
     
-    if HAS_PROFILING:
+    if YDATA_PROFILING_AVAILABLE:
         try:
             # 生成简化报告
             profile = ProfileReport(df, 

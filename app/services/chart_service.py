@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 import copy
 
 from app.services.base_llm_service import BaseLLMService
-from app.utils.json_helper import robust_json_parser, aggressive_json_fix, extract_json_object
+from app.utils.utils import robust_json_parser, safe_json_dumps, extract_json_object
 
 class ChartService(BaseLLMService):
     """

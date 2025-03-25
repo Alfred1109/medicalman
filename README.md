@@ -18,7 +18,11 @@
 - [报告导出功能](#报告导出功能)
 - [技术架构](#技术架构)
 - [项目结构](#项目结构)
+- [系统组件与流程](#系统组件与流程)
 - [数据流程](#数据流程)
+- [大模型集成架构](#大模型集成架构)
+- [优化策略与设计理念](#优化策略与设计理念)
+- [未来规划](#未来规划)
 - [安装与部署](#安装与部署)
 - [使用指南](#使用指南)
 - [开发指南](#开发指南)
@@ -187,48 +191,153 @@ MedicalMan提供全面的报告导出功能，满足医疗管理不同场景的�
 ```
 medicalman/
 ├── app/                      # 应用核心代码
-│   ├── models/               # 数据模型和数据库交互
-│   │   ├── llm_service.py    # 大语言模型服务
-│   │   └── chart_service.py  # 图表生成服务
-│   ├── controllers/          # 请求处理和路由控制
-│   ├── presenters/           # 数据展示格式化
+│   ├── __init__.py           # 应用工厂，创建和配置Flask应用
+│   ├── config.py             # 系统配置管理
+│   ├── extensions.py         # Flask扩展初始化
+│   ├── models/               # 数据模型
+│   │   ├── __init__.py       # 模型初始化
+│   │   ├── base_model.py     # 基础模型类
+│   │   ├── user.py           # 用户模型
+│   │   ├── doctor.py         # 医生模型
+│   │   ├── patient.py        # 患者模型
+│   │   ├── workload.py       # 工作量模型
+│   │   └── medical_record.py # 医疗记录模型
 │   ├── routes/               # 路由定义
-│   │   ├── dashboard_routes.py  # 仪表盘相关路由
-│   │   └── ai_chat_routes.py    # AI聊天相关路由
+│   │   ├── __init__.py       # 路由初始化
+│   │   ├── main_routes.py    # 主页路由
+│   │   ├── auth_routes.py    # 认证路由
+│   │   ├── dashboard_routes.py # 仪表盘路由
+│   │   ├── ai_chat_routes.py   # AI聊天路由
+│   │   ├── analytics_routes.py # 分析路由
+│   │   ├── nlp_routes.py       # 自然语言处理路由
+│   │   ├── api_routes.py       # API接口路由
+│   │   └── settings_routes.py  # 设置路由
 │   ├── services/             # 业务逻辑服务
+│   │   ├── __init__.py       # 服务初始化
+│   │   ├── base_llm_service.py  # 基础大语言模型服务
+│   │   ├── llm_service.py    # LLM集成服务
+│   │   ├── ai_chat_service.py  # AI聊天服务
 │   │   ├── query_service.py  # 查询处理服务
-│   │   └── chart_service.py  # 图表服务
-│   ├── utils/                # 工具函数和辅助方法
-│   │   ├── json_helper.py    # JSON处理工具
-│   │   ├── report_generator.py  # 报告生成工具
-│   │   └── nlp_utils.py      # NLP处理工具
+│   │   ├── chart_service.py  # 图表生成服务
+│   │   ├── sql_service.py    # SQL查询服务
+│   │   ├── auth_service.py   # 认证服务
+│   │   ├── file_service.py   # 文件处理服务
+│   │   ├── knowledge_base_service.py # 知识库服务
+│   │   ├── text_analysis_service.py  # 文本分析服务
+│   │   └── log_service.py    # 日志服务
+│   ├── utils/                # 工具函数
+│   │   ├── __init__.py       # 工具初始化
+│   │   ├── database.py       # 数据库工具
+│   │   ├── utils.py          # 通用工具函数
+│   │   ├── logger.py         # 日志工具
+│   │   ├── data_analysis.py  # 数据分析工具
+│   │   ├── chart.py          # 图表工具
+│   │   ├── report_generator.py # 报告生成工具
+│   │   ├── nlp_utils.py      # NLP处理工具
+│   │   ├── vector_store.py   # 向量存储工具
+│   │   ├── security.py       # 安全工具
+│   │   ├── error_handler.py  # 错误处理
+│   │   ├── decorators.py     # 装饰器
+│   │   ├── files.py          # 文件处理
+│   │   └── validators.py     # 验证工具
+│   ├── prompts/              # AI大模型提示词模板
+│   │   ├── __init__.py       # 提示词初始化
+│   │   ├── analyzing.py      # 数据分析提示词
+│   │   ├── responding.py     # 响应生成提示词
+│   │   ├── querying.py       # 查询处理提示词
+│   │   └── parsing.py        # 解析处理提示词
+│   ├── presenters/           # 数据展示格式化
 │   ├── config/               # 配置管理
-│   └── prompts/              # AI大模型提示词模板
-│       ├── analyzing.py      # 数据分析提示词
-│       └── medical_qa.py     # 医疗问答提示词
-├── docs/                     # 项目文档和参考数据
-├── instance/                 # 实例特定文件
+│   └── backup/               # 数据备份
 ├── static/                   # 静态资源
 │   ├── js/                   # JavaScript文件
-│   │   ├── ai-chat.js        # AI聊天主逻辑
-│   │   └── ai-chat-utils.js  # AI聊天工具函数
 │   ├── css/                  # CSS样式文件
 │   └── images/               # 图片资源
 ├── templates/                # HTML模板
-│   ├── dashboard/            # 仪表盘相关模板
-│   ├── ai_chat/              # AI聊天相关模板
-│   └── reports/              # 报告模板
-│       ├── dashboard_report.html  # 仪表盘报告模板
-│       └── chat_report.html  # 聊天报告模板
-├── tests/                    # 测试代码
+├── data/                     # 数据文件
+├── instance/                 # 实例特定文件
+├── logs/                     # 日志文件
 ├── migrations/               # 数据库迁移脚本
 ├── scripts/                  # 实用脚本
+├── docs/                     # 项目文档
+├── tests/                    # 测试代码
 ├── flask_session/           # Flask会话文件存储
+├── .venv/                    # 虚拟环境
 ├── .env                      # 环境变量配置
 ├── requirements.txt          # 项目依赖
 ├── run.py                    # 应用启动入口
+├── medical_workload.db       # SQLite数据库
 └── README.md                 # 项目说明文档
 ```
+
+## 🔄 系统组件与流程
+
+### 核心组件关系图
+
+```mermaid
+graph TD
+    A[用户界面] --> B[路由层 routes/*_routes.py]
+    B --> C[服务层 services/*_service.py]
+    C --> D[模型层 models/*.py]
+    C --> E[工具层 utils/*.py]
+    C --> F[大模型交互 prompts/*.py]
+    D --> G[数据库 SQLite]
+    F --> H[LLM API]
+    E --> I[外部服务]
+```
+
+### 数据采集与预处理流程
+
+```mermaid
+graph LR
+    A[Excel导入] --> D[数据预处理]
+    B[手动录入] --> D
+    C[模拟数据] --> D
+    D --> E[SQLite数据库]
+```
+
+### AI查询处理详细流程
+
+```mermaid
+graph TD
+    A[用户查询] --> B[ai_chat_routes.py]
+    B --> C[query_service.py]
+    C --> D{分析查询意图}
+    D -->|数据查询| E[sql_service.py]
+    D -->|知识问答| F[knowledge_base_service.py]
+    E --> G[database.py]
+    G --> H[数据处理]
+    F --> I[文本处理]
+    H --> J[chart_service.py]
+    I --> J
+    J --> K[生成分析结果]
+    K --> L[返回前端渲染]
+```
+
+### 系统内部调用关系
+
+1. **应用初始化流程**
+   - `run.py` 调用 `app/__init__.py` 中的 `create_app()` 函数
+   - 应用工厂加载配置、初始化扩展、注册蓝图和错误处理器
+   - 初始化数据库并启动应用服务器
+
+2. **用户认证流程**
+   - `auth_routes.py` 处理登录/注册请求
+   - 调用 `auth_service.py` 验证凭据和管理会话
+   - 使用 `security.py` 中的安全工具处理密码和令牌
+
+3. **AI聊天交互流程**
+   - `ai_chat_routes.py` 接收用户查询
+   - 调用 `query_service.py` 处理查询
+   - 根据查询类型调用 `sql_service.py` 或 `knowledge_base_service.py`
+   - 结果通过 `chart_service.py` 生成可视化
+   - 最终响应由 LLM 通过 `llm_service.py` 生成
+
+4. **数据分析流程**
+   - `analytics_routes.py` 处理分析请求
+   - 调用 `data_analysis.py` 中的分析工具
+   - 结果通过 `chart.py` 生成图表
+   - 报告通过 `report_generator.py` 生成
 
 ## 🔄 数据流程
 
@@ -436,5 +545,119 @@ A: 常见原因及解决方案：
 ---
 
 <p align="center">Copyright © 2023 MedicalMan Team</p>
+
+## 💡 大模型集成架构
+
+MedicalMan系统采用了模块化的大模型集成架构，通过多层封装确保系统稳定性和可扩展性。
+
+### 大模型服务层次结构
+
+```mermaid
+graph TD
+    A[用户查询] --> B[AI聊天接口层]
+    B --> C[query_service.py]
+    C --> D[base_llm_service.py 基础LLM服务]
+    D --> E[llm_service.py 模型调用]
+    D --> F[chart_service.py 图表生成]
+    D --> G[text_analysis_service.py 文本分析]
+    E --> H[prompts/*.py 提示词模板]
+    H --> I[LLM API]
+```
+
+### 技术亮点
+
+1. **模块化提示词管理**
+   - 提示词模板分类存储在`app/prompts/`目录
+   - 支持不同场景的专业提示词设计
+   - 便于迭代优化和A/B测试
+
+2. **多模型适配器**
+   - 通过`base_llm_service.py`提供统一接口
+   - 支持多种大模型API接入
+   - 可根据任务特点选择不同模型
+
+3. **错误处理与修复机制**
+   - JSON响应自动修复
+   - SQL生成纠错
+   - 会话上下文管理
+
+4. **知识增强架构**
+   - 向量数据库集成
+   - 医疗专业知识库
+   - 本地知识检索系统
+
+## 🔁 优化策略与设计理念
+
+MedicalMan系统的设计遵循以下核心理念和优化策略：
+
+### 系统设计原则
+
+1. **模块化设计**
+   - 高内聚低耦合的组件架构
+   - 清晰的责任分离
+   - 便于功能扩展和维护
+
+2. **数据驱动设计**
+   - 以医疗数据分析为核心
+   - 提供多维度数据解读
+   - 支持数据可视化决策支持
+
+3. **用户体验优先**
+   - 直观的界面设计
+   - 自然语言交互
+   - 专业报告自动生成
+
+### 性能优化策略
+
+1. **查询优化**
+   - 数据库索引优化
+   - SQL查询缓存
+   - 大数据集分页处理
+
+2. **模型调用优化**
+   - 结果缓存机制
+   - 批量处理请求
+   - 异步非阻塞调用
+
+3. **资源使用优化**
+   - 延迟加载机制
+   - 定时清理临时文件
+   - 内存使用监控
+
+### 安全设计策略
+
+1. **数据安全**
+   - 敏感数据加密存储
+   - 访问权限精细控制
+   - 操作日志完整记录
+
+2. **API安全**
+   - JWT认证
+   - 请求限流保护
+   - CSRF防护
+
+3. **模型安全**
+   - 提示词安全设计
+   - 输出内容过滤
+   - 异常响应处理
+
+## 🚀 未来规划
+
+MedicalMan系统计划在以下方向持续优化和扩展：
+
+1. **功能扩展**
+   - 引入更多医疗专业模型
+   - 支持更复杂的医疗数据分析
+   - 增加医疗影像分析能力
+
+2. **技术升级**
+   - 升级向量数据库架构
+   - 引入更先进的大语言模型
+   - 优化图表生成算法
+
+3. **集成拓展**
+   - 对接医院HIS系统
+   - 支持更多医疗数据标准
+   - 提供移动端应用
 
 ## 💻 技术架构

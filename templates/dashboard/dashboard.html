@@ -196,6 +196,7 @@
 {% endblock %}
     
 {% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
     <script>
 /**
  * 仪表盘模块 - 负责仪表盘页面的数据加载、图表渲染和交互逻辑
@@ -727,18 +728,81 @@ const Dashboard = (function() {
     
     // 导出仪表盘报告
     function exportDashboard() {
-        Utils.dom.showNotification('正在生成报告...', 'info');
+        // 获取日期范围
+        const dateRange = document.getElementById('date-range').value;
         
         // 构建请求参数
         const params = {
-            start_date: Utils.date.formatDate(startDate),
-            end_date: Utils.date.formatDate(endDate),
-            date_range: currentDateRange,
+            date_range: dateRange,
             format: 'pdf'
         };
         
-        // 触发文件下载
-        window.location.href = `/api/dashboard/export?${new URLSearchParams(params)}`;
+        // 如果是自定义日期范围，添加起止日期参数
+        if (dateRange === 'custom') {
+            params.start_date = document.getElementById('start-date').value;
+            params.end_date = document.getElementById('end-date').value;
+        }
+        
+        // 构建导出URL
+        const exportUrl = `/api/dashboard/export_dashboard?${new URLSearchParams(params)}`;
+        
+        // 创建XMLHttpRequest对象
+        const xhr = new XMLHttpRequest();
+        
+        // 设置请求方法和URL
+        xhr.open('GET', exportUrl, true);
+        
+        // 设置响应类型为blob
+        xhr.responseType = 'blob';
+        
+        // 设置请求完成回调
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // 检查响应类型
+                const contentType = xhr.getResponseHeader('Content-Type');
+                const contentDisposition = xhr.getResponseHeader('Content-Disposition');
+                let filename = 'dashboard_report.pdf';
+                
+                // 从Content-Disposition中提取文件名
+                if (contentDisposition) {
+                    const matches = contentDisposition.match(/filename="(.+?)"/i);
+                    if (matches && matches.length > 1) {
+                        filename = matches[1];
+                    }
+                }
+                
+                // 创建Blob对象
+                const blob = new Blob([xhr.response], { type: contentType });
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                
+                // 触发下载
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 显示成功提示
+                showToast('报告导出成功', 'success');
+            } else {
+                // 检查是否为401未授权错误
+                if (xhr.status === 401) {
+                    showToast('请先登录再导出报告', 'warning');
+                } else {
+                    showToast('报告导出失败，请稍后重试', 'error');
+                }
+            }
+        };
+        
+        // 设置错误回调
+        xhr.onerror = function() {
+            showToast('网络错误，导出失败', 'error');
+        };
+        
+        // 发送请求
+        xhr.send();
     }
     
     // 显示加载状态

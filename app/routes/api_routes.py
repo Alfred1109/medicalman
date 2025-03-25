@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 import json
 from app.services.llm_service import LLMServiceFactory
 from app.routes.auth_routes import api_login_required
+from app.utils.database import connect_db, execute_query
 
 # 创建蓝图
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -37,7 +38,7 @@ def analyze():
         explanation = sql_result.get('explanation')
         
         # 执行SQL查询
-        from app.models.database import Database
+        # from app.models.database import Database
         results = Database.execute_query(sql_query)
         
         if results is None:
@@ -107,8 +108,6 @@ def get_departments():
     """获取所有科室"""
     try:
         # 引入db工具函数
-        from app.utils.db import connect_db
-        
         conn = connect_db()
         cursor = conn.cursor()
         
@@ -128,8 +127,6 @@ def get_specialties():
     """获取所有专科"""
     try:
         # 引入db工具函数
-        from app.utils.db import connect_db
-        
         conn = connect_db()
         cursor = conn.cursor()
         
@@ -154,8 +151,6 @@ def get_specialties_by_department():
             return jsonify({'error': '科室参数为空'}), 400
             
         # 引入db工具函数
-        from app.utils.db import connect_db
-        
         conn = connect_db()
         cursor = conn.cursor()
         
@@ -167,4 +162,28 @@ def get_specialties_by_department():
         
         return jsonify(specialties)
     except Exception as e:
-        return jsonify({'error': f'获取科室专科列表失败: {str(e)}'}), 500 
+        return jsonify({'error': f'获取科室专科列表失败: {str(e)}'}), 500
+
+@api_bp.route('/execute-sql', methods=['POST'])
+@api_login_required
+def execute_sql():
+    """执行SQL查询接口"""
+    # 获取SQL语句
+    data = request.get_json()
+    sql_query = data.get('sql', '').strip()
+    
+    if not sql_query:
+        return jsonify({'error': 'SQL查询不能为空', 'code': 400}), 400
+    
+    try:
+        # 执行SQL查询
+        # from app.models.database import Database
+        results = execute_query(sql_query)
+        
+        # 返回结果
+        return jsonify({
+            'success': True,
+            'data': results
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'code': 500}), 500 

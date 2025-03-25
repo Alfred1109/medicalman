@@ -8,8 +8,8 @@ import pandas as pd
 import traceback
 
 from app.utils.data_analysis import DataAnalyzer, DataVisualizer, generate_plotly_chart_for_sql
-from app.models.database import Database
 from app.routes.auth_routes import login_required, api_login_required
+from app.utils.database import get_outpatient_data, get_completion_rate
 
 # 创建蓝图
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
@@ -235,9 +235,6 @@ def get_outpatient_trends():
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         
-        # 引入db工具函数
-        from app.utils.db import get_outpatient_data
-        
         # 获取门诊量数据
         df = get_outpatient_data(
             department=department,
@@ -292,9 +289,6 @@ def get_completion_rate():
         year = data.get('year')
         month = data.get('month')
         
-        # 引入db工具函数
-        from app.utils.db import get_completion_rate
-        
         # 获取目标完成率数据
         df = get_completion_rate(year=year, month=month)
         
@@ -345,9 +339,6 @@ def get_department_comparison():
             
         start_date = data.get('start_date')
         end_date = data.get('end_date')
-        
-        # 引入db工具函数
-        from app.utils.db import get_outpatient_data
         
         # 获取门诊量数据
         df = get_outpatient_data(
