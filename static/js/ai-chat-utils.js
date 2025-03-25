@@ -331,111 +331,185 @@ function loadKnowledgeSettings() {
 
 // 导出聊天记录为PDF报告
 function exportChatReport(title) {
-    console.log('准备导出聊天记录');
+    console.log('开始导出聊天记录:', title);
     
     // 获取所有聊天消息
     const chatMessages = document.querySelectorAll('.chat-message');
     if (!chatMessages || chatMessages.length === 0) {
-        console.error('没有可导出的聊天内容');
-        showToast('没有可导出的聊天内容', 'error');
+        console.error('没有聊天记录可导出');
+        alert('没有聊天记录可导出');
         return;
     }
     
-    // 构建聊天历史数据
-    const chatHistory = [];
-    chatMessages.forEach(messageElem => {
-        // 确定消息类型
-        const isAI = messageElem.querySelector('.chat-avatar.ai') !== null;
-        const role = isAI ? 'ai' : 'user';
+    try {
+        // 构建聊天记录数组
+        const chatHistory = [];
+        let chartIndex = 0;
         
-        // 获取消息内容
-        let content = '';
-        const contentElem = messageElem.querySelector('.chat-bubble > div:first-child');
-        if (contentElem) {
-            // 如果是AI消息，可能包含markdown或图表
-            if (isAI) {
-                const markdownElem = contentElem.querySelector('.markdown-body');
-                if (markdownElem) {
-                    content = markdownElem.innerHTML;
-                } else {
-                    content = contentElem.innerHTML;
-                }
-            } else {
-                content = contentElem.textContent;
-            }
-        }
-        
-        // 获取时间
-        let time = '';
-        const timeElem = messageElem.querySelector('.chat-time');
-        if (timeElem) {
-            time = timeElem.textContent;
-        }
-        
-        // 获取图表信息
-        const charts = [];
-        const chartElems = messageElem.querySelectorAll('.chart-container');
-        chartElems.forEach(chartElem => {
-            const titleElem = chartElem.querySelector('.chart-title');
-            const title = titleElem ? titleElem.textContent : '图表';
+        chatMessages.forEach(msg => {
+            const role = msg.classList.contains('user') ? 'user' : 'ai';
+            const time = msg.querySelector('.chat-time')?.textContent || '';
             
-            // 目前无法导出图表图像，只记录图表标题
-            charts.push({
-                title: title
-            });
+            // 获取消息内容
+            let content = '';
+            const contentEl = msg.querySelector('.chat-bubble > div:first-child');
+            if (contentEl) {
+                // 检查是否是markdown内容
+                const markdownEl = contentEl.querySelector('.markdown-body');
+                if (markdownEl) {
+                    content = markdownEl.innerHTML;
+                } else {
+                    content = contentEl.innerHTML;
+                }
+            }
+            
+            // 创建消息对象
+            const messageObj = {
+                role: role,
+                content: content,
+                content_type: role === 'ai' ? 'markdown' : 'text',
+                time: time
+            };
+            
+            // 如果是AI消息，检查是否有图表
+            if (role === 'ai') {
+                const chartElements = msg.querySelectorAll('.chart-container');
+                if (chartElements && chartElements.length > 0) {
+                    const charts = [];
+                    
+                    chartElements.forEach(chartEl => {
+                        const chartTitle = chartEl.querySelector('.chart-title')?.textContent || `图表 ${++chartIndex}`;
+                        const chartDiv = chartEl.querySelector('.chart-item');
+                        
+                        // 如果有图表div，尝试获取其图像
+                        if (chartDiv) {
+                            try {
+                                // 尝试将图表转换为图像
+                                const chart = echarts.getInstanceByDom(chartDiv);
+                                if (chart) {
+                                    charts.push({
+                                        title: chartTitle,
+                                        image: chart.getDataURL()
+                                    });
+                                }
+                            } catch (e) {
+                                console.error('获取图表图像失败:', e);
+                            }
+                        }
+                    });
+                    
+                    if (charts.length > 0) {
+                        messageObj.charts = charts;
+                    }
+                }
+                
+                // 检查是否有表格数据
+                const tableElements = msg.querySelectorAll('.table-container');
+                if (tableElements && tableElements.length > 0) {
+                    const tables = [];
+                    
+                    tableElements.forEach(tableEl => {
+                        const table = tableEl.querySelector('.data-table');
+                        const tableTitle = tableEl.querySelector('.table-title')?.textContent || '';
+                        const tableDescription = tableEl.querySelector('.table-description')?.textContent || '';
+                        
+                        // 如果找到表格，收集其数据
+                        if (table) {
+                            const tableData = {
+                                title: tableTitle,
+                                description: tableDescription,
+                                type: table.classList.contains('summary') ? 'summary' : 'detail',
+                                headers: [],
+                                rows: []
+                            };
+                            
+                            // 获取表头
+                            const headerCells = table.querySelectorAll('thead th');
+                            headerCells.forEach(cell => {
+                                tableData.headers.push(cell.textContent);
+                            });
+                            
+                            // 获取表格行数据
+                            const rows = table.querySelectorAll('tbody tr');
+                            rows.forEach(row => {
+                                const rowData = [];
+                                const cells = row.querySelectorAll('td');
+                                cells.forEach(cell => {
+                                    rowData.push(cell.textContent);
+                                });
+                                tableData.rows.push(rowData);
+                            });
+                            
+                            tables.push(tableData);
+                        }
+                    });
+                    
+                    if (tables.length > 0) {
+                        messageObj.tables = tables;
+                    }
+                }
+            }
+            
+            // 添加消息到历史记录
+            chatHistory.push(messageObj);
         });
         
-        // 添加到聊天历史
-        chatHistory.push({
-            role: role,
-            content: content,
-            content_type: isAI ? 'markdown' : 'text',
-            time: time,
-            charts: charts.length > 0 ? charts : null
-        });
-    });
-    
-    // 默认标题
-    if (!title) {
-        title = '智能问答记录 - ' + new Date().toLocaleDateString();
-    }
-    
-    // 显示加载提示
-    showToast('正在生成报告，请稍候...', 'info');
-    
-    // 请求生成报告
-    fetch('/chat/export-report', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            chat_history: chatHistory,
-            title: title
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`服务器响应错误: ${response.status}`);
+        // 如果没有设置标题，使用默认标题
+        if (!title || title.trim() === '') {
+            title = '智能医疗问答记录';
         }
-        return response.blob();
-    })
-    .then(blob => {
-        // 创建下载链接
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `chat_report_${new Date().getTime()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        showToast('报告生成成功', 'success');
-    })
-    .catch(error => {
-        console.error('导出报告失败:', error);
-        showToast('导出报告失败: ' + error.message, 'error');
-    });
+        
+        // 显示导出中提示
+        showToast('正在生成PDF报告，请稍候...', 'info');
+        
+        // 发送请求到后端生成PDF
+        fetch('/chat/export-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_history: chatHistory,
+                title: title
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`服务器响应错误: ${response.status}`);
+            }
+            
+            // 获取文件名
+            const filename = response.headers.get('Content-Disposition')
+                ? response.headers.get('Content-Disposition').split('filename=')[1]
+                : 'chat_report.pdf';
+            
+            return response.blob().then(blob => ({ blob, filename }));
+        })
+        .then(({ blob, filename }) => {
+            // 创建下载链接
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            // 显示成功提示
+            showToast('PDF报告已生成并开始下载', 'success');
+        })
+        .catch(error => {
+            console.error('导出报告失败:', error);
+            showToast(`导出失败: ${error.message}`, 'error');
+        });
+    } catch (error) {
+        console.error('准备导出数据时出错:', error);
+        showToast(`导出准备失败: ${error.message}`, 'error');
+    }
 }
 
 // 显示提示消息
@@ -464,4 +538,120 @@ function showToast(message, type = 'info') {
             document.body.removeChild(toast);
         }, 300);
     }, 3000);
+}
+
+// 向AI消息添加表格数据
+function addTableToAIMessage(messageElement, tableData) {
+    console.log('添加表格数据到AI消息:', tableData);
+    
+    if (!messageElement || !tableData) {
+        console.error('无法添加表格：消息元素或表格数据为空');
+        return;
+    }
+    
+    try {
+        const contentDiv = messageElement.querySelector('.chat-content .markdown-body');
+        if (!contentDiv) {
+            console.error('未找到Markdown内容区域');
+            return;
+        }
+        
+        // 为表格创建容器
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        
+        // 添加表格标题
+        if (tableData.title) {
+            const titleElement = document.createElement('div');
+            titleElement.className = 'table-title';
+            titleElement.textContent = tableData.title;
+            tableContainer.appendChild(titleElement);
+        }
+        
+        // 创建表格元素
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        
+        // 创建表头
+        if (tableData.headers && tableData.headers.length > 0) {
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            tableData.headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+        }
+        
+        // 创建表格内容
+        if (tableData.rows && tableData.rows.length > 0) {
+            const tbody = document.createElement('tbody');
+            
+            tableData.rows.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            table.appendChild(tbody);
+        }
+        
+        // 添加表格描述（如果有）
+        if (tableData.description) {
+            const descElement = document.createElement('div');
+            descElement.className = 'table-description';
+            descElement.textContent = tableData.description;
+            tableContainer.appendChild(descElement);
+        }
+        
+        // 将表格添加到容器
+        tableContainer.appendChild(table);
+        
+        // 将表格容器添加到内容区域
+        contentDiv.appendChild(tableContainer);
+        
+        console.log('表格已添加到消息中');
+    } catch (error) {
+        console.error('添加表格时出错:', error);
+    }
+}
+
+// 处理AI响应中的表格数据
+function processAIResponseTables(response, messageElement) {
+    console.log('处理AI响应中的表格数据');
+    
+    // 检查是否有表格数据
+    if (response && response.tables && Array.isArray(response.tables) && response.tables.length > 0) {
+        console.log(`找到 ${response.tables.length} 个表格数据`);
+        
+        // 为每个表格创建HTML表格并添加到消息中
+        response.tables.forEach(tableData => {
+            addTableToAIMessage(messageElement, tableData);
+        });
+        
+        return true;
+    } else if (response && response.structured_result && response.structured_result.tables && 
+              Array.isArray(response.structured_result.tables) && response.structured_result.tables.length > 0) {
+        console.log(`在structured_result中找到 ${response.structured_result.tables.length} 个表格数据`);
+        
+        // 为每个表格创建HTML表格并添加到消息中
+        response.structured_result.tables.forEach(tableData => {
+            addTableToAIMessage(messageElement, tableData);
+        });
+        
+        return true;
+    }
+    
+    console.log('未找到表格数据');
+    return false;
 } 

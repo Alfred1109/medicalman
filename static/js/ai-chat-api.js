@@ -39,7 +39,12 @@ function handleResponse(data, responseType) {
     if (!thinkingBubble) {
         console.error('未找到正在思考的气泡，创建新的消息');
         // 如果没有找到思考气泡，创建一个新的消息
-        addAIMessage(responseMessage);
+        const newMessageElement = addAIMessage(responseMessage);
+        
+        // 处理表格数据（如果有）
+        if (newMessageElement) {
+            processAIResponseTables(data, newMessageElement.closest('.chat-message'));
+        }
         return;
     }
     
@@ -113,6 +118,12 @@ function handleResponse(data, responseType) {
         }
         
         console.log('AI消息内容已更新');
+        
+        // 处理表格数据（如果有）
+        const messageElement = thinkingBubble.closest('.chat-message');
+        if (messageElement) {
+            processAIResponseTables(data, messageElement);
+        }
         
         // 处理图表数据
         if (data && data.charts && Array.isArray(data.charts) && data.charts.length > 0) {

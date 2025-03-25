@@ -172,6 +172,53 @@
             border-left: 3px solid #ffd600;
             margin: 10px 0;
         }
+        /* 表格样式 */
+        .table-container {
+            margin: 15px 0;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            page-break-inside: avoid;
+        }
+        .table-title {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 12px;
+            background-color: #f1f8ff;
+            border-bottom: 1px solid #ddd;
+            color: #1976d2;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            font-size: 12px;
+        }
+        .data-table thead th {
+            background-color: #f7f9fc;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .data-table td {
+            padding: 6px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table tbody tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+        .table-description {
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #666;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eee;
+            font-style: italic;
+        }
+        .data-table.summary thead th {
+            background-color: #edf7ed;
+        }
         @page {
             size: A4;
             margin: 2cm;
@@ -230,6 +277,42 @@
                         <div class="chart-title">{{ chart.title }}</div>
                         {% if chart.image %}
                         <img class="chart-image" src="data:image/png;base64,{{ chart.image }}" alt="{{ chart.title }}">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if message.tables %}
+                    {% for table in message.tables %}
+                    <div class="table-container">
+                        {% if table.title %}
+                        <div class="table-title">{{ table.title }}</div>
+                        {% endif %}
+                        
+                        <table class="data-table {% if table.type == 'summary' %}summary{% endif %}">
+                            {% if table.headers %}
+                            <thead>
+                                <tr>
+                                    {% for header in table.headers %}
+                                    <th>{{ header }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            {% endif %}
+                            
+                            <tbody>
+                                {% for row in table.rows %}
+                                <tr>
+                                    {% for cell in row %}
+                                    <td>{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        {% if table.description %}
+                        <div class="table-description">{{ table.description }}</div>
                         {% endif %}
                     </div>
                     {% endfor %}

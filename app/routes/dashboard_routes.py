@@ -13,7 +13,7 @@ from app.utils.data_helpers import date_range_to_dates
 from app.utils.decorators import api_login_required
 
 # 创建蓝图
-dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
+dashboard_bp = Blueprint('dashboard_api', __name__, url_prefix='/api/dashboard')
 
 def get_dashboard_data(start_date=None, end_date=None, date_range='week'):
     """

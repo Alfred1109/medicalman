@@ -220,6 +220,36 @@ def export_chat_report():
         # 导入报告生成工具
         from app.utils.report_generator import ReportGenerator
         
+        # 处理每条消息中的表格数据，确保它们能在报告中正确显示
+        for msg in chat_history:
+            # 检查并处理表格数据
+            if msg.get('role') == 'ai' and msg.get('tables') and isinstance(msg['tables'], list):
+                current_app.logger.info(f"处理AI消息中的表格数据: {len(msg['tables'])}个表格")
+                
+                # 确保表格数据格式正确
+                for table in msg['tables']:
+                    if not isinstance(table, dict):
+                        continue
+                        
+                    # 确保表格有标题
+                    if 'title' not in table or not table['title']:
+                        table['title'] = '数据表格'
+                        
+                    # 确保表格类型正确
+                    if 'type' not in table or table['type'] not in ['detail', 'summary']:
+                        table['type'] = 'detail'
+                        
+                    # 确保有表头和行数据
+                    if 'headers' not in table or not isinstance(table['headers'], list):
+                        table['headers'] = []
+                        
+                    if 'rows' not in table or not isinstance(table['rows'], list):
+                        table['rows'] = []
+            else:
+                # 如果没有表格数据，确保表格字段存在但为空列表
+                if msg.get('role') == 'ai' and ('tables' not in msg or msg['tables'] is None):
+                    msg['tables'] = []
+        
         # 生成PDF报告
         context = {
             'title': title,
