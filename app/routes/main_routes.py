@@ -1,7 +1,7 @@
 """
 主路由模块 - 处理网站主要页面路由
 """
-from flask import Blueprint, render_template, redirect, url_for, current_app, jsonify, session, request
+from flask import Blueprint, render_template, redirect, url_for, current_app, jsonify, session, request, flash
 import sqlite3
 import datetime
 from app.routes.auth_routes import login_required, api_login_required

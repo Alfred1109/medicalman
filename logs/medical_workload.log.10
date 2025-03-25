@@ -1,96 +1,68 @@
-2025-03-25 14:34:13,607 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 14:34:13,688 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 14:34:18,467 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 14:34:18,467 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 14:34:18,531 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 14:34:18,606 INFO: Locating template 'errors/404.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/errors/404.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:36:51,466 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:36:51,466 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:36:51,546 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:37:05,389 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:37:05,390 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:37:05,600 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:37:10,592 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:37:10,593 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:37:10,657 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:37:56,348 INFO: 为登录页生成新验证码: ARBX [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:174]
-2025-03-25 17:37:56,352 INFO: Locating template 'auth/login.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/auth/login.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:37:57,240 INFO: Locating template 'errors/404.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/errors/404.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:39:48,232 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:39:48,233 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:39:48,295 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:39:53,951 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:39:53,952 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:39:54,014 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:40:00,320 INFO: Locating template 'auth/login.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/auth/login.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:43:39,469 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:43:39,470 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:43:39,528 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:43:45,309 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:43:45,309 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:43:45,398 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:43:45,489 INFO: Locating template 'auth/login.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/auth/login.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:43:45,517 INFO: 生成新的验证码: KFZR [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:263]
-2025-03-25 17:43:45,578 INFO: 生成新的验证码: 2EO5 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:263]
-2025-03-25 17:43:47,242 INFO: 生成新的验证码: 15ZG [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:263]
-2025-03-25 17:43:47,261 INFO: 生成新的验证码: OWFK [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:263]
-2025-03-25 17:43:56,105 INFO: 生成新的验证码: RQ7Q [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:263]
-2025-03-25 17:45:43,285 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:45:43,285 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:45:43,342 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:45:47,695 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:45:47,695 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:45:47,749 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:45:58,749 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:45:58,750 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:45:58,828 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:45:58,917 INFO: Locating template 'auth/login.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/auth/login.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 17:45:58,948 INFO: 生成新的验证码: X4IZ [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:254]
-2025-03-25 17:45:59,001 INFO: 生成新的验证码: 7FW6 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:254]
-2025-03-25 17:46:08,757 INFO: 生成新的验证码: 2RJL [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/auth_routes.py:254]
-2025-03-25 17:47:17,709 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
-2025-03-25 17:47:17,710 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:91]
-2025-03-25 17:47:17,782 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:93]
-2025-03-25 17:47:22,197 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:157]
+2025-03-25 18:52:39,397 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 18:52:39,404 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 18:57:33,302 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 18:57:33,302 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 18:57:33,304 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 18:58:53,298 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 18:58:53,299 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 18:58:53,300 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 18:58:57,620 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 18:58:57,620 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 18:58:57,621 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:00:58,449 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:00:58,450 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:00:58,453 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:01:04,432 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:01:04,432 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:01:04,433 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:01:14,094 WARNING: 认证活动: {"timestamp": "2025-03-25 19:01:14", "user_id": null, "action": "login", "status": "failed"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:245]
+2025-03-25 19:02:31,068 WARNING: 认证活动: {"timestamp": "2025-03-25 19:02:31", "user_id": null, "action": "login", "status": "failed"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:245]
+2025-03-25 19:03:40,131 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:03:40,131 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:03:40,133 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:03:49,801 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:03:49,801 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:03:49,803 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:03:55,022 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:03:55,022 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:03:55,028 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:03:57,171 INFO: 认证活动: {"timestamp": "2025-03-25 19:03:57", "user_id": 1, "action": "login", "status": "success"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:243]
+2025-03-25 19:05:31,433 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:05:31,433 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:05:31,434 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:05:35,802 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:05:35,802 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:05:35,803 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:07:48,353 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:07:48,353 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:07:48,355 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:07:53,924 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:07:53,924 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:07:53,925 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:10:28,341 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:10:28,342 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:10:28,347 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:10:33,760 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:10:33,762 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:10:33,763 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:14:59,422 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:14:59,422 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:14:59,425 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:16:43,422 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:16:43,423 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:16:43,426 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:16:55,163 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:16:55,164 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:16:55,165 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:17:00,448 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:17:00,449 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:17:00,450 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:21:06,392 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:21:06,392 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:21:06,394 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:21:10,786 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:168]
+2025-03-25 19:21:10,786 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:98]
+2025-03-25 19:21:10,788 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:100]
+2025-03-25 19:38:31,020 ERROR: 获取仪表盘数据时出错: '_GeneratorContextManager' object has no attribute 'cursor' [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/dashboard_routes.py:481]
+2025-03-25 19:38:33,815 ERROR: 获取仪表盘数据时出错: '_GeneratorContextManager' object has no attribute 'cursor' [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/dashboard_routes.py:481]
+2025-03-25 19:38:39,566 ERROR: 获取仪表盘数据时出错: '_GeneratorContextManager' object has no attribute 'cursor' [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/dashboard_routes.py:481]

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API请求测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px 10px 10px 0;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            min-height: 100px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>仪表盘API请求测试</h1>
+    <div>
+        <button id="getCSRFButton">1. 获取CSRF令牌</button>
+        <button id="testButton" disabled>2. 测试仪表盘API</button>
+        <button id="testDebugButton" disabled>3. 测试调试接口</button>
+    </div>
+    <div id="result">结果将显示在这里...</div>
+
+    <script>
+        // 存储CSRF令牌
+        let csrfToken = '';
+        
+        // 获取CSRF令牌
+        document.getElementById('getCSRFButton').addEventListener('click', async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在获取CSRF令牌...';
+            
+            try {
+                // 发送请求获取包含CSRF令牌的页面
+                const response = await fetch('/');
+                const html = await response.text();
+                
+                // 解析HTML中的CSRF令牌
+                const match = html.match(/<meta name="csrf-token" content="([^"]+)"/);
+                if (match && match[1]) {
+                    csrfToken = match[1];
+                    resultDiv.innerHTML = `成功获取CSRF令牌: ${csrfToken.substring(0, 10)}...`;
+                    
+                    // 启用测试按钮
+                    document.getElementById('testButton').disabled = false;
+                    document.getElementById('testDebugButton').disabled = false;
+                } else {
+                    resultDiv.innerHTML = '<span class="error">未找到CSRF令牌</span>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">获取CSRF令牌时出错: ${error.message}</span>`;
+                console.error('获取CSRF令牌错误:', error);
+            }
+        });
+
+        document.getElementById('testButton').addEventListener('click', async function() {
+            if (!csrfToken) {
+                document.getElementById('result').innerHTML = '<span class="error">请先获取CSRF令牌</span>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在发送请求...';
+            
+            try {
+                // 测试仪表盘请求
+                const response = await fetch('/api/dashboard/metrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        date_range: 'week',
+                        start_date: null,
+                        end_date: null
+                    })
+                });
+                
+                // 获取响应状态
+                resultDiv.innerHTML = `请求状态: ${response.status} ${response.statusText}<br>`;
+                
+                // 获取响应内容
+                const data = await response.text();
+                resultDiv.innerHTML += `响应内容: <pre>${data}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">发生错误: ${error.message}</span>`;
+                console.error('API请求错误:', error);
+            }
+        });
+
+        document.getElementById('testDebugButton').addEventListener('click', async function() {
+            if (!csrfToken) {
+                document.getElementById('result').innerHTML = '<span class="error">请先获取CSRF令牌</span>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在发送调试请求...';
+            
+            try {
+                // 测试调试接口
+                const response = await fetch('/api/dashboard/debug_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        test: 'debug_info',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                // 获取响应状态
+                resultDiv.innerHTML = `调试请求状态: ${response.status} ${response.statusText}<br>`;
+                
+                // 获取响应内容
+                const data = await response.json();
+                resultDiv.textContent += `调试响应内容: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">发生错误: ${error.message}</span>`;
+                console.error('调试API请求错误:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

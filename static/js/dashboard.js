@@ -206,36 +206,36 @@ class DashboardManager {
             console.log('API返回的数据结构:', Object.keys(data));
             
             // 安全地检查并更新统计数据
-            if (data && data.stats) {
-                console.log('stats数据结构:', Object.keys(data.stats));
+            if (data && data.metrics) {
+                console.log('metrics数据结构:', Object.keys(data.metrics));
                 
                 // 确保所有必需的统计数据都存在
-                if (!data.stats.outpatient) {
+                if (!data.metrics.outpatient) {
                     console.warn('缺少outpatient统计数据，创建默认值');
-                    data.stats.outpatient = { value: '0', change: 0 };
+                    data.metrics.outpatient = { count: '0', change: 0 };
                 }
-                if (!data.stats.inpatient) {
+                if (!data.metrics.inpatient) {
                     console.warn('缺少inpatient统计数据，创建默认值');
-                    data.stats.inpatient = { value: '0', change: 0 };
+                    data.metrics.inpatient = { count: '0', change: 0 };
                 }
-                if (!data.stats.revenue) {
+                if (!data.metrics.revenue) {
                     console.warn('缺少revenue统计数据，创建默认值');
-                    data.stats.revenue = { value: '¥0', change: 0 };
+                    data.metrics.revenue = { amount: '¥0', change: 0 };
                 }
-                if (!data.stats.bedUsage) {
+                if (!data.metrics.bedUsage) {
                     console.warn('缺少bedUsage统计数据，创建默认值');
-                    data.stats.bedUsage = { value: '0%', change: 0 };
+                    data.metrics.bedUsage = { rate: '0%', change: 0 };
                 }
                 
-                this.updateStats(data.stats);
+                this.updateStats(data.metrics);
             } else {
                 console.warn('缺少统计数据或格式不正确:', data);
                 // 创建默认的统计数据以避免错误
                 this.updateStats({
-                    outpatient: { value: '0', change: 0 },
-                    inpatient: { value: '0', change: 0 },
-                    revenue: { value: '¥0', change: 0 },
-                    bedUsage: { value: '0%', change: 0 }
+                    outpatient: { count: '0', change: 0 },
+                    inpatient: { count: '0', change: 0 },
+                    revenue: { amount: '¥0', change: 0 },
+                    bedUsage: { rate: '0%', change: 0 }
                 });
             }
             
@@ -281,7 +281,7 @@ class DashboardManager {
             const outpatientChange = document.getElementById('outpatient-change');
             if (outpatientValue) {
                 if (stats.outpatient && typeof stats.outpatient === 'object') {
-                    outpatientValue.textContent = stats.outpatient.value || "0";
+                    outpatientValue.textContent = stats.outpatient.count || "0";
                     if (outpatientChange && typeof stats.outpatient.change !== 'undefined') {
                         const changeValue = parseFloat(stats.outpatient.change) || 0;
                         outpatientChange.innerHTML = `<i class="fas fa-arrow-${changeValue > 0 ? 'up' : 'down'}"></i> ${Math.abs(changeValue)}%`;
@@ -297,7 +297,7 @@ class DashboardManager {
             const inpatientChange = document.getElementById('inpatient-change');
             if (inpatientValue) {
                 if (stats.inpatient && typeof stats.inpatient === 'object') {
-                    inpatientValue.textContent = stats.inpatient.value || "0";
+                    inpatientValue.textContent = stats.inpatient.count || "0";
                     if (inpatientChange && typeof stats.inpatient.change !== 'undefined') {
                         const changeValue = parseFloat(stats.inpatient.change) || 0;
                         inpatientChange.innerHTML = `<i class="fas fa-arrow-${changeValue > 0 ? 'up' : 'down'}"></i> ${Math.abs(changeValue)}%`;
@@ -313,7 +313,7 @@ class DashboardManager {
             const revenueChange = document.getElementById('revenue-change');
             if (revenueValue) {
                 if (stats.revenue && typeof stats.revenue === 'object') {
-                    revenueValue.textContent = stats.revenue.value || "¥0";
+                    revenueValue.textContent = stats.revenue.amount || "¥0";
                     if (revenueChange && typeof stats.revenue.change !== 'undefined') {
                         const changeValue = parseFloat(stats.revenue.change) || 0;
                         revenueChange.innerHTML = `<i class="fas fa-arrow-${changeValue > 0 ? 'up' : 'down'}"></i> ${Math.abs(changeValue)}%`;
@@ -329,7 +329,7 @@ class DashboardManager {
             const bedUsageChange = document.getElementById('bed-usage-change');
             if (bedUsageValue) {
                 if (stats.bedUsage && typeof stats.bedUsage === 'object') {
-                    bedUsageValue.textContent = stats.bedUsage.value || "0%";
+                    bedUsageValue.textContent = stats.bedUsage.rate || "0%";
                     if (bedUsageChange && typeof stats.bedUsage.change !== 'undefined') {
                         const changeValue = parseFloat(stats.bedUsage.change) || 0;
                         bedUsageChange.innerHTML = `<i class="fas fa-arrow-${changeValue > 0 ? 'up' : 'down'}"></i> ${Math.abs(changeValue)}%`;
