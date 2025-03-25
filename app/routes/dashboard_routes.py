@@ -1,7 +1,7 @@
 """
 仪表盘路由模块 - 处理仪表盘相关的路由
 """
-from flask import Blueprint, render_template, request, jsonify, make_response
+from flask import Blueprint, render_template, request, jsonify, make_response, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 import json
@@ -12,6 +12,18 @@ import pandas as pd
 from app.utils.database import execute_query, execute_query_to_dataframe
 from app.utils.utils import date_range_to_dates  # 数据帮助工具已合并到utils.py
 from app.utils.decorators import api_login_required
+from app.utils.report_generator import ReportGenerator
+from app.services.chart_service import ChartService
+
+# 导入仪表盘服务（如果需要Excel导出）
+try:
+    from app.services.dashboard_service import DashboardService
+    dashboard_service = DashboardService()
+except ImportError:
+    class DashboardServiceStub:
+        def export_dashboard_excel(self, data):
+            raise NotImplementedError("DashboardService未实现")
+    dashboard_service = DashboardServiceStub()
 
 # 创建蓝图
 dashboard_bp = Blueprint('dashboard_api', __name__, url_prefix='/api/dashboard')
@@ -277,7 +289,7 @@ def get_alerts(start_date, end_date):
     """获取警报数据"""
     try:
         query = f"""
-        SELECT alert_id, alert_time, alert_type, description, status
+        SELECT id, alert_time, alert_type, description, status
         FROM alerts
         WHERE alert_time BETWEEN '{start_date}' AND '{end_date}'
         ORDER BY alert_time DESC
@@ -311,7 +323,7 @@ def get_alerts(start_date, end_date):
             alert_status = row['status']
             
             alerts.append({
-                'id': row['alert_id'],
+                'id': row['id'],
                 'time': row['alert_time'],
                 'type': alert_type,
                 'typeText': type_map.get(alert_type, alert_type),
