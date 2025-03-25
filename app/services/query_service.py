@@ -350,6 +350,150 @@ def process_query_with_langchain(user_message: str) -> Dict[str, Any]:
         traceback.print_exc()
         return None
 
+def looks_like_database_query(user_message: str) -> bool:
+    """
+    判断用户消息是否像数据库查询
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        布尔值，表示是否是数据库查询
+    """
+    # 数据库查询的关键词和模式
+    db_keywords = [
+        '查询', '统计', '数据库', '表', '记录', '数据', 
+        '多少', '哪些', '列出', '显示', '汇总', '计算',
+        'sql', 'database', 'table', 'select', 'query', 'count',
+        '患者数量', '就诊记录', '门诊量', '住院率', '费用', '收入',
+        '同比', '环比', '趋势', '分布', '排名', '平均'
+    ]
+    
+    # 时间维度关键词，常见于数据库分析
+    time_keywords = ['今天', '昨天', '本周', '上周', '本月', '上月', '今年', '去年', '季度', '年度']
+    
+    # 检查是否包含数据库查询关键词
+    for keyword in db_keywords:
+        if keyword in user_message.lower():
+            return True
+    
+    # 检查是否包含时间维度关键词，并且句式看起来像是请求数据
+    for keyword in time_keywords:
+        if keyword in user_message and any(kw in user_message for kw in ['多少', '统计', '查', '分析']):
+            return True
+    
+    # 检查是否包含特定的数据查询模式
+    data_query_patterns = [
+        r'查.+的.+(数据|情况|统计)',
+        r'(统计|计算).+的.+(数量|比例|金额)',
+        r'(显示|列出).+的.+(记录|数据)',
+        r'(分析|比较).+和.+的(关系|差异)',
+        r'(多少|几个).+在.+',
+        r'按.+(分组|汇总).+的.+'
+    ]
+    
+    for pattern in data_query_patterns:
+        if re.search(pattern, user_message):
+            return True
+    
+    return False
+
+def is_medical_knowledge_query(user_message: str) -> bool:
+    """
+    判断用户消息是否是医学知识查询
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        布尔值，表示是否是医学知识查询
+    """
+    # 医学知识查询的关键词和模式
+    medical_keywords = [
+        '疾病', '症状', '诊断', '治疗', '药物', '手术', '护理', '预防',
+        '病因', '病理', '康复', '并发症', '副作用', '禁忌', '适应症',
+        '预后', '检查', '化验', '医学', '临床', '健康', '患者',
+        '医生', '护士', '医院', '诊所', '指南', '方案'
+    ]
+    
+    # 知识查询的问句模式
+    knowledge_query_patterns = [
+        r'什么是.+',
+        r'.+是什么',
+        r'如何.+',
+        r'怎么.+',
+        r'为什么.+',
+        r'.+的原因',
+        r'.+的症状',
+        r'.+的治疗',
+        r'.+的预防',
+        r'.+的诊断',
+        r'.+的用法',
+        r'.+的区别',
+        r'.+的关系',
+        r'介绍一下.+',
+        r'说明.+'
+    ]
+    
+    # 检查是否包含医学知识关键词
+    for keyword in medical_keywords:
+        if keyword in user_message:
+            return True
+    
+    # 检查是否匹配知识查询模式，并且消息中可能包含医学术语
+    for pattern in knowledge_query_patterns:
+        if re.search(pattern, user_message):
+            # 如果匹配查询模式，检查消息中是否可能包含医学术语
+            # 这是个粗略的检查，实际应用中可能需要更复杂的医学术语识别
+            if any(kw in user_message for kw in ['病', '症', '治', '药', '疼', '疗', '医', '血', '检查', '化验']):
+                return True
+    
+    return False
+
+def is_file_analysis_query(user_message: str) -> bool:
+    """
+    判断用户消息是否是文件分析查询
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        布尔值，表示是否是文件分析查询
+    """
+    # 文件分析查询的关键词和模式
+    file_keywords = [
+        '文件', '报告', '数据', '表格', 'excel', 'csv', '分析',
+        '解读', '导入', '上传', '附件', '文档'
+    ]
+    
+    # 文件操作动词
+    file_actions = [
+        '分析', '解读', '查看', '读取', '处理', '导入', '上传', '理解',
+        '总结', '提取'
+    ]
+    
+    # 检查是否包含文件关键词
+    for keyword in file_keywords:
+        if keyword.lower() in user_message.lower():
+            return True
+    
+    # 检查文件操作模式
+    file_patterns = [
+        r'(分析|解读|查看|处理).*文件',
+        r'(分析|解读|查看|处理).*报告',
+        r'(分析|解读|查看|处理).*数据',
+        r'(分析|解读|查看|处理).*表格',
+        r'(分析|解读|查看|处理).*上传',
+        r'(分析|解读|查看|处理).*excel',
+        r'(分析|解读|查看|处理).*csv'
+    ]
+    
+    for pattern in file_patterns:
+        if re.search(pattern, user_message, re.IGNORECASE):
+            return True
+    
+    return False
+
 # 使用改进后的方法处理用户查询
 def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
     """
@@ -408,4 +552,253 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
             "success": False,
             "message": f"处理查询时出错: {str(e)}",
             "process_time": f"{(datetime.now() - start_time).total_seconds():.2f}秒"
+        }
+
+def process_database_query(user_message: str) -> Dict[str, Any]:
+    """
+    处理数据库查询
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        包含处理结果的字典
+    """
+    try:
+        # 分析用户查询并生成SQL
+        sql_result = analyze_user_query_and_generate_sql(user_message)
+        
+        if not sql_result or 'sql' not in sql_result:
+            return {
+                "success": False,
+                "message": "无法生成有效的SQL查询，请尝试重新表述您的问题。"
+            }
+        
+        sql = sql_result['sql']
+        explanation = sql_result.get('explanation', '未提供解释')
+        
+        # 执行SQL查询
+        try:
+            df = execute_sql_query(sql)
+            
+            if df.empty:
+                return {
+                    "success": True,
+                    "message": "查询执行成功，但未找到符合条件的数据。",
+                    "sql": sql,
+                    "explanation": explanation
+                }
+                
+            # 生成可视化建议
+            visualization = sql_result.get('visualization', None)
+            
+            # 将DataFrame转换为字典列表
+            data_list = df.to_dict(orient='records')
+            
+            # 生成动态图表
+            try:
+                if visualization:
+                    chart_data = generate_dynamic_charts(df, visualization.get('type', 'bar'), 
+                                                         visualization.get('x_axis'), 
+                                                         visualization.get('y_axis'), 
+                                                         visualization.get('series'))
+                else:
+                    # 自动生成图表
+                    chart_data = generate_dynamic_charts(df)
+            except Exception as chart_err:
+                print(f"生成图表时出错: {str(chart_err)}")
+                chart_data = None
+            
+            # 构建结构化结果
+            structured_result = {
+                "data": data_list,
+                "charts": chart_data,
+                "tables": [
+                    {
+                        "type": "detail",
+                        "title": "查询结果数据",
+                        "headers": df.columns.tolist(),
+                        "rows": df.values.tolist(),
+                        "description": "SQL查询的详细结果数据"
+                    }
+                ]
+            }
+            
+            # 处理结果
+            result = {
+                "success": True,
+                "message": "查询执行成功",
+                "sql": sql,
+                "explanation": explanation,
+                "structured_result": structured_result
+            }
+            
+            # 如果有图表数据，直接添加到结果中
+            if chart_data:
+                result['charts'] = chart_data
+                
+            return result
+                
+        except Exception as exec_err:
+            return {
+                "success": False,
+                "message": f"执行SQL查询时出错: {str(exec_err)}",
+                "sql": sql,
+                "explanation": explanation
+            }
+    
+    except Exception as e:
+        print(f"处理数据库查询时出错: {str(e)}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"处理数据库查询时出错: {str(e)}"
+        }
+
+def process_knowledge_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
+    """
+    处理知识库查询
+    
+    参数:
+        user_message: 用户查询消息
+        knowledge_settings: 知识库设置
+        
+    返回:
+        包含处理结果的字典
+    """
+    try:
+        # 获取知识库服务
+        kb_service = LLMServiceFactory.get_knowledge_service()
+        
+        # 使用知识库服务处理查询
+        response = kb_service.query(user_message, knowledge_settings)
+        
+        if not response:
+            return {
+                "success": False,
+                "message": "无法从知识库获取有效回复，请尝试重新表述您的问题。"
+            }
+        
+        # 处理结果
+        return {
+            "success": True,
+            "message": response,
+            "source": "knowledge_base"
+        }
+    
+    except Exception as e:
+        print(f"处理知识库查询时出错: {str(e)}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"处理知识库查询时出错: {str(e)}"
+        }
+
+def process_file_query(user_message: str, settings: Dict = None) -> Dict[str, Any]:
+    """
+    处理文件分析查询
+    
+    参数:
+        user_message: 用户查询消息
+        settings: 文件分析设置
+        
+    返回:
+        包含处理结果的字典
+    """
+    try:
+        # 获取最新的Excel文件
+        file_data = get_latest_excel_file()
+        
+        if not file_data:
+            return {
+                "success": False,
+                "message": "未找到可分析的Excel文件，请先上传文件。"
+            }
+        
+        file_name, df = file_data
+        
+        # 准备文件内容摘要
+        if len(df) > 100:
+            df_sample = df.head(100)  # 只取前100行作为样本
+            content_summary = f"文件包含 {len(df)} 行数据，以下是前100行的样本"
+        else:
+            df_sample = df
+            content_summary = f"文件包含 {len(df)} 行数据"
+        
+        # 将DataFrame转换为JSON格式
+        json_data = df_sample.to_json(orient='records', force_ascii=False)
+        
+        # 使用LLM服务分析文件内容
+        service = LLMServiceFactory.get_base_service()
+        
+        # 构建分析提示
+        analysis_prompt = EXCEL_ANALYSIS_SYSTEM_PROMPT
+        user_prompt = EXCEL_ANALYSIS_USER_PROMPT.format(
+            content=f"{content_summary}\n\n{json_data}",
+            analysis_request=user_message
+        )
+        
+        # 调用LLM分析
+        analysis_result = service.call_api(analysis_prompt, user_prompt)
+        
+        # 处理分析结果
+        return {
+            "success": True,
+            "message": analysis_result,
+            "file_name": file_name,
+            "source": "file_analysis"
+        }
+    
+    except Exception as e:
+        print(f"处理文件分析查询时出错: {str(e)}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"处理文件分析查询时出错: {str(e)}"
+        }
+
+def process_general_query(user_message: str) -> Dict[str, Any]:
+    """
+    处理通用查询
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        包含处理结果的字典
+    """
+    try:
+        # 使用基本服务获取回复
+        service = LLMServiceFactory.get_base_service()
+        
+        # 构建提示
+        system_prompt = RESPONSE_SYSTEM_PROMPT
+        user_prompt = RESPONSE_USER_PROMPT.format(
+            analysis_type="通用",
+            analysis_results="",
+            user_query=user_message
+        )
+        
+        # 调用LLM获取回复
+        response = service.call_api(system_prompt, user_prompt)
+        
+        if not response:
+            return {
+                "success": False,
+                "message": "无法获取有效回复，请尝试重新表述您的问题。"
+            }
+        
+        # 处理结果
+        return {
+            "success": True,
+            "message": response,
+            "source": "general_query"
+        }
+    
+    except Exception as e:
+        print(f"处理通用查询时出错: {str(e)}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"处理通用查询时出错: {str(e)}"
         } 
