@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>医院运营指标智能分析系统 - 登录</title>
     <link rel="stylesheet" href="{{ url_for("static", filename="css/common.css") }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -321,6 +322,8 @@
             <div id="error-message" class="alert alert-error" style="display: none; color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;"></div>
             
             <form id="loginForm">
+                <input type="hidden" id="next" value="{{ next or url_for('dashboard.index') }}">
+                
                 <div class="form-group">
                     <label for="username" class="form-label">用户名</label>
                     <div class="input-group">
@@ -392,6 +395,9 @@
     </div>
     
     <script>
+        // 获取CSRF令牌
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        
         function togglePassword(inputId, toggleId) {
             const passwordInput = document.getElementById(inputId);
             const passwordToggle = document.querySelector(`#${toggleId} i`);
@@ -410,71 +416,105 @@
         // 刷新验证码
         function refreshCaptcha() {
             const captchaImage = document.getElementById('captchaImage');
-            captchaImage.src = '{{ url_for('auth.captcha') }}?' + new Date().getTime();
-            console.log('验证码已刷新');
+            const timestamp = new Date().getTime();
+            captchaImage.src = '/auth/captcha?' + timestamp;
+            document.getElementById('captcha').value = ''; // 清空验证码输入框
         }
         
-        // 页面加载完成后刷新验证码
-        document.addEventListener('DOMContentLoaded', function() {
-            refreshCaptcha();
-        });
+        // 显示错误消息
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            refreshCaptcha(); // 显示错误时刷新验证码
+        }
         
         // 处理表单提交
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // 隐藏之前的错误消息
             const errorMessageElement = document.getElementById('error-message');
             errorMessageElement.style.display = 'none';
             
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const captcha = document.getElementById('captcha').value;
+            const captcha = document.getElementById('captcha').value.trim();
+            const next = document.getElementById('next').value;  // 获取next值
             
-            fetch('{{ url_for('auth.login') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    username: username,
-                    password: password,
-                    captcha: captcha
-                }),
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                console.log('登录响应状态:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('登录响应数据:', data);
+            // 基本验证
+            if (!username) {
+                showError('请输入用户名');
+                return;
+            }
+            if (!password) {
+                showError('请输入密码');
+                return;
+            }
+            if (!captcha) {
+                showError('请输入验证码');
+                return;
+            }
+            
+            // 禁用提交按钮
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '登录中...';
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        captcha: captcha,
+                        next: next
+                    })
+                });
+                
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    throw new Error('服务器返回了非JSON格式的响应');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                }
+                
                 if (data.success) {
-                    // 登录成功，重定向到服务器指定的URL
-                    console.log('重定向到:', data.redirect);
-                    // 使用完整的URL，包括协议和主机名
-                    const currentHost = window.location.protocol + '//' + window.location.host;
-                    const redirectUrl = data.redirect.startsWith('/') 
-                        ? currentHost + data.redirect 
-                        : data.redirect;
-                    console.log('完整重定向URL:', redirectUrl);
+                    // 使用next参数进行重定向，如果没有next参数则重定向到仪表盘
+                    const redirectUrl = data.redirect || next || url_for('dashboard.index');
+                    console.log('重定向到:', redirectUrl);  // 添加日志
                     window.location.href = redirectUrl;
                 } else {
-                    // 登录失败，显示错误消息
-                    errorMessageElement.textContent = data.message || '登录失败，请检查用户名和密码';
-                    errorMessageElement.style.display = 'block';
-                    // 刷新验证码
-                    refreshCaptcha();
+                    showError(data.message || '登录失败');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('登录请求出错:', error);
-                errorMessageElement.textContent = '登录请求出错，请稍后再试';
-                errorMessageElement.style.display = 'block';
-                // 刷新验证码
-                refreshCaptcha();
-            });
+                showError(error.message || '登录请求失败，请稍后重试');
+            } finally {
+                // 恢复提交按钮
+                submitButton.disabled = false;
+                submitButton.textContent = '登录';
+            }
+        });
+        
+        // 页面加载完成后刷新验证码
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCaptcha();
+        });
+        
+        // 每次验证码图片加载完成后，添加日志
+        document.getElementById('captchaImage').addEventListener('load', function() {
+            console.log('验证码图片加载完成');
         });
     </script>
 </body>

@@ -6,6 +6,12 @@ import argparse
 import traceback
 import sys
 from app import create_app
+import logging
+import sqlite3
+
+# 设置日志格式
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # 解析命令行参数
 parser = argparse.ArgumentParser(description='医疗管理系统')
@@ -13,6 +19,26 @@ parser.add_argument('--port', type=int, help='服务端口号', default=None)
 parser.add_argument('--host', type=str, help='服务主机地址', default=None)
 parser.add_argument('--debug', action='store_true', help='是否开启调试模式')
 args = parser.parse_args()
+
+# 打印一些环境信息
+print(f"当前工作目录: {os.getcwd()}")
+print(f"instance 目录是否存在: {os.path.exists('instance')}")
+print(f"instance/medical_workload.db 是否存在: {os.path.exists(os.path.join('instance', 'medical_workload.db'))}")
+
+# 测试数据库连接
+try:
+    db_path = os.path.abspath(os.path.join('instance', 'medical_workload.db'))
+    print(f"数据库完整路径: {db_path}")
+    print(f"数据库文件存在: {os.path.exists(db_path)}")
+    print(f"数据库文件权限: {oct(os.stat(db_path).st_mode)[-3:]}")
+    
+    # 尝试直接连接数据库
+    conn = sqlite3.connect(db_path)
+    print("直接连接数据库成功!")
+    conn.close()
+except Exception as e:
+    print(f"测试数据库连接时出错: {str(e)}")
+    traceback.print_exc()
 
 # 创建应用实例
 try:

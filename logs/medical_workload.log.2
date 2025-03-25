@@ -1,114 +1,61 @@
-2025-03-25 10:07:30,688 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:07:30,691 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:07:30,733 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:07:38,534 INFO: Locating template 'dashboard/dashboard.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/dashboard/dashboard.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:07:38,547 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:07:42,907 ERROR: 系统错误: {"timestamp": "2025-03-25 10:07:42", "message": "数据库连接错误: no such table: surgeries", "error_code": 1001, "error_type": "database_error"} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
-2025-03-25 10:07:42,908 ERROR: 系统错误: {"timestamp": "2025-03-25 10:07:42", "message": "SQL执行错误: no such table: surgeries", "error_code": 1002, "error_type": "database_error", "details": {"query": "\n        SELECT COUNT(*) as total \n        FROM surgeries \n        WHERE surgery_date BETWEEN '2025-03-25' AND '2025-03-26'\n        "}} [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/utils/logger.py:119]
-2025-03-25 10:07:42,951 INFO: Locating template 'reports/dashboard_report.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/reports/dashboard_report.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:11:11,625 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:11:11,626 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:11:11,683 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:11:16,513 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:11:16,513 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:11:16,558 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:13:15,341 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:13:15,342 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:13:15,414 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:13:20,917 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:13:20,918 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:13:20,978 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:13:26,476 INFO: Locating template 'dashboard/dashboard.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/dashboard/dashboard.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:13:26,489 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:13:31,094 INFO: Locating template 'reports/dashboard_report.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/reports/dashboard_report.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:13:41,919 INFO: Locating template 'ai_chat/index.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/ai_chat/index.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:16:33,433 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:16:33,434 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:16:33,501 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:16:38,104 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:16:38,105 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:16:38,163 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
-2025-03-25 10:17:11,233 INFO: Locating template 'ai_chat/index.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/ai_chat/index.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:17:11,247 INFO: Locating template 'base.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/base.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:17:13,613 INFO: Locating template 'errors/404.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/errors/404.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:17:16,605 INFO: Locating template 'dashboard/dashboard.html':
-    1: trying loader of application 'app'
-       class: jinja2.loaders.FileSystemLoader
-       encoding: 'utf-8'
-       followlinks: False
-       searchpath:
-         - /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/../templates
-       -> found ('/Users/lixingdong/项目合集-0319/GIT智能体/medicalman/templates/dashboard/dashboard.html') [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/.venv/lib/python3.12/site-packages/flask/debughelpers.py:178]
-2025-03-25 10:19:18,066 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:117]
-2025-03-25 10:19:18,066 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:56]
-2025-03-25 10:19:18,131 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:58]
+2025-03-25 21:03:29,989 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:03:29,992 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:03:29,994 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:03:30,014 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:03:44,983 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:03:44,983 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:03:44,983 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:03:44,983 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:03:44,983 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:03:44,985 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:03:44,997 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:04:13,062 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:04:13,062 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:04:13,062 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:04:13,062 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:04:13,063 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:04:13,064 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:04:13,075 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:04:16,779 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:04:16,779 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:04:16,779 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:04:16,779 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:04:16,780 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:04:16,781 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:04:16,793 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:05:38,093 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:05:38,093 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:05:38,093 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:05:38,094 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:05:38,094 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:05:38,095 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:05:38,113 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:05:44,892 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:05:44,893 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:05:44,893 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:05:44,893 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:05:44,893 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:05:44,895 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:05:44,913 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:07:04,348 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:07:04,348 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:07:04,349 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:07:04,349 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:07:04,349 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:07:04,350 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:07:04,362 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:07:04,771 INFO: 创建finance_summary表并插入示例数据 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/routes/analytics_routes.py:746]
+2025-03-25 21:09:31,369 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:09:31,370 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:09:31,370 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:09:31,370 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:09:31,370 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:09:31,372 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:09:31,393 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]
+2025-03-25 21:10:12,565 INFO: 医疗工作量系统启动 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:188]
+2025-03-25 21:10:12,566 INFO: 开始初始化数据库... [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:103]
+2025-03-25 21:10:12,566 INFO: 数据库URI: sqlite:////Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:106]
+2025-03-25 21:10:12,566 INFO: 数据库路径: /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/instance/medical_workload.db [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:108]
+2025-03-25 21:10:12,566 INFO: 数据库路径是否存在: True [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:109]
+2025-03-25 21:10:12,568 INFO: 数据库初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:112]
+2025-03-25 21:10:12,581 INFO: 演示数据初始化完成 [in /Users/lixingdong/项目合集-0319/GIT智能体/medicalman/app/__init__.py:118]

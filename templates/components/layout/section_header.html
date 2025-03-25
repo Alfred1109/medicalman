@@ -1,0 +1,18 @@
+{% macro section_header(title, icon='', action_text='', action_url='', action_icon='') %}
+<div class="flex justify-between items-center mb-4">
+    <h3 class="text-lg font-medium text-gray-900">
+        {% if icon %}
+        <i class="fas {{ icon }} mr-2"></i>
+        {% endif %}
+        {{ title }}
+    </h3>
+    {% if action_text and action_url %}
+    <a href="{{ action_url }}" class="text-indigo-600 hover:text-indigo-900">
+        {% if action_icon %}
+        <i class="fas {{ action_icon }} mr-1"></i>
+        {% endif %}
+        {{ action_text }}
+    </a>
+    {% endif %}
+</div>
+{% endmacro %} 

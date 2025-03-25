@@ -2,6 +2,10 @@
 
 {% block title %}仪表盘 - 医疗管理系统{% endblock %}
 
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item active">仪表盘</li>
 {% endblock %}
@@ -60,6 +64,7 @@
                 <div class="stat-change" id="outpatient-change">
                     <i class="fas fa-arrow-up"></i> --
                 </div>
+                <div class="stat-title" style="display:none;">门诊量</div>
             </div>
         </div>
     </div>
@@ -74,6 +79,7 @@
                 <div class="stat-change" id="inpatient-change">
                     <i class="fas fa-arrow-up"></i> --
                 </div>
+                <div class="stat-title" style="display:none;">住院量</div>
             </div>
         </div>
     </div>
@@ -88,6 +94,7 @@
                 <div class="stat-change" id="revenue-change">
                     <i class="fas fa-arrow-up"></i> --
                 </div>
+                <div class="stat-title" style="display:none;">收入</div>
             </div>
         </div>
     </div>
@@ -102,6 +109,7 @@
                 <div class="stat-change" id="bed-usage-change">
                     <i class="fas fa-arrow-down"></i> --
                 </div>
+                <div class="stat-title" style="display:none;">床位使用率</div>
             </div>
         </div>
     </div>
@@ -215,7 +223,14 @@ const Dashboard = (function() {
                 text: '门诊量趋势'
             },
             tooltip: { 
-                trigger: 'axis'
+                trigger: 'axis',
+                formatter: function(params) {
+                    let result = params[0].axisValue + '<br/>';
+                    params.forEach(param => {
+                        result += `${param.seriesName}: ${param.value}<br/>`;
+                    });
+                    return result;
+                }
             },
             legend: { 
                 data: ['门诊量', '同比']
@@ -229,25 +244,37 @@ const Dashboard = (function() {
             xAxis: {
                 type: 'category',
                 boundaryGap: false,
-                data: []
+                data: [],
+                name: '日期'
             },
             yAxis: { 
-                type: 'value'
+                type: 'value',
+                name: '门诊量'
             },
             series: [
                 {
                     name: '门诊量',
                     type: 'line',
                     data: [],
-                    smooth: true
+                    smooth: true,
+                    coordinateSystem: 'cartesian2d',
+                    label: {
+                        show: true,
+                        position: 'top'
+                    }
                 },
                 {
                     name: '同比',
                     type: 'line',
                     data: [],
                     smooth: true,
+                    coordinateSystem: 'cartesian2d',
                     lineStyle: {
                         type: 'dashed'
+                    },
+                    label: {
+                        show: true,
+                        position: 'top'
                     }
                 }
             ]
@@ -264,13 +291,14 @@ const Dashboard = (function() {
                 orient: 'vertical',
                 right: 10,
                 top: 'center',
-                data: ['门诊', '住院', '药房', '检查', '手术', '其他']
+                data: []
             },
             series: [
                 {
                     name: '收入来源',
                     type: 'pie',
                     radius: ['50%', '70%'],
+                    coordinateSystem: null,  // 饼图不需要坐标系统
                     avoidLabelOverlap: false,
                     label: {
                         show: false,
@@ -298,10 +326,17 @@ const Dashboard = (function() {
                 trigger: 'axis',
                 axisPointer: {
                     type: 'shadow'
+                },
+                formatter: function(params) {
+                    let result = params[0].axisValue + '<br/>';
+                    params.forEach(param => {
+                        result += `${param.seriesName}: ${param.value}<br/>`;
+                    });
+                    return result;
                 }
             },
             legend: {
-                data: ['门诊量', '住院量']
+                data: ['门诊量', '住院量', '手术量']
             },
             grid: {
                 left: '3%',
@@ -310,17 +345,20 @@ const Dashboard = (function() {
                 containLabel: true
             },
             xAxis: {
-                type: 'value'
+                type: 'value',
+                name: '数量'
             },
             yAxis: {
                 type: 'category',
-                data: []
+                data: [],
+                name: '科室'
             },
             series: [
                 {
                     name: '门诊量',
                     type: 'bar',
                     stack: 'total',
+                    coordinateSystem: 'cartesian2d',
                     label: {
                         show: true
                     },
@@ -333,6 +371,20 @@ const Dashboard = (function() {
                     name: '住院量',
                     type: 'bar',
                     stack: 'total',
+                    coordinateSystem: 'cartesian2d',
+                    label: {
+                        show: true
+                    },
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: []
+                },
+                {
+                    name: '手术量',
+                    type: 'bar',
+                    stack: 'total',
+                    coordinateSystem: 'cartesian2d',
                     label: {
                         show: true
                     },
@@ -362,15 +414,8 @@ const Dashboard = (function() {
                     name: '患者分布',
                     type: 'pie',
                     radius: '55%',
-                    center: ['40%', '50%'],
-                    data: [],
-                    emphasis: {
-                        itemStyle: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
-                        }
-                    }
+                    coordinateSystem: null,  // 饼图不需要坐标系统
+                    data: []
                 }
             ]
         }
@@ -484,152 +529,148 @@ const Dashboard = (function() {
             date_range: currentDateRange
         };
         
-        // 使用统一的API调用函数获取数据
-        // 在实际应用中，这里应该调用后端API
-        // 这里使用模拟数据进行演示
-        simulateApiCall('/api/dashboard', params)
-            .then(data => {
+        // 获取CSRF token
+        let csrfToken = '';
+        try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta && csrfMeta.content) {
+                csrfToken = csrfMeta.content;
+            } else {
+                console.warn('CSRF token meta tag not found or empty');
+            }
+        } catch (error) {
+            console.error('Error getting CSRF token:', error);
+        }
+        
+        // 构建请求头
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // 只有在有CSRF token时才添加到请求头
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        // 从后端API获取真实数据
+        fetch('/api/dashboard/metrics', {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',  // 添加认证信息
+            body: JSON.stringify(params)
+        })
+        .then(response => {
+            if (response.status === 401) {
+                // 未登录，重定向到登录页面
+                window.location.href = '/login';
+                throw new Error('请先登录');
+            } else if (response.status === 403) {
+                // CSRF验证失败，刷新页面重试
+                window.location.reload();
+                throw new Error('安全验证失败，正在刷新页面');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
                 // 更新核心指标
-                updateCoreMetrics(data.metrics);
+                updateCoreMetrics(data.data.metrics);
                 
                 // 更新图表
-                updateCharts(data.charts);
+                updateCharts(data.data.charts);
                 
                 // 更新警报列表
-                updateAlerts(data.alerts);
+                updateAlerts(data.data.alerts);
                 
                 // 隐藏加载状态
                 hideLoadingState();
                 
                 // 显示成功通知
                 Utils.dom.showNotification('数据已更新', 'success');
-            })
-            .catch(error => {
-                // 隐藏加载状态
-                hideLoadingState();
-                
-                // 显示错误通知
-                Utils.dom.showNotification('数据加载失败: ' + error.message, 'error');
-            });
-    }
-    
-    // 模拟API调用（实际应用中应替换为真实API调用）
-    function simulateApiCall(url, params) {
-        return new Promise((resolve, reject) => {
-            // 显示加载通知
-            Utils.dom.showNotification('正在加载数据...', 'info');
+            } else {
+                throw new Error(data.message || '获取数据失败');
+            }
+        })
+        .catch(error => {
+            // 隐藏加载状态
+            hideLoadingState();
             
-            // 模拟网络延迟
-            setTimeout(() => {
-                // 生成模拟数据
-                const data = generateMockData(params);
-                resolve(data);
-            }, 1000);
+            // 显示错误通知
+            Utils.dom.showNotification('数据加载失败: ' + error.message, 'error');
+            
+            // 重置数据为默认值
+            resetDashboardData();
         });
     }
     
-    // 生成模拟数据（实际应用中应删除此函数）
-    function generateMockData(params) {
-        // 生成日期范围
-        const dateRange = [];
-        const currentDate = new Date(startDate);
-        while (currentDate < endDate) {
-            dateRange.push(Utils.date.formatDate(currentDate, 'MM-DD'));
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
+    // 重置仪表盘数据为默认值
+    function resetDashboardData() {
+        // 重置核心指标
+        $('#outpatient-count').text('--');
+        $('#inpatient-count').text('--');
+        $('#revenue-amount').text('--');
+        $('#bed-usage').text('--');
         
-        // 生成随机数据
-        return {
-            metrics: {
-                outpatient: {
-                    count: Math.floor(Math.random() * 1000) + 1000,
-                    change: (Math.random() * 10 - 5).toFixed(1)
-                },
-                inpatient: {
-                    count: Math.floor(Math.random() * 500) + 300,
-                    change: (Math.random() * 8 - 4).toFixed(1)
-                },
-                revenue: {
-                    amount: (Math.random() * 3 + 1).toFixed(1) + 'M',
-                    change: (Math.random() * 12 - 3).toFixed(1)
-                },
-                bedUsage: {
-                    rate: (Math.random() * 30 + 65).toFixed(1),
-                    change: (Math.random() * 6 - 3).toFixed(1)
-                }
-            },
-            charts: {
-                outpatientTrend: {
-                    xAxis: dateRange,
-                    series: [
-                        {
-                            data: Array.from({length: dateRange.length}, () => Math.floor(Math.random() * 100) + 100)
-                        },
-                        {
-                            data: Array.from({length: dateRange.length}, () => Math.floor(Math.random() * 100) + 80)
-                        }
-                    ]
-                },
-                revenueComposition: {
-                    data: [
-                        {value: Math.floor(Math.random() * 300) + 300, name: '门诊'},
-                        {value: Math.floor(Math.random() * 300) + 600, name: '住院'},
-                        {value: Math.floor(Math.random() * 300) + 500, name: '药房'},
-                        {value: Math.floor(Math.random() * 300) + 400, name: '检查'},
-                        {value: Math.floor(Math.random() * 300) + 300, name: '手术'},
-                        {value: Math.floor(Math.random() * 300) + 100, name: '其他'}
-                    ]
-                },
-                departmentWorkload: {
-                    yAxis: ['内科', '外科', '妇产科', '儿科', '眼科', '骨科', '皮肤科'],
-                    series: [
-                        {
-                            data: Array.from({length: 7}, () => Math.floor(Math.random() * 100) + 300)
-                        },
-                        {
-                            data: Array.from({length: 7}, () => Math.floor(Math.random() * 100) + 200)
-                        }
-                    ]
-                },
-                inpatientDistribution: {
-                    legend: ['内科', '外科', '妇产科', '儿科', '骨科', '其他'],
-                    data: [
-                        {value: Math.floor(Math.random() * 100) + 100, name: '内科'},
-                        {value: Math.floor(Math.random() * 100) + 100, name: '外科'},
-                        {value: Math.floor(Math.random() * 100) + 100, name: '妇产科'},
-                        {value: Math.floor(Math.random() * 100) + 100, name: '儿科'},
-                        {value: Math.floor(Math.random() * 100) + 100, name: '骨科'},
-                        {value: Math.floor(Math.random() * 100) + 100, name: '其他'}
-                    ]
-                }
-            },
-            alerts: [
-                {
-                    time: '2023-06-15 08:32',
-                    type: 'danger',
-                    typeText: '紧急',
-                    description: 'ICU床位使用率超过95%',
-                    status: 'warning',
-                    statusText: '待处理'
-                },
-                {
-                    time: '2023-06-14 15:47',
-                    type: 'warning',
-                    typeText: '警告',
-                    description: '心内科门诊量异常增加',
-                    status: 'success',
-                    statusText: '已解决'
-                },
-                {
-                    time: '2023-06-14 10:23',
-                    type: 'info',
-                    typeText: '信息',
-                    description: '系统维护通知',
-                    status: 'secondary',
-                    statusText: '已关闭'
-                }
-            ]
-        };
+        // 重置变化指标
+        $('.stat-change').html('<i class="fas fa-minus"></i> --');
+        
+        // 重置图表数据
+        charts.outpatientTrend.setOption({
+            xAxis: { data: [] },
+            series: [{
+                name: '门诊量',
+                type: 'line',
+                data: [],
+                coordinateSystem: 'cartesian2d'
+            }, {
+                name: '同比',
+                type: 'line',
+                data: [],
+                coordinateSystem: 'cartesian2d'
+            }]
+        });
+        
+        charts.revenueComposition.setOption({
+            series: [{
+                name: '收入来源',
+                type: 'pie',
+                data: [],
+                coordinateSystem: null
+            }]
+        });
+        
+        charts.departmentWorkload.setOption({
+            yAxis: { data: [] },
+            series: [{
+                name: '门诊量',
+                type: 'bar',
+                data: [],
+                coordinateSystem: 'cartesian2d'
+            }, {
+                name: '住院量',
+                type: 'bar',
+                data: [],
+                coordinateSystem: 'cartesian2d'
+            }, {
+                name: '手术量',
+                type: 'bar',
+                data: [],
+                coordinateSystem: 'cartesian2d'
+            }]
+        });
+        
+        charts.inpatientDistribution.setOption({
+            legend: { data: [] },
+            series: [{
+                name: '患者分布',
+                type: 'pie',
+                data: [],
+                coordinateSystem: null
+            }]
+        });
+        
+        // 重置警报列表
+        $('#alerts-table-body').html('<tr><td colspan="5" class="text-center">暂无数据</td></tr>');
     }
     
     // 更新核心指标

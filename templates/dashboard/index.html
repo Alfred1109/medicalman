@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "components/layout/header.html" import header %}
+{% from "components/layout/section_header.html" import section_header %}
+{% from "components/layout/card.html" import card %}
+{% from "components/widgets/stat_card.html" import stat_card %}
+{% from "components/charts/chart_container.html" import chart_container %}
+{% from "components/tables/data_table.html" import data_table %}
+{% from "components/filters/date_range.html" import date_range %}
+{% from "components/feedback/loading.html" import loading_state %}
+{% from "components/feedback/error.html" import error_message %}
+
+{% block title %}仪表盘 - 医疗管理系统{% endblock %}
+
+{% block content %}
+<!-- 页面头部 -->
+{% call header() %}
+    {% block header_title %}仪表盘{% endblock %}
+    {% block header_actions %}
+    <div class="flex space-x-4">
+        <button class="btn btn-outline-primary btn-icon" id="refresh-dashboard">
+            <i class="fas fa-sync-alt"></i> 刷新数据
+        </button>
+        <button class="btn btn-outline-primary btn-icon" id="export-dashboard">
+            <i class="fas fa-download"></i> 导出报告
+        </button>
+    </div>
+    {% endblock %}
+{% endcall %}
+
+<!-- 日期筛选 -->
+{{ date_range(id_prefix='dashboard-', on_change='Dashboard.handleDateRangeChange(this.value)') }}
+
+<!-- 核心指标 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" id="core-metrics">
+    {{ stat_card('门诊量', '--', '今日门诊就诊人数', 5.2, '较昨日') }}
+    {{ stat_card('住院量', '--', '当前住院人数', -2.1, '较昨日') }}
+    {{ stat_card('收入', '--', '今日收入总额', 8.5, '较昨日') }}
+    {{ stat_card('床位使用率', '--', '当前床位使用情况', -1.2, '较昨日') }}
+</div>
+
+<!-- 图表区域 -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    {{ card(
+        title='门诊量趋势',
+        icon='fa-chart-line',
+        content=chart_container('outpatient-trend-chart', '显示近期门诊量变化趋势')
+    ) }}
+    {{ card(
+        title='收入构成',
+        icon='fa-chart-pie',
+        content=chart_container('revenue-composition-chart', '显示各类收入占比')
+    ) }}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    {{ card(
+        title='科室工作量',
+        icon='fa-hospital',
+        content=chart_container('department-workload-chart', '显示各科室工作量分布')
+    ) }}
+    {{ card(
+        title='住院患者分布',
+        icon='fa-procedures',
+        content=chart_container('inpatient-distribution-chart', '显示住院患者分布情况')
+    ) }}
+</div>
+
+<!-- 最近警报 -->
+{{ card(
+    title='最近警报',
+    icon='fa-exclamation-triangle',
+    content=data_table(
+        headers=['时间', '类型', '描述', '状态', '操作'],
+        rows=[['加载中...', '', '', '', '']],
+        table_id='alerts-table'
+    )
+) }}
+
+<!-- 错误提示容器 -->
+<div id="error-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/utils/data-transformer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/utils/chart-configs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

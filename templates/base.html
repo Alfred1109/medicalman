@@ -6,6 +6,10 @@
     <meta name="description" content="医疗管理系统 - 专业的医疗数据分析与管理平台">
     <meta name="keywords" content="医疗管理,数据分析,医院管理,DRG分析">
     <meta name="author" content="MedicalMan Team">
+    {% block head %}
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% endblock %}
     <title>{% block title %}医疗管理系统{% endblock %}</title>
     
     <!-- 网站图标 -->
@@ -37,7 +41,7 @@
     <header class="navbar navbar-dark fixed-top">
         <!-- 品牌标志 -->
         <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
-            <i class="fas fa-hospital-alt"></i>
+            <i class="fas fa-hospital"></i>
             <span>医疗管理系统</span>
         </a>
         

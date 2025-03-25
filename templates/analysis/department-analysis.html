@@ -362,79 +362,353 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 科室门诊量分布图
+    // 初始化图表对象
     const departmentOutpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
-    const departmentOutpatientOption = {
+    const departmentInpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
+    const departmentTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
+    
+    // 获取CSRF令牌
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    // 设置请求头
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+    };
+    
+    // 获取当前日期和前一年的日期
+    const today = new Date();
+    const lastYear = new Date();
+    lastYear.setFullYear(today.getFullYear() - 1);
+    
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    const startDate = formatDate(lastYear);
+    const endDate = formatDate(today);
+    
+    // 更新KPI卡片
+    updateKPICards(startDate, endDate);
+    
+    // 显示加载状态
+    showLoading([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart]);
+    
+    // 获取科室列表
+    fetch('/analytics/api/department/list', {
+        method: 'GET',
+        headers: headers,
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('网络响应不正常');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            const departments = result.data;
+            // 更新科室下拉选择框
+            updateDepartmentFilter(departments);
+            
+            // 获取科室工作量数据
+            return fetch('/analytics/api/department/workload', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate
+                }),
+                credentials: 'same-origin'
+            });
+        } else {
+            throw new Error(result.message || '获取科室列表失败');
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('网络响应不正常');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            const workloadData = result.data;
+            
+            // 处理门诊量数据
+            const outpatientData = processOutpatientData(workloadData);
+            updateOutpatientChart(departmentOutpatientChart, outpatientData);
+            
+            // 处理住院量数据
+            const inpatientData = processInpatientData(workloadData);
+            updateInpatientChart(departmentInpatientChart, inpatientData);
+            
+            // 处理趋势数据
+            const trendData = processTrendData(workloadData);
+            updateTrendChart(departmentTrendChart, trendData);
+            
+            // 隐藏加载状态
+            hideLoading([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart]);
+        } else {
+            throw new Error(result.message || '获取科室工作量数据失败');
+        }
+    })
+    .catch(error => {
+        console.error('数据加载失败:', error);
+        showError([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart], error.message);
+    });
+    
+    // 更新科室下拉选择框
+    function updateDepartmentFilter(departments) {
+        const departmentSelector = document.querySelector('.filter-item:nth-child(2) .form-select');
+        if (departmentSelector) {
+            // 保留第一个"所有科室"选项
+            const defaultOption = departmentSelector.options[0];
+            departmentSelector.innerHTML = '';
+            departmentSelector.appendChild(defaultOption);
+            
+            // 添加从API获取的科室选项
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                departmentSelector.appendChild(option);
+            });
+        }
+    }
+    
+    // 更新KPI卡片
+    function updateKPICards(startDate, endDate) {
+        fetch('/analytics/api/department/workload', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate
+            }),
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const workloadData = result.data;
+                
+                // 计算总量
+                let totalOutpatient = 0;
+                let totalInpatient = 0;
+                let totalSurgery = 0;
+                
+                workloadData.forEach(item => {
+                    totalOutpatient += item.outpatient_count || 0;
+                    totalInpatient += item.inpatient_count || 0;
+                    totalSurgery += item.surgery_count || 0;
+                });
+                
+                // 更新KPI卡片显示
+                document.querySelector('.kpi-card:nth-child(1) .kpi-value').textContent = totalOutpatient.toLocaleString();
+                document.querySelector('.kpi-card:nth-child(2) .kpi-value').textContent = totalInpatient.toLocaleString();
+                document.querySelector('.kpi-card:nth-child(3) .kpi-value').textContent = totalSurgery.toLocaleString();
+                
+                // 获取效率数据以更新平均住院日
+                return fetch('/analytics/api/department/efficiency', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        start_date: startDate,
+                        end_date: endDate
+                    }),
+                    credentials: 'same-origin'
+                });
+            } else {
+                throw new Error(result.message || '获取工作量数据失败');
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const efficiencyData = result.data;
+                
+                // 计算平均住院日
+                let totalAvgStayDays = 0;
+                let deptCount = 0;
+                
+                efficiencyData.forEach(item => {
+                    if (item.avg_stay_days) {
+                        totalAvgStayDays += item.avg_stay_days;
+                        deptCount++;
+                    }
+                });
+                
+                const overallAvgStayDays = deptCount > 0 ? (totalAvgStayDays / deptCount).toFixed(1) : "N/A";
+                
+                // 更新KPI卡片显示
+                document.querySelector('.kpi-card:nth-child(4) .kpi-value').textContent = overallAvgStayDays;
+            }
+        })
+        .catch(error => {
+            console.error('KPI数据加载失败:', error);
+        });
+    }
+    
+    // 响应式调整
+    window.addEventListener('resize', function() {
+        departmentOutpatientChart.resize();
+        departmentInpatientChart.resize();
+        departmentTrendChart.resize();
+    });
+    
+    // 处理门诊量数据
+    function processOutpatientData(workloadData) {
+        // 按科室聚合门诊量数据
+        const departmentMap = {};
+        
+        workloadData.forEach(item => {
+            if (!departmentMap[item.department]) {
+                departmentMap[item.department] = 0;
+            }
+            departmentMap[item.department] += item.outpatient_count;
+        });
+        
+        // 转换为图表所需的格式
+        const result = [];
+        for (const [dept, count] of Object.entries(departmentMap)) {
+            result.push({ name: dept, value: count });
+        }
+        
+        // 按数量排序并获取前6个科室，其余归为"其他"
+        result.sort((a, b) => b.value - a.value);
+        
+        if (result.length > 6) {
+            const topDepts = result.slice(0, 6);
+            const otherSum = result.slice(6).reduce((sum, item) => sum + item.value, 0);
+            
+            topDepts.push({ name: '其他科室', value: otherSum });
+            return topDepts;
+        }
+        
+        return result;
+    }
+    
+    // 处理住院量数据
+    function processInpatientData(workloadData) {
+        // 按科室聚合住院量数据
+        const departmentMap = {};
+        
+        workloadData.forEach(item => {
+            if (!departmentMap[item.department]) {
+                departmentMap[item.department] = 0;
+            }
+            departmentMap[item.department] += item.inpatient_count;
+        });
+        
+        // 转换为图表所需的格式
+        const result = [];
+        for (const [dept, count] of Object.entries(departmentMap)) {
+            result.push({ name: dept, value: count });
+        }
+        
+        // 按数量排序并获取前6个科室，其余归为"其他"
+        result.sort((a, b) => b.value - a.value);
+        
+        if (result.length > 6) {
+            const topDepts = result.slice(0, 6);
+            const otherSum = result.slice(6).reduce((sum, item) => sum + item.value, 0);
+            
+            topDepts.push({ name: '其他科室', value: otherSum });
+            return topDepts;
+        }
+        
+        return result;
+    }
+    
+    // 处理趋势数据
+    function processTrendData(workloadData) {
+        // 获取前5个最繁忙的科室
+        const departmentWorkload = {};
+        
+        workloadData.forEach(item => {
+            if (!departmentWorkload[item.department]) {
+                departmentWorkload[item.department] = 0;
+            }
+            departmentWorkload[item.department] += item.total_count;
+        });
+        
+        const topDepartments = Object.entries(departmentWorkload)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(item => item[0]);
+        
+        // 按月份聚合数据
+        const monthlyData = {};
+        
+        workloadData.forEach(item => {
+            const date = new Date(item.date);
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {};
+                topDepartments.forEach(dept => {
+                    monthlyData[monthKey][dept] = 0;
+                });
+            }
+            
+            if (topDepartments.includes(item.department)) {
+                monthlyData[monthKey][item.department] += item.total_count;
+            }
+        });
+        
+        // 构建x轴数据（月份）
+        const months = Object.keys(monthlyData).sort();
+        
+        // 构建各个科室的系列数据
+        const series = topDepartments.map(dept => {
+            return {
+                name: dept,
+                type: 'line',
+                stack: '总量',
+                areaStyle: {},
+                emphasis: { focus: 'series' },
+                data: months.map(month => monthlyData[month][dept] || 0)
+            };
+        });
+        
+        // 格式化月份显示
+        const formattedMonths = months.map(month => {
+            const [year, monthNum] = month.split('-');
+            return `${year}年${monthNum}月`;
+        });
+        
+        return {
+            xAxis: formattedMonths,
+            series: series
+        };
+    }
+    
+    // 更新门诊量图表
+    function updateOutpatientChart(chart, data) {
+        const option = {
             tooltip: {
-            trigger: 'item',
-            formatter: '{a} <br/>{b}: {c} ({d}%)'
-        },
-        legend: {
-            orient: 'vertical',
-            right: 10,
-            top: 'center',
-            data: ['内科', '外科', '妇产科', '儿科', '骨科', '眼科', '其他科室']
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                right: 10,
+                top: 'center',
+                data: data.map(item => item.name)
             },
             series: [
                 {
                     name: '门诊量',
-                type: 'pie',
-                radius: ['40%', '70%'],
-                avoidLabelOverlap: false,
-                    itemStyle: {
-                    borderRadius: 5,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                },
-                label: {
-                    show: false,
-                    position: 'center'
-                },
-                emphasis: {
-                    label: {
-                        show: true,
-                        fontSize: '18',
-                        fontWeight: 'bold'
-                    }
-                },
-                labelLine: {
-                    show: false
-                },
-                data: [
-                    { value: 3254, name: '内科' },
-                    { value: 2841, name: '外科' },
-                    { value: 1798, name: '妇产科' },
-                    { value: 1432, name: '儿科' },
-                    { value: 1024, name: '骨科' },
-                    { value: 865, name: '眼科' },
-                    { value: 1244, name: '其他科室' }
-                ]
-                }
-            ]
-        };
-    departmentOutpatientChart.setOption(departmentOutpatientOption);
-        
-    // 科室住院量分布图
-    const departmentInpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
-    const departmentInpatientOption = {
-            tooltip: {
-                trigger: 'item',
-            formatter: '{a} <br/>{b}: {c} ({d}%)'
-            },
-            legend: {
-            orient: 'vertical',
-            right: 10,
-            top: 'center',
-            data: ['内科', '外科', '妇产科', '儿科', '骨科', '其他科室']
-            },
-            series: [
-                {
-                name: '住院量',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     itemStyle: {
-                    borderRadius: 5,
+                        borderRadius: 5,
                         borderColor: '#fff',
                         borderWidth: 2
                     },
@@ -452,27 +726,66 @@ document.addEventListener('DOMContentLoaded', function() {
                     labelLine: {
                         show: false
                     },
-                    data: [
-                    { value: 845, name: '内科' },
-                    { value: 765, name: '外科' },
-                    { value: 432, name: '妇产科' },
-                    { value: 324, name: '儿科' },
-                    { value: 298, name: '骨科' },
-                    { value: 181, name: '其他科室' }
-                    ]
+                    data: data
                 }
             ]
         };
-    departmentInpatientChart.setOption(departmentInpatientOption);
-        
-    // 科室工作量趋势变化图
-    const departmentTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
-    const departmentTrendOption = {
+        chart.setOption(option);
+    }
+    
+    // 更新住院量图表
+    function updateInpatientChart(chart, data) {
+        const option = {
             tooltip: {
-            trigger: 'axis'
-                },
-        legend: {
-            data: ['内科', '外科', '妇产科', '儿科', '骨科']
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                right: 10,
+                top: 'center',
+                data: data.map(item => item.name)
+            },
+            series: [
+                {
+                    name: '住院量',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 5,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '18',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: data
+                }
+            ]
+        };
+        chart.setOption(option);
+    }
+    
+    // 更新趋势图表
+    function updateTrendChart(chart, data) {
+        const option = {
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: data.series.map(item => item.name)
             },
             grid: {
                 left: '3%',
@@ -482,77 +795,56 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             xAxis: {
                 type: 'category',
-            boundaryGap: false,
-            data: ['1月', '2月', '3月', '4月', '5月', '6月']
+                boundaryGap: false,
+                data: data.xAxis
             },
             yAxis: {
-            type: 'value'
+                type: 'value'
             },
-            series: [
-                {
-                name: '内科',
-                type: 'line',
-                stack: '总量',
-                areaStyle: {},
-                emphasis: {
-                    focus: 'series'
-            },
-                data: [520, 532, 501, 534, 590, 530]
-            },
-            {
-                name: '外科',
-                type: 'line',
-                stack: '总量',
-                areaStyle: {},
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [420, 482, 491, 434, 490, 530]
-            },
-            {
-                name: '妇产科',
-                type: 'line',
-                stack: '总量',
-                areaStyle: {},
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [320, 332, 301, 334, 390, 330]
-            },
-                {
-                name: '儿科',
-                    type: 'line',
-                stack: '总量',
-                areaStyle: {},
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [220, 182, 191, 234, 290, 330]
-                },
-                {
-                    name: '骨科',
-                    type: 'line',
-                stack: '总量',
-                label: {
-                    show: true,
-                    position: 'top'
-                },
-                areaStyle: {},
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [150, 232, 201, 154, 190, 330]
-                }
-            ]
+            series: data.series
         };
-    departmentTrendChart.setOption(departmentTrendOption);
-        
-    // 响应式调整
-        window.addEventListener('resize', function() {
-        departmentOutpatientChart.resize();
-        departmentInpatientChart.resize();
-        departmentTrendChart.resize();
-    });
+        chart.setOption(option);
+    }
+    
+    // 显示加载状态
+    function showLoading(charts) {
+        charts.forEach(chart => {
+            chart.showLoading({
+                text: '数据加载中...',
+                color: '#1890ff',
+                textColor: '#000',
+                maskColor: 'rgba(255, 255, 255, 0.8)'
+            });
         });
+    }
+    
+    // 隐藏加载状态
+    function hideLoading(charts) {
+        charts.forEach(chart => {
+            chart.hideLoading();
+        });
+    }
+    
+    // 显示错误信息
+    function showError(charts, message) {
+        charts.forEach(chart => {
+            chart.hideLoading();
+            chart.setOption({
+                title: {
+                    text: '加载失败',
+                    subtext: message,
+                    left: 'center',
+                    textStyle: {
+                        color: '#999',
+                        fontSize: 14
+                    },
+                    subtextStyle: {
+                        color: '#f5222d'
+                    }
+                }
+            });
+        });
+    }
+});
     </script>
 {% endblock %} 

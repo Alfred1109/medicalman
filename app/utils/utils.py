@@ -12,9 +12,10 @@ import string
 import random
 from werkzeug.utils import secure_filename
 from flask import current_app
+from app.config import config
 
 # 文件处理相关函数
-def allowed_file(filename: str, file_type: str = 'document') -> bool:
+def allowed_file(filename: str, file_type: str = None) -> bool:
     """
     检查文件扩展名是否允许
     
@@ -31,7 +32,7 @@ def allowed_file(filename: str, file_type: str = 'document') -> bool:
     ext = filename.rsplit('.', 1)[1].lower()
     
     # 从应用配置中获取允许的扩展名
-    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {})
+    allowed_extensions = config.ALLOWED_EXTENSIONS
     
     if file_type in allowed_extensions:
         return ext in allowed_extensions[file_type]
@@ -52,14 +53,14 @@ def get_secure_filename(filename: str) -> str:
     
     # 如果文件名被完全过滤掉了，生成一个随机文件名
     if not secure_name:
-        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else config.UTILS['file']['default_extension']
         secure_name = f"file_{generate_uuid()}"
         if ext:
             secure_name = f"{secure_name}.{ext}"
             
     return secure_name
 
-def get_file_path(filename: str, file_type: str = 'document') -> str:
+def get_file_path(filename: str, file_type: str = None) -> str:
     """
     获取文件的保存路径
     
@@ -71,14 +72,14 @@ def get_file_path(filename: str, file_type: str = 'document') -> str:
         文件保存路径
     """
     secure_name = get_secure_filename(filename)
-    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.datetime.now().strftime(config.UTILS['file']['timestamp_format'])
     filename_with_timestamp = f"{timestamp}_{secure_name}"
     
     # 从应用配置中获取上传目录
     if file_type == 'image':
-        upload_dir = current_app.config.get('IMAGE_UPLOAD_DIR', 'static/uploads/images')
+        upload_dir = config.IMAGE_UPLOAD_DIR
     else:
-        upload_dir = current_app.config.get('DOCUMENT_UPLOAD_DIR', 'static/uploads/documents')
+        upload_dir = config.DOCUMENT_UPLOAD_DIR
     
     return os.path.join(upload_dir, filename_with_timestamp)
 
@@ -92,7 +93,7 @@ def get_file_extension(filename: str) -> str:
     返回:
         文件扩展名
     """
-    return filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    return filename.rsplit('.', 1)[1].lower() if '.' in filename else config.UTILS['file']['default_extension']
 
 def get_mime_type(file_extension: str) -> str:
     """
@@ -104,22 +105,7 @@ def get_mime_type(file_extension: str) -> str:
     返回:
         MIME类型
     """
-    mime_types = {
-        'pdf': 'application/pdf',
-        'doc': 'application/msword',
-        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xls': 'application/vnd.ms-excel',
-        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'csv': 'text/csv',
-        'txt': 'text/plain',
-        'md': 'text/markdown',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif'
-    }
-    
-    return mime_types.get(file_extension.lower(), 'application/octet-stream')
+    return config.UTILS['mime_types'].get(file_extension.lower(), config.UTILS['file']['default_mime_type'])
 
 # 字符串处理函数
 def remove_html_tags(text: str) -> str:
@@ -135,7 +121,7 @@ def remove_html_tags(text: str) -> str:
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
-def truncate_text(text: str, max_length: int = 200, suffix: str = '...') -> str:
+def truncate_text(text: str, max_length: int = None, suffix: str = None) -> str:
     """
     截断文本到指定长度
     
@@ -147,6 +133,9 @@ def truncate_text(text: str, max_length: int = 200, suffix: str = '...') -> str:
     返回:
         截断后的文本
     """
+    max_length = max_length or config.UTILS['text']['max_length']
+    suffix = suffix or config.UTILS['text']['suffix']
+    
     if len(text) <= max_length:
         return text
         
@@ -266,7 +255,7 @@ def safe_get(obj: Any, path: str, default: Any = None, separator: str = '.') -> 
     return obj
 
 # 日期时间处理函数
-def format_datetime(dt: datetime.datetime, format_str: str = '%Y-%m-%d %H:%M:%S') -> str:
+def format_datetime(dt: datetime.datetime, format_str: str = None) -> str:
     """
     格式化日期时间
     
@@ -277,9 +266,10 @@ def format_datetime(dt: datetime.datetime, format_str: str = '%Y-%m-%d %H:%M:%S'
     返回:
         格式化后的字符串
     """
+    format_str = format_str or config.UTILS['datetime']['default_format']
     return dt.strftime(format_str)
 
-def parse_datetime(datetime_str: str, format_str: str = '%Y-%m-%d %H:%M:%S') -> Optional[datetime.datetime]:
+def parse_datetime(datetime_str: str, format_str: str = None) -> Optional[datetime.datetime]:
     """
     解析日期时间字符串
     
@@ -290,6 +280,7 @@ def parse_datetime(datetime_str: str, format_str: str = '%Y-%m-%d %H:%M:%S') -> 
     返回:
         日期时间对象或None
     """
+    format_str = format_str or config.UTILS['datetime']['default_format']
     try:
         return datetime.datetime.strptime(datetime_str, format_str)
     except ValueError:
@@ -358,7 +349,7 @@ def is_valid_phone(phone: str) -> bool:
     # 检查是否为纯数字且长度合理
     return cleaned.isdigit() and 8 <= len(cleaned) <= 15
 
-def format_number(number: Union[int, float], decimal_places: int = 2) -> str:
+def format_number(number: Union[int, float], decimal_places: int = None) -> str:
     """
     格式化数字
     
@@ -369,12 +360,12 @@ def format_number(number: Union[int, float], decimal_places: int = 2) -> str:
     返回:
         格式化后的字符串
     """
-    format_str = f"{{:,.{decimal_places}f}}"
-    return format_str.format(number)
+    decimal_places = decimal_places or config.UTILS['number']['decimal_places']
+    return f"{number:.{decimal_places}f}"
 
-def format_currency(amount: Union[int, float], currency: str = '¥', decimal_places: int = 2) -> str:
+def format_currency(amount: Union[int, float], currency: str = None, decimal_places: int = None) -> str:
     """
-    格式化货币
+    格式化货币金额
     
     参数:
         amount: 金额
@@ -384,8 +375,23 @@ def format_currency(amount: Union[int, float], currency: str = '¥', decimal_pla
     返回:
         格式化后的字符串
     """
-    formatted = format_number(amount, decimal_places)
-    return f"{currency}{formatted}"
+    currency = currency or config.UTILS['number']['currency_symbol']
+    decimal_places = decimal_places or config.UTILS['number']['decimal_places']
+    return f"{currency}{amount:.{decimal_places}f}"
+
+def format_percentage(value: float, decimal_places: int = None) -> str:
+    """
+    格式化百分比
+    
+    参数:
+        value: 值
+        decimal_places: 小数位数
+        
+    返回:
+        格式化后的字符串
+    """
+    decimal_places = decimal_places or config.UTILS['number']['decimal_places']
+    return config.UTILS['number']['percentage_format'].format(value)
 
 # JSON处理函数
 def to_json(obj: Any, ensure_ascii: bool = False) -> str:
@@ -484,21 +490,6 @@ def dict_list_to_dataframe(dict_list: List[Dict[str, Any]]):
     """
     import pandas as pd
     return pd.DataFrame(dict_list)
-
-def format_percentage(value: float, decimal_places: int = 2) -> str:
-    """
-    格式化百分比
-    
-    参数:
-        value: 要格式化的值（0-1之间）
-        decimal_places: 小数位数
-            
-    返回:
-        格式化后的百分比字符串
-    """
-    percentage = value * 100
-    format_str = f"{{:.{decimal_places}f}}%"
-    return format_str.format(percentage)
 
 # 整合自json_helper.py的功能
 def robust_json_parser(json_str: str) -> Optional[Dict[str, Any]]:

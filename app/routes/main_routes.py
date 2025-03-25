@@ -1,21 +1,33 @@
 """
 主路由模块 - 处理网站主要页面路由
 """
-from flask import Blueprint, render_template, redirect, url_for, current_app, jsonify, session
+from flask import Blueprint, render_template, redirect, url_for, current_app, jsonify, session, request
 import sqlite3
 import datetime
 from app.routes.auth_routes import login_required, api_login_required
+from app.config import config
 
 # 创建蓝图
-main_bp = Blueprint('main', __name__)
+main_bp = Blueprint('main', __name__)  # 移除URL前缀,因为这是主蓝图
+dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')  # 添加URL前缀
 
-# 为了兼容之前的模板，添加额外的蓝图
-dashboard_bp = Blueprint('dashboard', __name__)
+@main_bp.route('/')
+def index():
+    """主页 - 重定向到仪表盘"""
+    if 'user_id' not in session:
+        # 将当前URL作为next参数传递给登录页面
+        next_url = request.url
+        if not next_url.startswith('/'):
+            next_url = '/'
+        return redirect(url_for('auth.login', next=next_url))
+    return redirect(url_for('dashboard.index'))
 
-@dashboard_bp.route('/', endpoint='index')
+@dashboard_bp.route('/')
 @login_required
-def dashboard_index():
+def index():
     """仪表盘首页"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login', next=request.url))
     return render_template('dashboard/dashboard.html')
 
 @dashboard_bp.route('/alerts')
@@ -45,29 +57,16 @@ def workload_analysis():
     """工作量分析页面"""
     return render_template('dashboard/workloadanlysis.html')
 
-@main_bp.route('/')
-@login_required
-def index():
-    """主页 - 重定向到仪表盘"""
-    return redirect(url_for('dashboard.index'))
-
-@main_bp.route('/dashboard')
-@login_required
-def dashboard():
-    """仪表盘页面"""
-    return render_template('dashboard.html')
-
 @main_bp.route('/about')
 def about():
-    """关于页面"""
-    return render_template('about.html')
+    return render_template('main/about.html')
 
 @main_bp.route('/api/dates')
 @api_login_required
 def get_dates():
     """获取所有日期"""
     try:
-        conn = sqlite3.connect(current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db'))
+        conn = sqlite3.connect(config.DATABASE_PATH)
         cursor = conn.cursor()
         
         # 查询门诊量表中的所有日期
@@ -86,7 +85,7 @@ def get_dates():
 def get_department_stats():
     """获取科室统计数据"""
     try:
-        conn = sqlite3.connect(current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db'))
+        conn = sqlite3.connect(config.DATABASE_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -114,7 +113,7 @@ def get_department_stats():
 def get_specialty_stats():
     """获取专科统计数据"""
     try:
-        conn = sqlite3.connect(current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db'))
+        conn = sqlite3.connect(config.DATABASE_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -142,7 +141,7 @@ def get_specialty_stats():
 def get_date_stats():
     """获取日期统计数据"""
     try:
-        conn = sqlite3.connect(current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db'))
+        conn = sqlite3.connect(config.DATABASE_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -163,4 +162,56 @@ def get_date_stats():
         return jsonify(results)
     except Exception as e:
         current_app.logger.error(f"获取日期统计数据失败: {str(e)}")
+        return jsonify([])
+
+@main_bp.route('/api/data', methods=['GET'])
+def get_data():
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM 门诊量")
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"获取数据失败: {str(e)}")
+        return jsonify([])
+
+@main_bp.route('/api/analysis', methods=['GET'])
+def get_analysis():
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM 门诊量")
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"获取分析数据失败: {str(e)}")
+        return jsonify([])
+
+@main_bp.route('/api/charts', methods=['GET'])
+def get_charts():
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM 门诊量")
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"获取图表数据失败: {str(e)}")
+        return jsonify([])
+
+@main_bp.route('/api/reports', methods=['GET'])
+def get_reports():
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM 门诊量")
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"获取报告数据失败: {str(e)}")
         return jsonify([]) 

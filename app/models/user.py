@@ -6,22 +6,20 @@ import hashlib
 import os
 # 移除对已删除模块的导入
 # from .database import Database
-from app.extensions import db, login_manager
+from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(UserMixin, db.Model):
-    """用户模型类"""
+    """用户模型"""
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
+    role = db.Column(db.String(20), default='user')
     department = db.Column(db.String(50))
-    is_admin = db.Column(db.Boolean, default=False)
-    permissions = db.Column(db.String(255), default='')  # 权限列表，以逗号分隔
-    role = db.Column(db.String(20), default='user')  # 添加role字段以兼容旧代码
     
     def __init__(self, username, email, department=None, is_admin=False, role='user'):
         self.username = username
@@ -31,11 +29,11 @@ class User(UserMixin, db.Model):
         self.role = role
     
     def set_password(self, password):
-        """设置用户密码"""
+        """设置密码"""
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        """验证用户密码"""
+        """验证密码"""
         return check_password_hash(self.password_hash, password)
     
     def has_permission(self, permission):
@@ -159,7 +157,11 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
+    def get_id(self):
+        """返回用户ID，用于Flask-Login"""
+        return str(self.id)
+
 @login_manager.user_loader
 def load_user(user_id):
-    """Flask-Login用户加载回调"""
+    """加载用户对象"""
     return User.query.get(int(user_id)) 

@@ -10,9 +10,9 @@ import time
 import logging
 from flask import current_app
 import pandas as pd
+import traceback
 
-# 从配置中导入数据库路径
-# from app.config import DATABASE_PATH
+from app.config import config
 from app.utils.error_handler import ErrorType, ErrorCode, error_response
 from app.utils.logger import log_query, log_error
 
@@ -27,7 +27,7 @@ def get_db_connection():
     """
     try:
         # 从应用配置中获取数据库路径
-        database_path = current_app.config['DATABASE_PATH']
+        database_path = config.DATABASE_PATH
         
         # 确保数据库文件所在目录存在
         os.makedirs(os.path.dirname(database_path), exist_ok=True)
@@ -36,17 +36,16 @@ def get_db_connection():
         conn = sqlite3.connect(database_path)
         conn.row_factory = sqlite3.Row  # 使结果以字典形式返回
         
-        # 设置超时时间和pragma
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA synchronous = NORMAL")
-        conn.execute("PRAGMA cache_size = 10000")
-        conn.execute("PRAGMA temp_store = MEMORY")
+        # 设置数据库参数
+        for pragma, value in config.DB_PRAGMA_SETTINGS.items():
+            conn.execute(f"PRAGMA {pragma} = {value}")
         
         yield conn
         conn.commit()
     except sqlite3.Error as e:
-        log_error(f"数据库连接错误: {str(e)}", error_code=ErrorCode.DB_CONNECTION_ERROR, error_type=ErrorType.DATABASE_ERROR)
+        log_error(config.DB_ERROR_MESSAGES['connection_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['connection'], 
+                  error_type=ErrorType.DATABASE_ERROR)
         if 'conn' in locals():
             conn.rollback()
         raise
@@ -93,8 +92,8 @@ def execute_query(query: str, params: Optional[Tuple] = None, fetch_one: bool = 
         return result
     except sqlite3.Error as e:
         error_message = str(e)
-        log_error(f"SQL执行错误: {error_message}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['query_error'].format(error_message), 
+                  error_code=config.DB_ERROR_CODES['query'], 
                   error_type=ErrorType.DATABASE_ERROR,
                   details={"query": query})
         raise
@@ -107,17 +106,21 @@ def transaction():
     """
     conn = None
     try:
-        database_path = current_app.config['DATABASE_PATH']
+        database_path = config.DATABASE_PATH
         conn = sqlite3.connect(database_path)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
+        
+        # 设置数据库参数
+        for pragma, value in config.DB_PRAGMA_SETTINGS.items():
+            conn.execute(f"PRAGMA {pragma} = {value}")
+            
         yield conn
         conn.commit()
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        log_error(f"事务执行错误: {str(e)}", 
-                  error_code=ErrorCode.DB_TRANSACTION_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['transaction_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['transaction'], 
                   error_type=ErrorType.DATABASE_ERROR)
         raise
     finally:
@@ -146,8 +149,8 @@ def insert_record(table: str, data: Dict[str, Any]) -> Optional[int]:
             cur = conn.execute(query, tuple(data.values()))
             return cur.lastrowid
     except sqlite3.Error as e:
-        log_error(f"插入记录错误: {str(e)}", 
-                  error_code=ErrorCode.DB_DATA_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['data'], 
                   error_type=ErrorType.DATABASE_ERROR,
                   details={"table": table})
         return None
@@ -177,8 +180,8 @@ def update_record(table: str, data: Dict[str, Any], condition: str, params: Tupl
             conn.execute(query, all_params)
             return True
     except sqlite3.Error as e:
-        log_error(f"更新记录错误: {str(e)}", 
-                  error_code=ErrorCode.DB_DATA_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['data'], 
                   error_type=ErrorType.DATABASE_ERROR,
                   details={"table": table})
         return False
@@ -202,8 +205,8 @@ def delete_record(table: str, condition: str, params: Tuple) -> bool:
             conn.execute(query, params)
             return True
     except sqlite3.Error as e:
-        log_error(f"删除记录错误: {str(e)}", 
-                  error_code=ErrorCode.DB_DATA_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['data'], 
                   error_type=ErrorType.DATABASE_ERROR,
                   details={"table": table})
         return False
@@ -231,8 +234,8 @@ def get_record(table: str, fields: str = '*', condition: str = '', params: Tuple
             row = cur.fetchone()
             return dict(row) if row else None
     except sqlite3.Error as e:
-        log_error(f"获取记录错误: {str(e)}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
+        log_error(config.DB_ERROR_MESSAGES['query_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['query'], 
                   error_type=ErrorType.DATABASE_ERROR,
                   details={"table": table})
         return None
@@ -317,7 +320,7 @@ def init_database(schema_file: str = None) -> bool:
     """
     try:
         # 从应用配置中获取数据库路径
-        database_path = current_app.config['DATABASE_PATH']
+        database_path = config.DATABASE_PATH
         
         # 确保目录存在
         os.makedirs(os.path.dirname(database_path), exist_ok=True)
@@ -1180,7 +1183,7 @@ def connect_db():
         数据库连接对象
     """
     # 从应用配置中获取数据库路径
-    database_path = current_app.config['DATABASE_PATH']
+    database_path = config.DATABASE_PATH
     
     # 确保数据库文件所在目录存在
     os.makedirs(os.path.dirname(database_path), exist_ok=True)
@@ -1196,7 +1199,7 @@ def connect_db():
     
     return conn 
 
-def execute_query_to_dataframe(query, params=None):
+def execute_query_to_dataframe(query: str, params: Optional[Tuple] = None) -> pd.DataFrame:
     """
     执行SQL查询并返回DataFrame结果
     
@@ -1208,20 +1211,57 @@ def execute_query_to_dataframe(query, params=None):
         包含查询结果的pandas DataFrame
     """
     try:
+        # 记录开始时间
+        start_time = time.time()
+        
         # 执行查询获取结果
         results = execute_query(query, params)
         
         if not results:
+            print("查询执行成功，但未返回数据")
             return pd.DataFrame()
             
         # 转换为DataFrame
         df = pd.DataFrame(results)
+        
+        # 处理日期列
+        date_columns = [col for col in df.columns if 'date' in col.lower() or '时间' in col]
+        for col in date_columns:
+            try:
+                df[col] = pd.to_datetime(df[col])
+            except Exception as e:
+                print(f"转换日期列 {col} 时出错: {str(e)}")
+        
+        # 处理数值列
+        numeric_columns = df.select_dtypes(include=['object']).columns
+        for col in numeric_columns:
+            try:
+                # 尝试转换为数值类型
+                df[col] = pd.to_numeric(df[col], errors='ignore')
+            except Exception as e:
+                print(f"转换数值列 {col} 时出错: {str(e)}")
+        
+        # 记录查询执行时间
+        execution_time = time.time() - start_time
+        log_query(query, execution_time)
+        
+        print(f"查询执行成功，返回 {len(df)} 行数据")
+        print(f"数据列: {df.columns.tolist()}")
+        print(f"数据类型:\n{df.dtypes}")
+        
         return df
+        
     except Exception as e:
-        log_error(f"查询转DataFrame失败: {str(e)}", 
+        error_msg = f"查询转DataFrame失败: {str(e)}"
+        print(error_msg)
+        traceback.print_exc()
+        
+        log_error(error_msg, 
                   error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR)
-        return pd.DataFrame() 
+                  error_type=ErrorType.DATABASE_ERROR,
+                  details={"query": query})
+        
+        return pd.DataFrame()
 
 @contextmanager
 def db_cursor():
@@ -1249,6 +1289,60 @@ def db_cursor():
                    error_code=ErrorCode.DB_QUERY_ERROR, 
                    error_type=ErrorType.DATABASE_ERROR)
         raise
+    finally:
+        if conn:
+            conn.close() 
+
+def execute_many(query: str, params_list: list):
+    """
+    执行批量查询
+    
+    参数:
+        query: SQL查询语句
+        params_list: 参数列表
+    """
+    try:
+        database_path = config.DATABASE_PATH
+        conn = sqlite3.connect(database_path)
+        cursor = conn.cursor()
+        cursor.executemany(query, params_list)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        log_error(f"批量执行查询失败: {str(e)}", 
+                  error_code=ErrorCode.DB_QUERY_ERROR, 
+                  error_type=ErrorType.DATABASE_ERROR)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def execute_transaction(queries: list):
+    """
+    执行事务
+    
+    参数:
+        queries: 查询列表，每个元素是(query, params)元组
+    """
+    try:
+        database_path = config.DATABASE_PATH
+        conn = sqlite3.connect(database_path)
+        cursor = conn.cursor()
+        
+        for query, params in queries:
+            cursor.execute(query, params)
+            
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        log_error(f"执行事务失败: {str(e)}", 
+                  error_code=ErrorCode.DB_QUERY_ERROR, 
+                  error_type=ErrorType.DATABASE_ERROR)
+        return False
     finally:
         if conn:
             conn.close() 

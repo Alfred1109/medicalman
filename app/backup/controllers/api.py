@@ -68,29 +68,137 @@ def get_dates():
 @api_bp.route('/stats/department')
 def get_department_stats():
     """获取各科室的统计数据"""
-    conn = connect_db()
-    df = pd.read_sql_query("SELECT department, COUNT(*) as count, SUM(workload) as total_workload FROM medical_data GROUP BY department", conn)
-    conn.close()
-    chart_config = generate_chart_data(df, 'bar', 'department', 'total_workload', '各科室工作量')
-    return jsonify(chart_config)
+    try:
+        query = """
+        SELECT 
+            department as department,
+            COUNT(*) as count,
+            SUM(CASE WHEN 就诊类型 = '门诊' THEN 1 ELSE 0 END) as outpatient_count,
+            SUM(CASE WHEN 就诊类型 = '住院' THEN 1 ELSE 0 END) as inpatient_count,
+            SUM(CASE WHEN 就诊类型 = '手术' THEN 1 ELSE 0 END) as surgery_count
+        FROM medical_data
+        GROUP BY department
+        ORDER BY count DESC
+        """
+        
+        df = execute_query_to_dataframe(query)
+        
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'message': '未找到科室统计数据'
+            }), 404
+            
+        # 转换为图表数据格式
+        chart_data = {
+            'departments': df['department'].tolist(),
+            'total_counts': df['count'].tolist(),
+            'outpatient_counts': df['outpatient_count'].tolist(),
+            'inpatient_counts': df['inpatient_count'].tolist(),
+            'surgery_counts': df['surgery_count'].tolist()
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': chart_data
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"获取科室统计数据失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'获取统计数据失败: {str(e)}'
+        }), 500
 
 @api_bp.route('/stats/specialty')
 def get_specialty_stats():
     """获取各专业组的统计数据"""
-    conn = connect_db()
-    df = pd.read_sql_query("SELECT specialty, COUNT(*) as count, SUM(workload) as total_workload FROM medical_data GROUP BY specialty", conn)
-    conn.close()
-    chart_config = generate_chart_data(df, 'bar', 'specialty', 'total_workload', '各专业组工作量')
-    return jsonify(chart_config)
+    try:
+        query = """
+        SELECT 
+            specialty as specialty,
+            COUNT(*) as count,
+            SUM(CASE WHEN 就诊类型 = '门诊' THEN 1 ELSE 0 END) as outpatient_count,
+            SUM(CASE WHEN 就诊类型 = '住院' THEN 1 ELSE 0 END) as inpatient_count,
+            SUM(CASE WHEN 就诊类型 = '手术' THEN 1 ELSE 0 END) as surgery_count
+        FROM medical_data
+        GROUP BY specialty
+        ORDER BY count DESC
+        """
+        
+        df = execute_query_to_dataframe(query)
+        
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'message': '未找到专业组统计数据'
+            }), 404
+            
+        # 转换为图表数据格式
+        chart_data = {
+            'specialties': df['specialty'].tolist(),
+            'total_counts': df['count'].tolist(),
+            'outpatient_counts': df['outpatient_count'].tolist(),
+            'inpatient_counts': df['inpatient_count'].tolist(),
+            'surgery_counts': df['surgery_count'].tolist()
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': chart_data
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"获取专业组统计数据失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'获取统计数据失败: {str(e)}'
+        }), 500
 
 @api_bp.route('/stats/date')
 def get_date_stats():
     """获取各日期的统计数据"""
-    conn = connect_db()
-    df = pd.read_sql_query("SELECT date, COUNT(*) as count, SUM(workload) as total_workload FROM medical_data GROUP BY date", conn)
-    conn.close()
-    chart_config = generate_chart_data(df, 'line', 'date', 'total_workload', '各日期工作量')
-    return jsonify(chart_config)
+    try:
+        # 从数据库获取真实数据
+        query = """
+        SELECT 
+            strftime('%Y-%m-%d', 就诊日期) as date,
+            COUNT(*) as count,
+            SUM(CASE WHEN 就诊类型 = '门诊' THEN 1 ELSE 0 END) as outpatient_count,
+            SUM(CASE WHEN 就诊类型 = '住院' THEN 1 ELSE 0 END) as inpatient_count
+        FROM 门诊记录
+        WHERE 就诊日期 >= date('now', '-30 days')
+        GROUP BY strftime('%Y-%m-%d', 就诊日期)
+        ORDER BY date
+        """
+        
+        df = execute_query_to_dataframe(query)
+        
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'message': '未找到统计数据'
+            }), 404
+            
+        # 转换为图表数据格式
+        chart_data = {
+            'dates': df['date'].tolist(),
+            'outpatient_counts': df['outpatient_count'].tolist(),
+            'inpatient_counts': df['inpatient_count'].tolist(),
+            'total_counts': df['count'].tolist()
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': chart_data
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"获取日期统计数据失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'获取统计数据失败: {str(e)}'
+        }), 500
 
 @api_bp.route('/query', methods=['POST'])
 def process_query():
@@ -110,31 +218,62 @@ def process_query():
         params = []
         
         if selected_department:
-            conditions.append("department = ?")
+            conditions.append("科室 = ?")
             params.append(selected_department)
         
         if selected_specialty:
-            conditions.append("specialty = ?")
+            conditions.append("专业组 = ?")
             params.append(selected_specialty)
         
         if selected_date:
-            conditions.append("date = ?")
+            conditions.append("就诊日期 = ?")
             params.append(selected_date)
         
         # 添加基于用户查询的条件
         if processed_query.get('conditions'):
             for condition in processed_query.get('conditions'):
-                conditions.append(condition['field'] + " " + condition['operator'] + " ?")
-                params.append(condition['value'])
+                field = condition['field']
+                operator = condition['operator']
+                value = condition['value']
+                
+                # 根据字段类型添加不同的查询条件
+                if field in ['就诊日期', '手术日期']:
+                    conditions.append(f"{field} {operator} ?")
+                    params.append(value)
+                elif field in ['年龄', '住院天数', '手术时长']:
+                    conditions.append(f"{field} {operator} ?")
+                    params.append(float(value))
+                else:
+                    conditions.append(f"{field} {operator} ?")
+                    params.append(value)
         
         # 构建完整的SQL查询
-        sql = "SELECT * FROM medical_data"
+        sql = """
+        SELECT 
+            就诊日期,
+            科室,
+            专业组,
+            就诊类型,
+            患者姓名,
+            性别,
+            年龄,
+            诊断,
+            手术名称,
+            手术日期,
+            手术时长,
+            住院天数,
+            费用
+        FROM 门诊记录
+        """
+        
         if conditions:
             sql += " WHERE " + " AND ".join(conditions)
         
         # 添加排序
         if processed_query.get('sort'):
-            sql += " ORDER BY " + processed_query.get('sort').get('field') + " " + processed_query.get('sort').get('order')
+            sort_field = processed_query.get('sort').get('field')
+            sort_order = processed_query.get('sort').get('order', 'DESC')
+            sql += f" ORDER BY {sort_field} {sort_order}"
         
         # 执行查询
         conn = connect_db()
@@ -152,11 +291,20 @@ def process_query():
         # 如果需要生成图表
         if processed_query.get('chart'):
             chart_type = processed_query.get('chart').get('type', 'bar')
-            x_field = processed_query.get('chart').get('x_field', 'department')
-            y_field = processed_query.get('chart').get('y_field', 'workload')
+            x_field = processed_query.get('chart').get('x_field', '科室')
+            y_field = processed_query.get('chart').get('y_field', '就诊量')
             title = processed_query.get('chart').get('title', '查询结果')
             
-            chart_df = df.groupby(x_field)[y_field].sum().reset_index()
+            # 根据图表类型生成不同的数据
+            if chart_type == 'bar':
+                chart_df = df.groupby(x_field).size().reset_index(name=y_field)
+            elif chart_type == 'line':
+                chart_df = df.groupby(x_field).size().reset_index(name=y_field)
+            elif chart_type == 'pie':
+                chart_df = df.groupby(x_field).size().reset_index(name=y_field)
+            else:
+                chart_df = df.groupby(x_field).size().reset_index(name=y_field)
+            
             result['chart'] = generate_chart_data(chart_df, chart_type, x_field, y_field, title)
         
         return jsonify(result)

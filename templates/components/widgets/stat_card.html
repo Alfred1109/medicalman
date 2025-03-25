@@ -1,0 +1,31 @@
+{% macro stat_card(title, value, description='', trend=0, trend_label='较上期') %}
+<div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="p-5">
+        <div class="flex items-center">
+            <div class="flex-1">
+                <p class="text-sm font-medium text-gray-500 truncate">
+                    {{ title }}
+                </p>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">
+                    {{ value }}
+                </p>
+            </div>
+        </div>
+        {% if description or trend != 0 %}
+        <div class="mt-4">
+            {% if description %}
+            <p class="text-sm text-gray-500">{{ description }}</p>
+            {% endif %}
+            {% if trend != 0 %}
+            <div class="mt-1 flex items-baseline text-sm">
+                <span class="{% if trend > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ trend }}%
+                </span>
+                <span class="ml-2 text-gray-500">{{ trend_label }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %} 

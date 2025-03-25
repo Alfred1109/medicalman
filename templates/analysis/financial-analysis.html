@@ -315,14 +315,14 @@
                             </div>
                         </div>
                     </div>
-        <div class="chart-container">
-            <!-- 图表将通过JavaScript渲染 -->
-        </div>
+                    <div class="chart-container">
+                        <!-- 图表将通过JavaScript渲染 -->
+                    </div>
                 </div>
                 
                 <div class="analysis-chart">
                     <div class="chart-header">
-            <h3 class="chart-title">收入构成</h3>
+                        <h3 class="chart-title">收入构成</h3>
                         <div class="chart-actions">
                             <div class="chart-action" title="下载">
                                 <i class="fas fa-download"></i>
@@ -332,15 +332,14 @@
                             </div>
                         </div>
                     </div>
-        <div class="chart-container">
-            <!-- 图表将通过JavaScript渲染 -->
-                            </div>
-                        </div>
+                    <div class="chart-container">
+                        <!-- 图表将通过JavaScript渲染 -->
+                    </div>
                 </div>
                 
                 <div class="analysis-chart">
                     <div class="chart-header">
-        <h3 class="chart-title">科室财务对比</h3>
+                        <h3 class="chart-title">科室财务对比</h3>
                         <div class="chart-actions">
                             <div class="chart-action" title="下载">
                                 <i class="fas fa-download"></i>
@@ -350,203 +349,14 @@
                             </div>
                         </div>
                     </div>
-    <div class="chart-container">
-        <!-- 图表将通过JavaScript渲染 -->
-    </div>
-</div>
+                    <div class="chart-container">
+                        <!-- 图表将通过JavaScript渲染 -->
+                    </div>
+                </div>
+            </div>
 {% endblock %}
     
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 收入趋势图
-    const revenueTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
-    const revenueTrendOption = {
-            tooltip: {
-            trigger: 'axis'
-            },
-            legend: {
-            data: ['收入', '支出', '利润']
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-            bottom: '3%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-            boundaryGap: false,
-            data: ['1月', '2月', '3月', '4月', '5月', '6月']
-            },
-            yAxis: {
-                type: 'value',
-            axisLabel: {
-                formatter: '¥{value}K'
-                }
-            },
-            series: [
-                {
-                name: '收入',
-                    type: 'line',
-                data: [520, 532, 501, 534, 590, 630],
-                smooth: true,
-                    lineStyle: {
-                    width: 3
-                }
-                },
-                {
-                name: '支出',
-                type: 'line',
-                data: [320, 332, 301, 334, 390, 420],
-                smooth: true,
-                lineStyle: {
-                    width: 3
-                    }
-                },
-                {
-                name: '利润',
-                type: 'line',
-                data: [200, 200, 200, 200, 200, 210],
-                smooth: true,
-                lineStyle: {
-                    width: 3
-                },
-                    itemStyle: {
-                    color: '#5cb87a'
-                    }
-                }
-            ]
-        };
-    revenueTrendChart.setOption(revenueTrendOption);
-        
-    // 收入构成图
-    const revenueCompositionChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
-    const revenueCompositionOption = {
-            tooltip: {
-                trigger: 'item',
-            formatter: '{a} <br/>{b}: ¥{c}K ({d}%)'
-            },
-            legend: {
-            orient: 'vertical',
-            right: 10,
-            top: 'center',
-            data: ['门诊', '住院', '药房', '检查', '手术', '其他']
-            },
-            series: [
-                {
-                name: '收入来源',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    avoidLabelOverlap: false,
-                    itemStyle: {
-                    borderRadius: 5,
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    },
-                    label: {
-                        show: false,
-                        position: 'center'
-                    },
-                    emphasis: {
-                        label: {
-                            show: true,
-                            fontSize: '18',
-                            fontWeight: 'bold'
-                        }
-                    },
-                    labelLine: {
-                        show: false
-                    },
-                    data: [
-                    { value: 1235, name: '门诊' },
-                    { value: 735, name: '住院' },
-                    { value: 580, name: '药房' },
-                    { value: 484, name: '检查' },
-                    { value: 300, name: '手术' },
-                    { value: 135, name: '其他' }
-                    ]
-                }
-            ]
-        };
-    revenueCompositionChart.setOption(revenueCompositionOption);
-        
-    // 科室财务对比图
-    const departmentFinanceChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
-    const departmentFinanceOption = {
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                }
-            },
-        legend: {
-            data: ['收入', '支出', '利润']
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
-            xAxis: {
-            type: 'value',
-            axisLabel: {
-                formatter: '¥{value}K'
-                }
-            },
-            yAxis: {
-            type: 'category',
-            data: ['内科', '外科', '妇产科', '儿科', '骨科', '眼科']
-            },
-            series: [
-                {
-                name: '收入',
-                type: 'bar',
-                stack: 'total',
-                label: {
-                    show: true
-                },
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [620, 732, 501, 534, 490, 430]
-            },
-            {
-                name: '支出',
-                    type: 'bar',
-                stack: 'total',
-                label: {
-                    show: true
-                },
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [420, 532, 401, 434, 390, 330]
-            },
-            {
-                name: '利润',
-                type: 'bar',
-                stack: 'total',
-                    label: {
-                    show: true
-                },
-                emphasis: {
-                    focus: 'series'
-                },
-                data: [200, 200, 100, 100, 100, 100]
-                }
-            ]
-        };
-    departmentFinanceChart.setOption(departmentFinanceOption);
-        
-    // 响应式调整
-        window.addEventListener('resize', function() {
-        revenueTrendChart.resize();
-        revenueCompositionChart.resize();
-        departmentFinanceChart.resize();
-    });
-        });
-    </script>
+<script src="{{ url_for('static', filename='js/financial-analysis.js') }}"></script>
 {% endblock %} 

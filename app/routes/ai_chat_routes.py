@@ -15,6 +15,28 @@ from app.utils.logger import log_user_query
 from app.utils.utils import safe_json_dumps
 from app.utils.nlp_utils import TextProcessor
 from app.routes.auth_routes import login_required, api_login_required
+from app.services.llm_service import LLMServiceFactory
+from app.utils.database import execute_query_to_dataframe
+from app.prompts.querying import (
+    QUERY_SYSTEM_PROMPT,
+    QUERY_USER_PROMPT,
+    KB_QUERY_SYSTEM_PROMPT,
+    KB_QUERY_USER_PROMPT,
+    TEXT_QUERY_SYSTEM_PROMPT,
+    TEXT_QUERY_USER_PROMPT
+)
+from app.prompts.analyzing import (
+    KB_ANALYSIS_SYSTEM_PROMPT,
+    KB_ANALYSIS_USER_PROMPT,
+    FILE_ANALYSIS_SYSTEM_PROMPT,
+    FILE_ANALYSIS_USER_PROMPT
+)
+from app.prompts.responding import (
+    KB_RESPONSE_SYSTEM_PROMPT,
+    KB_RESPONSE_USER_PROMPT,
+    COMPREHENSIVE_RESPONSE_SYSTEM_PROMPT,
+    COMPREHENSIVE_RESPONSE_USER_PROMPT
+)
 
 # 创建蓝图
 ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/chat')
@@ -110,78 +132,52 @@ def render_chart():
 @login_required
 def debug_charts():
     """调试图表渲染功能"""
-    # 创建测试图表数据
-    test_charts = [
-        {
-            "title": "测试柱状图",
-            "type": "bar",
-            "xAxis": {
-                "type": "category",
-                "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-            },
-            "yAxis": {
-                "type": "value"
-            },
-            "series": [{
-                "data": [120, 132, 101, 134, 90, 230, 210],
-                "type": "bar"
-            }]
-        },
-        {
-            "title": "测试折线图",
-            "type": "line",
-            "xAxis": {
-                "type": "category",
-                "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-            },
-            "yAxis": {
-                "type": "value"
-            },
-            "series": [{
-                "data": [150, 230, 224, 218, 135, 147, 260],
-                "type": "line"
-            }]
-        }
-    ]
-    
-    # 尝试使用ChartService生成图表
     try:
-        chart_service = ChartService()
-        test_data = [
-            {"日期": "周一", "门诊量": 120, "住院量": 56},
-            {"日期": "周二", "门诊量": 132, "住院量": 61},
-            {"日期": "周三", "门诊量": 101, "住院量": 42},
-            {"日期": "周四", "门诊量": 134, "住院量": 67},
-            {"日期": "周五", "门诊量": 90, "住院量": 43},
-            {"日期": "周六", "门诊量": 230, "住院量": 78},
-            {"日期": "周日", "门诊量": 210, "住院量": 65}
-        ]
+        # 从数据库获取测试数据
+        sql = """
+        SELECT 
+            strftime('%Y-%m-%d', 就诊日期) as 日期,
+            COUNT(*) as 门诊量,
+            SUM(CASE WHEN 就诊类型 = '住院' THEN 1 ELSE 0 END) as 住院量,
+            SUM(CASE WHEN 就诊类型 = '门诊' THEN 1 ELSE 0 END) as 门诊就诊量
+        FROM 门诊记录
+        WHERE 就诊日期 >= date('now', '-7 days')
+        GROUP BY strftime('%Y-%m-%d', 就诊日期)
+        ORDER BY 就诊日期
+        """
+        
+        df = execute_query_to_dataframe(sql)
+        if df.empty:
+            current_app.logger.warning("未找到测试数据")
+            return render_template('ai_chat/debug_charts.html', charts=[], error="未找到测试数据")
+        
+        # 将DataFrame转换为字典列表
+        test_data = df.to_dict(orient='records')
         
         # 记录详细日志
         current_app.logger.info("开始测试ChartService图表生成功能")
-        
-        # 将测试数据转换为JSON字符串
-        structured_data = json.dumps(test_data, ensure_ascii=False)
-        current_app.logger.info(f"测试数据: {structured_data[:200]}...")
+        current_app.logger.info(f"测试数据: {json.dumps(test_data[:2], ensure_ascii=False)}...")
         
         # 测试查询
         test_query = "分析一周内的门诊量和住院量变化趋势"
         
         # 调用服务生成图表配置
-        chart_config = chart_service.generate_chart_config(test_query, structured_data)
+        chart_service = LLMServiceFactory.get_chart_service()
+        chart_config = chart_service.generate_chart_config(test_query, json.dumps(test_data, ensure_ascii=False))
         current_app.logger.info(f"生成的图表配置: {json.dumps(chart_config, ensure_ascii=False)}")
         
         # 如果生成了有效的图表配置，添加到展示列表
         if chart_config and 'charts' in chart_config and chart_config['charts']:
-            test_charts.extend(chart_config['charts'])
             current_app.logger.info(f"成功添加 {len(chart_config['charts'])} 个自动生成的图表")
+            return render_template('ai_chat/debug_charts.html', charts=chart_config['charts'])
+        else:
+            current_app.logger.warning("未能生成有效的图表配置")
+            return render_template('ai_chat/debug_charts.html', charts=[], error="未能生成有效的图表配置")
+            
     except Exception as e:
         current_app.logger.error(f"测试ChartService时出错: {str(e)}")
-        import traceback
         current_app.logger.error(traceback.format_exc())
-    
-    # 渲染调试页面
-    return render_template('ai_chat/debug_charts.html', charts=test_charts)
+        return render_template('ai_chat/debug_charts.html', charts=[], error=f"测试出错: {str(e)}")
 
 @ai_chat_bp.route('/export_chat_report', methods=['GET'])
 def export_chat_report():
@@ -270,4 +266,108 @@ def export_chat_report():
             
     except Exception as e:
         current_app.logger.error(f"导出聊天报告失败: {str(e)}")
-        return jsonify({'error': f'导出聊天报告失败: {str(e)}'}), 500 
+        return jsonify({'error': f'导出聊天报告失败: {str(e)}'}), 500
+
+@ai_chat_bp.route('/api/chat', methods=['POST'])
+def chat():
+    """处理AI聊天请求"""
+    try:
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少必要的请求参数'
+            }), 400
+        
+        user_message = data['message']
+        knowledge_settings = data.get('knowledge_settings', {})
+        
+        # 使用查询服务处理用户消息
+        query_service = LLMServiceFactory.get_query_service()
+        result = query_service.process_user_query(user_message, knowledge_settings)
+        
+        # 如果查询成功且包含图表数据，尝试生成图表
+        if result.get('success') and 'structured_result' in result:
+            try:
+                chart_service = LLMServiceFactory.get_chart_service()
+                if 'data' in result['structured_result']:
+                    chart_result = chart_service.generate_chart_config(
+                        user_message,
+                        json.dumps(result['structured_result']['data'], ensure_ascii=False)
+                    )
+                    if chart_result and 'charts' in chart_result:
+                        result['structured_result']['charts'] = chart_result['charts']
+            except Exception as chart_err:
+                print(f"生成图表时出错: {str(chart_err)}")
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"处理聊天请求时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'处理请求时出错: {str(e)}'
+        }), 500
+
+@ai_chat_bp.route('/api/chat/test', methods=['GET'])
+def test_chat():
+    """测试AI聊天功能"""
+    try:
+        # 从数据库获取测试数据
+        sql = """
+        SELECT 
+            strftime('%Y-%m-%d', 就诊日期) as 日期,
+            COUNT(*) as 门诊量,
+            SUM(CASE WHEN 就诊类型 = '住院' THEN 1 ELSE 0 END) as 住院量
+        FROM 门诊记录
+        WHERE 就诊日期 >= date('now', '-7 days')
+        GROUP BY strftime('%Y-%m-%d', 就诊日期)
+        ORDER BY 就诊日期
+        """
+        
+        df = execute_query_to_dataframe(sql)
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'message': '未找到测试数据'
+            }), 404
+        
+        # 将DataFrame转换为字典列表
+        test_data = df.to_dict(orient='records')
+        
+        # 使用ChartService生成图表
+        try:
+            chart_service = LLMServiceFactory.get_chart_service()
+            chart_result = chart_service.generate_chart_config(
+                "分析最近7天的门诊量和住院量趋势",
+                json.dumps(test_data, ensure_ascii=False)
+            )
+            
+            if chart_result and 'charts' in chart_result:
+                return jsonify({
+                    'success': True,
+                    'message': '测试数据获取成功',
+                    'data': {
+                        'test_data': test_data,
+                        'charts': chart_result['charts']
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': '生成图表失败'
+                }), 500
+                
+        except Exception as chart_err:
+            print(f"生成图表时出错: {str(chart_err)}")
+            return jsonify({
+                'success': False,
+                'message': f'生成图表时出错: {str(chart_err)}'
+            }), 500
+            
+    except Exception as e:
+        print(f"获取测试数据时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'获取测试数据时出错: {str(e)}'
+        }), 500 

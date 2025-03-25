@@ -8,6 +8,8 @@ import random
 from PIL import Image, ImageDraw, ImageFont
 import io
 from app.models.user import User
+from app.config import config
+import os
 
 class AuthService:
     """认证服务类"""
@@ -149,15 +151,21 @@ class AuthService:
         
         # 尝试加载字体，如果失败则使用默认字体
         try:
-            # 使用更大的字体大小
-            font = ImageFont.truetype("arial.ttf", 70)
-        except IOError:
-            try:
+            # 从配置中获取字体路径
+            font_path = config.CAPTCHA_FONT_PATH
+            if font_path and os.path.exists(font_path):
+                font = ImageFont.truetype(font_path, 70)
+            else:
                 # 尝试加载系统字体
-                font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 70)
-            except IOError:
-                # 如果无法加载指定字体，使用默认字体
-                font = ImageFont.load_default()
+                system_font_path = config.CAPTCHA_SYSTEM_FONT_PATH
+                if system_font_path and os.path.exists(system_font_path):
+                    font = ImageFont.truetype(system_font_path, 70)
+                else:
+                    # 如果无法加载指定字体，使用默认字体
+                    font = ImageFont.load_default()
+        except Exception as e:
+            print(f"加载字体时出错: {str(e)}")
+            font = ImageFont.load_default()
         
         # 计算单个字符的平均宽度
         try:

@@ -401,4 +401,44 @@ class KnowledgeBaseService(BaseLLMService):
         except Exception as e:
             print(f"生成知识库回复时出错: {str(e)}")
             traceback.print_exc()
-            return f"处理知识库内容时发生错误: {str(e)}" 
+            return f"处理知识库内容时发生错误: {str(e)}"
+
+def get_knowledge_base():
+    """获取知识库"""
+    try:
+        db_path = config.DATABASE_PATH
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM knowledge_base")
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    except Exception as e:
+        print(f"获取知识库失败: {str(e)}")
+        traceback.print_exc()
+        return []
+
+def update_knowledge_base():
+    """更新知识库"""
+    try:
+        db_path = config.DATABASE_PATH
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # 更新知识库内容
+        cursor.execute("""
+            UPDATE knowledge_base 
+            SET last_updated = CURRENT_TIMESTAMP 
+            WHERE id IN (
+                SELECT id FROM knowledge_base 
+                WHERE needs_update = 1
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"更新知识库失败: {str(e)}")
+        traceback.print_exc()
+        return False 

@@ -9,6 +9,7 @@ import os
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from dotenv import load_dotenv
+from app.config import config
 
 # 获取项目根目录的绝对路径
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -18,13 +19,13 @@ ENV_FILE = ROOT_DIR / '.env'
 print(f"加载环境变量文件: {ENV_FILE}")
 load_dotenv(dotenv_path=ENV_FILE)
 
-# 从环境变量加载配置，避免硬编码
-VOLCENGINE_API_KEY = os.getenv("VOLCENGINE_API_KEY", "3470059d-f774-4302-81e0-50fa017fea38")
-VOLCENGINE_API_URL = os.getenv("VOLCENGINE_API_URL", "https://ark.cn-beijing.volces.com/api/v3/chat/completions")
-VOLCENGINE_MODEL = os.getenv("VOLCENGINE_MODEL", "deepseek-v3-241226")
-REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))  # 增加到60秒
-MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))  # 增加到3次
-RETRY_DELAY = int(os.getenv("RETRY_DELAY", "2"))  # 增加到2秒
+# 从配置中获取API设置
+VOLCENGINE_API_KEY = os.getenv(config.LLM_ENV_VARS['api_key'])
+VOLCENGINE_API_URL = os.getenv(config.LLM_ENV_VARS['api_url'])
+VOLCENGINE_MODEL = os.getenv(config.LLM_ENV_VARS['model'], config.LLM_DEFAULTS['model'])
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", str(config.LLM_DEFAULTS['timeout'])))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", str(config.LLM_DEFAULTS['max_retries'])))
+RETRY_DELAY = int(os.getenv("RETRY_DELAY", str(config.LLM_DEFAULTS['retry_delay'])))
 
 class BaseLLMService:
     """
@@ -79,6 +80,7 @@ class BaseLLMService:
             if isinstance(system_prompt, str) and isinstance(user_message, str):
                 print(f"系统提示长度: {len(system_prompt)}, 用户消息长度: {len(user_message)}")
             else:
+                print(config.LLM_ERROR_MESSAGES['invalid_input'])
                 # 处理非字符串类型
                 if not isinstance(system_prompt, str):
                     system_prompt = str(system_prompt) if system_prompt is not None else ""
@@ -91,12 +93,11 @@ class BaseLLMService:
                         user_message = "无法转换的用户消息"
                 print(f"系统提示类型转换为字符串, 用户消息类型转换为字符串")
             
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}"
-            }
+            headers = config.LLM_HEADERS.copy()
+            headers["Authorization"] = f"Bearer {self.api_key}"
             
-            payload = {
+            payload = config.LLM_PAYLOAD_TEMPLATE.copy()
+            payload.update({
                 "model": self.model_name,
                 "messages": [
                     {"role": "system", "content": system_prompt},
@@ -105,7 +106,7 @@ class BaseLLMService:
                 "temperature": temperature,
                 "top_p": top_p,
                 "top_k": top_k
-            }
+            })
             
             # 如果提供了max_tokens，则添加到payload中
             if max_tokens is not None:
@@ -139,7 +140,7 @@ class BaseLLMService:
                                 print(f"API调用成功 - 状态码: 200, 耗时: {response_time:.2f}秒")
                                 return response_data["choices"][0]["message"]["content"]
                             else:
-                                print(f"警告: API响应没有包含有效的选择: {json.dumps(response_data, ensure_ascii=False)[:200]}...")
+                                print(f"警告: {config.LLM_ERROR_MESSAGES['invalid_response']}")
                                 # 如果不是最后一次尝试，则继续重试
                                 if attempt < retries:
                                     print(f"等待 {self.retry_delay} 秒后重试...")
@@ -176,7 +177,7 @@ class BaseLLMService:
                             time.sleep(self.retry_delay)
                             continue
                         else:
-                            return "API请求超时，请稍后再试或简化您的问题。"
+                            return config.LLM_ERROR_MESSAGES['api_timeout']
                     
                     except requests.exceptions.RequestException as e:
                         print(f"API请求异常 (尝试 {attempt+1}/{retries+1}): {str(e)}")
@@ -187,7 +188,7 @@ class BaseLLMService:
                             time.sleep(self.retry_delay)
                             continue
                         else:
-                            return "API连接异常，请检查网络连接后重试。"
+                            return config.LLM_ERROR_MESSAGES['api_connection']
                 
                 except Exception as inner_e:
                     print(f"API请求处理异常: {str(inner_e)}")
@@ -198,13 +199,13 @@ class BaseLLMService:
                         time.sleep(self.retry_delay)
                         continue
                     else:
-                        return "处理请求时出现异常，请稍后重试。"
+                        return config.LLM_ERROR_MESSAGES['api_error'].format(str(inner_e))
             
             # 如果所有重试都失败，返回一个有用的错误消息而不是None
-            return "无法从AI服务获取响应，请稍后重试。"
+            return config.LLM_ERROR_MESSAGES['no_response']
         
         except Exception as e:
             print(f"调用LLM API时发生错误: {str(e)}")
             print(f"错误堆栈: {traceback.format_exc()}")
             # 返回错误消息而不是None，这样用户会看到具体原因而不是无限等待
-            return f"系统发生错误: {str(e)}" 
+            return config.LLM_ERROR_MESSAGES['api_error'].format(str(e)) 

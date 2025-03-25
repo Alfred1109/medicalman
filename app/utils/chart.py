@@ -1,8 +1,9 @@
 import random
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from app.config import config
 
-def generate_random_colors(count):
+def generate_random_colors(count: int) -> List[str]:
     """
     生成随机颜色列表
     
@@ -14,13 +15,13 @@ def generate_random_colors(count):
     """
     colors = []
     for _ in range(count):
-        r = random.randint(100, 200)
-        g = random.randint(100, 200)
-        b = random.randint(100, 200)
-        colors.append(f'rgba({r}, {g}, {b}, 0.7)')
+        r = random.randint(0, 255)
+        g = random.randint(0, 255)
+        b = random.randint(0, 255)
+        colors.append(f'rgba({r}, {g}, {b}, 1)')
     return colors
 
-def generate_chart_data(df, chart_type, x_field, y_field, title):
+def generate_chart_data(df: pd.DataFrame, chart_type: str, x_field: str, y_field: str, title: str) -> Dict[str, Any]:
     """
     根据数据生成Chart.js图表配置
     
@@ -37,43 +38,27 @@ def generate_chart_data(df, chart_type, x_field, y_field, title):
     if df.empty:
         return None
     
-    labels = df[x_field].tolist()
-    data = df[y_field].tolist()
-    
-    # 生成随机颜色
-    colors = generate_random_colors(len(labels))
+    colors = generate_random_colors(len(df))
     
     chart_config = {
         'type': chart_type,
         'data': {
-            'labels': labels,
+            'labels': df[x_field].tolist(),
             'datasets': [{
                 'label': y_field,
-                'data': data,
-                'backgroundColor': colors if chart_type in ['bar', 'pie', 'doughnut'] else 'rgba(75, 192, 192, 0.2)',
-                'borderColor': 'rgba(75, 192, 192, 1)' if chart_type == 'line' else colors,
+                'data': df[y_field].tolist(),
+                'backgroundColor': config.UTILS['mime_types'][chart_type]['background'] if chart_type in ['bar', 'pie', 'doughnut'] else config.UTILS['mime_types']['line']['background'],
+                'borderColor': config.UTILS['mime_types']['line']['border'] if chart_type == 'line' else config.UTILS['mime_types'][chart_type]['border'],
                 'borderWidth': 1
             }]
         },
-        'options': {
-            'responsive': True,
-            'maintainAspectRatio': False,
-            'plugins': {
-                'title': {
-                    'display': True,
-                    'text': title
-                },
-                'legend': {
-                    'display': True,
-                    'position': 'top'
-                }
-            }
-        }
+        'options': config.UTILS['options']
     }
     
+    chart_config['options']['plugins']['title']['text'] = title
     return chart_config
 
-def generate_dynamic_charts(chart_config, data):
+def generate_dynamic_charts(chart_config: Dict[str, Any], data: pd.DataFrame) -> Dict[str, Any]:
     """
     根据图表配置和数据生成图表
     
@@ -554,3 +539,38 @@ def find_similar_fields(target_field, column_list):
             return numeric_cols
     
     return [] 
+
+def generate_mixed_chart(chart_config: Dict[str, Any], data: pd.DataFrame) -> Dict[str, Any]:
+    """生成混合图表"""
+    viz = chart_config.get('viz', {})
+    x_field = viz.get('x_field')
+    y_fields = viz.get('y_fields', [])
+    title = viz.get('title', '')
+    
+    if not x_field or not y_fields:
+        raise ValueError("x_field and y_fields are required")
+    
+    colors = viz.get('style', {}).get('colors', config.UTILS['mixed_chart']['colors'])
+    
+    datasets = []
+    for i, y_field in enumerate(y_fields):
+        color = colors[i % len(colors)]
+        datasets.append({
+            'label': y_field,
+            'data': data[y_field].tolist(),
+            'backgroundColor': color,
+            'borderColor': color,
+            'borderWidth': 1
+        })
+    
+    chart_config = {
+        'type': 'bar',
+        'data': {
+            'labels': data[x_field].tolist(),
+            'datasets': datasets
+        },
+        'options': config.UTILS['options']
+    }
+    
+    chart_config['options']['plugins']['title']['text'] = title
+    return chart_config 

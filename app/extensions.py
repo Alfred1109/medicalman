@@ -1,9 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-
-# 初始化SQLAlchemy
-db = SQLAlchemy()
 
 # 初始化Migrate
 migrate = Migrate()
@@ -16,13 +12,8 @@ login_manager.login_message_category = 'warning'
 
 def init_extensions(app):
     """初始化所有Flask扩展"""
-    # 初始化数据库
-    db_path = app.config.get('DATABASE_PATH', 'instance/medical_workload.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db.init_app(app)
-    
     # 初始化数据库迁移
+    from app import db
     migrate.init_app(app, db)
     
     # 初始化登录管理器

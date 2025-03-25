@@ -12,10 +12,32 @@ from datetime import datetime
 from app.utils.database import execute_query, execute_query_to_dataframe
 from app.services.llm_service import LLMServiceFactory
 from app.utils.utils import safe_json_dumps
-from app.services.prompts import (
-    DATA_ANALYSIS_SYSTEM_PROMPT,
-    RESPONSE_SYSTEM_PROMPT,
-    RESPONSE_USER_PROMPT
+from app.prompts.querying import (
+    QUERY_SYSTEM_PROMPT,
+    QUERY_USER_PROMPT,
+    KB_QUERY_SYSTEM_PROMPT,
+    KB_QUERY_USER_PROMPT,
+    TEXT_QUERY_SYSTEM_PROMPT,
+    TEXT_QUERY_USER_PROMPT,
+    QUERY_ANALYSIS_PROMPT,
+    QUERY_ERROR_PROMPT
+)
+from app.prompts.analyzing import (
+    KB_ANALYSIS_SYSTEM_PROMPT,
+    KB_ANALYSIS_USER_PROMPT,
+    FILE_ANALYSIS_SYSTEM_PROMPT,
+    FILE_ANALYSIS_USER_PROMPT
+)
+from app.prompts.responding import (
+    KB_RESPONSE_SYSTEM_PROMPT,
+    KB_RESPONSE_USER_PROMPT,
+    COMPREHENSIVE_RESPONSE_SYSTEM_PROMPT,
+    COMPREHENSIVE_RESPONSE_USER_PROMPT
+)
+from app.config import (
+    DATA_ANALYSIS_KEYWORDS,
+    UPLOAD_FOLDER,
+    ALLOWED_EXTENSIONS
 )
 
 # 统一的响应格式
@@ -78,17 +100,21 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
     if not knowledge_settings:
         knowledge_settings = {}
     
-    # 数据源选择，默认为'general'
-    data_source = knowledge_settings.get('data_source', 'general')
+    # 数据源选择，默认为'auto'
+    data_source = knowledge_settings.get('data_source', 'auto')
     
     start_time = datetime.now()
     
     try:
+        # 检查查询是否包含数据分析关键词
+        contains_data_keywords = any(keyword in user_message for keyword in DATA_ANALYSIS_KEYWORDS)
+        
         # 根据数据源选择查询处理方式
         print(f"处理用户查询，使用数据源: {data_source}")
         
-        if data_source == 'database':
+        if data_source == 'database' or (data_source == 'auto' and contains_data_keywords):
             # 数据库查询处理
+            print(f"检测到数据分析关键词，使用数据库查询处理")
             result = process_database_query(user_message)
         elif data_source == 'knowledge_base':
             # 知识库查询处理
@@ -158,7 +184,7 @@ def process_database_query(user_message: str) -> Dict[str, Any]:
         # 执行SQL查询
         try:
             print("开始执行SQL查询...")
-            df = execute_sql_query(sql)
+            df = execute_query_to_dataframe(sql)
             
             if df.empty:
                 print("查询执行成功，但未找到符合条件的数据")
@@ -231,29 +257,23 @@ def process_database_query(user_message: str) -> Dict[str, Any]:
                     print(f"生成统计信息时出错: {str(stats_err)}")
                 
                 # 准备用户分析请求
-                analysis_request = f"请对以下查询和结果进行专业的分析和解读:\n\n"
-                analysis_request += f"用户查询: {user_message}\n\n"
-                analysis_request += f"SQL查询: {sql}\n\n"
-                analysis_request += f"数据结果: {df_summary}"
-                
-                # 如果有图表，添加图表描述
-                if charts:
-                    chart_types = [chart.get('type', 'unknown') for chart in charts]
-                    analysis_request += f"\n\n图表类型: {', '.join(chart_types)}"
-                
-                # 请求详细的分析和解读
-                analysis_request += "\n\n请提供详细的数据分析、关键发现、趋势解读、专业建议等，使回答更加完整和有深度。包括对数据的医学意义的解释，以及可能的下一步行动建议。"
+                analysis_request = QUERY_ANALYSIS_PROMPT.format(
+                    user_query=user_message,
+                    sql_query=sql,
+                    data_summary=df_summary,
+                    chart_types=', '.join([chart.get('type', 'unknown') for chart in charts]) if charts else '无'
+                )
                 
                 # 调用LLM进行分析
                 print("请求LLM对查询结果进行专业分析...")
-                llm_analysis = base_service.call_api(DATA_ANALYSIS_SYSTEM_PROMPT, analysis_request)
+                llm_analysis = base_service.call_api(QUERY_SYSTEM_PROMPT, analysis_request)
                 
                 analysis_message = llm_analysis if llm_analysis else "查询执行成功，但未能生成详细分析。"
                     
             except Exception as analysis_err:
                 print(f"生成分析时出错: {str(analysis_err)}")
                 traceback.print_exc()
-                analysis_message = "查询执行成功。" 
+                analysis_message = "查询执行成功。"
                 
             # 构建返回结果
             return create_response(
@@ -348,59 +368,32 @@ def process_knowledge_query(user_message: str, knowledge_settings: Dict = None) 
 
 def get_latest_excel_file() -> Optional[Tuple[str, pd.DataFrame]]:
     """
-    获取最新上传的Excel文件并读取为DataFrame
+    获取最新的Excel文件及其内容
     
     返回:
-        元组 (文件名, DataFrame) 或 None (如果没有找到文件或读取失败)
+        元组 (文件名, DataFrame) 或 None
     """
     try:
-        from app.utils.files import get_latest_file
+        # 获取上传目录中的所有文件
+        files = [f for f in os.listdir(UPLOAD_FOLDER) 
+                if os.path.isfile(os.path.join(UPLOAD_FOLDER, f)) 
+                and f.lower().endswith(tuple(ALLOWED_EXTENSIONS))]
         
-        # 设置上传文件的目录
-        upload_dir = 'static/uploads/documents'
-        
-        # 获取最新的文件
-        latest_file = get_latest_file(upload_dir)
-        
-        if not latest_file:
-            print("未找到任何文件")
+        if not files:
+            print("未找到Excel文件")
             return None
+            
+        # 按修改时间排序，获取最新的文件
+        latest_file = max(files, key=lambda x: os.path.getmtime(os.path.join(UPLOAD_FOLDER, x)))
+        file_path = os.path.join(UPLOAD_FOLDER, latest_file)
         
-        # 检查文件是否为Excel或CSV文件
-        if not latest_file.lower().endswith(('.xlsx', '.xls', '.csv')):
-            print(f"文件类型不支持: {latest_file}")
-            return None
+        print(f"找到最新的Excel文件: {latest_file}")
         
-        # 构建完整文件路径
-        file_path = os.path.join(upload_dir, latest_file)
-        print(f"找到最新文件: {file_path}")
+        # 读取Excel文件
+        df = pd.read_excel(file_path)
         
-        # 根据文件类型读取数据
-        if latest_file.lower().endswith(('.xlsx', '.xls')):
-            try:
-                # 尝试读取Excel文件
-                print(f"尝试读取Excel文件: {file_path}")
-                df = pd.read_excel(file_path)
-                print(f"成功读取Excel文件，包含 {len(df)} 行数据")
-                return (latest_file, df)
-            except Exception as e:
-                print(f"读取Excel文件失败: {str(e)}")
-                traceback.print_exc()
-                return None
-        elif latest_file.lower().endswith('.csv'):
-            try:
-                # 尝试读取CSV文件
-                print(f"尝试读取CSV文件: {file_path}")
-                df = pd.read_csv(file_path)
-                print(f"成功读取CSV文件，包含 {len(df)} 行数据")
-                return (latest_file, df)
-            except Exception as e:
-                print(f"读取CSV文件失败: {str(e)}")
-                traceback.print_exc()
-                return None
-        else:
-            print(f"文件类型不支持: {latest_file}")
-            return None
+        return latest_file, df
+        
     except Exception as e:
         print(f"获取最新Excel文件时出错: {str(e)}")
         traceback.print_exc()
@@ -442,25 +435,15 @@ def process_file_query(user_message: str, settings: Dict = None) -> Dict[str, An
         base_service = LLMServiceFactory.get_base_service()
         
         # 准备提示词
-        analysis_prompt = f"""你是一个专业的医疗数据分析师。请根据以下用户查询和文件内容提供详细分析:
-
-用户查询: {user_message}
-
-文件内容摘要:
-{file_summary}
-
-请提供:
-1. 对文件内容的总体概括
-2. 针对用户查询的具体分析
-3. 关键发现和洞察
-4. 如有可能，提供数据趋势和模式
-5. 专业的医学建议或下一步行动建议
-"""
+        analysis_prompt = FILE_ANALYSIS_USER_PROMPT.format(
+            user_query=user_message,
+            file_content=file_summary
+        )
         
         # 调用LLM API
         analysis_result = base_service.call_api(
-            "你是一个专业的医疗数据分析师，擅长分析Excel文件数据并提供医学见解。",
-            analysis_prompt
+            system_prompt=FILE_ANALYSIS_SYSTEM_PROMPT,
+            user_message=analysis_prompt
         )
         
         if not analysis_result:
@@ -544,8 +527,8 @@ def process_general_query(user_message: str) -> Dict[str, Any]:
         service = LLMServiceFactory.get_base_service()
         
         # 构建提示
-        system_prompt = RESPONSE_SYSTEM_PROMPT
-        user_prompt = RESPONSE_USER_PROMPT.format(
+        system_prompt = KB_RESPONSE_SYSTEM_PROMPT
+        user_prompt = KB_RESPONSE_USER_PROMPT.format(
             analysis_type="通用",
             analysis_results="",
             user_query=user_message

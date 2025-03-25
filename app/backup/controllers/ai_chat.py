@@ -10,6 +10,7 @@ import json
 import traceback
 import os
 from werkzeug.utils import secure_filename
+from config import ALLOWED_EXTENSIONS, UPLOAD_FOLDER
 
 # 创建蓝图
 ai_chat_bp = Blueprint('ai_chat', __name__)
@@ -328,8 +329,7 @@ def upload_document():
         
         # 如果没有找到支持的类型，使用配置中的值
         if not allowed_extensions:
-            allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', 
-                                                    {'pdf', 'docx', 'txt', 'xlsx', 'xls', 'csv'})
+            allowed_extensions = ALLOWED_EXTENSIONS
         
         # 检查文件扩展名
         if not ('.' in file.filename and 
@@ -344,7 +344,7 @@ def upload_document():
         filename = secure_filename(file.filename)
         
         # 获取上传目录
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/uploads/documents')
+        upload_folder = UPLOAD_FOLDER
         
         # 确保目录存在
         os.makedirs(upload_folder, exist_ok=True)
@@ -410,7 +410,7 @@ def analyze_document():
             return jsonify(success=False, error="查询不能为空")
         
         # 获取上传目录
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/uploads/documents')
+        upload_folder = UPLOAD_FOLDER
         
         # 构建文件路径
         file_path = os.path.join(upload_folder, secure_filename(filename))
@@ -503,7 +503,7 @@ def delete_document():
             return jsonify(success=False, error="未提供文件名")
         
         # 获取上传目录
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/uploads/documents')
+        upload_folder = UPLOAD_FOLDER
         
         # 构建文件路径
         file_path = os.path.join(upload_folder, secure_filename(filename))
@@ -551,4 +551,22 @@ def get_supported_file_types():
         error_message = f"获取支持的文件类型时出错: {str(e)}"
         traceback.print_exc()
         
-        return jsonify(success=False, error=error_message) 
+        return jsonify(success=False, error=error_message)
+
+def upload_file():
+    """上传文件"""
+    try:
+        allowed_extensions = ALLOWED_EXTENSIONS
+        # ... rest of the code ...
+
+def download_file():
+    """下载文件"""
+    try:
+        upload_folder = UPLOAD_FOLDER
+        # ... rest of the code ...
+
+def delete_file():
+    """删除文件"""
+    try:
+        upload_folder = UPLOAD_FOLDER
+        # ... rest of the code ... 

@@ -15,13 +15,20 @@ import secrets
 import logging
 import json
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_wtf.csrf import CSRFProtect
 
 from app.utils.database import db_cursor
 from app.utils.security import verify_captcha, generate_captcha
-from app.utils.logger import log_user_login, log_error
+from app.utils.logger import log_user_login, log_error, log_auth_activity
+from app.config import config
+from app.models.user import User
+from app import db
 
 # 创建蓝图
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# 创建 CSRF 保护实例
+csrf = CSRFProtect()
 
 # 登录验证装饰器
 def login_required(f):
@@ -42,288 +49,146 @@ def api_login_required(f):
     return decorated_function
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@csrf.exempt  # 豁免CSRF验证
 def login():
-    """登录页面"""
-    if request.method == 'POST':
-        # 判断是否为AJAX请求
-        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    """
+    处理用户登录请求
+    
+    GET: 显示登录页面
+    POST: 处理登录表单提交
+    """
+    # 如果用户已登录，重定向到仪表盘
+    if 'user_id' in session:
+        return redirect(url_for('dashboard.index'))
+    
+    # 获取next参数，如果没有则默认为仪表盘
+    next_url = request.args.get('next') or request.form.get('next')
+    if not next_url or not next_url.startswith('/'):
+        next_url = url_for('dashboard.index')
+    
+    if request.method == 'GET':
+        return render_template('auth/login.html', next=next_url)
+    
+    # 处理POST请求
+    try:
+        data = request.get_json() if request.is_json else request.form
+        username = data.get('username')
+        password = data.get('password')
+        captcha = data.get('captcha')
         
-        # AJAX请求处理
-        if is_ajax:
-            data = request.get_json()
-            username = data.get('username')
-            password = data.get('password')
-            captcha = data.get('captcha')
+        # 验证码校验
+        if not captcha or captcha.lower() != session.get('captcha', '').lower():
+            if request.is_json:
+                return jsonify({
+                    'success': False,
+                    'message': '验证码错误'
+                })
+            flash('验证码错误', 'danger')
+            return redirect(url_for('auth.login', next=next_url))
+        
+        # 查找用户
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # 登录成功
+            login_user(user)
+            session['user_id'] = user.id
+            session.permanent = True  # 设置会话为永久性
+            log_auth_activity(user.id, 'login', 'success')
             
-            # 输出调试信息
-            current_app.logger.info(f"收到登录请求: 用户名={username}, 验证码={captcha}")
-            current_app.logger.info(f"会话中的验证码: {session.get('captcha', '无')}")
+            # 生成新的验证码
+            generate_captcha()
             
-            # 验证码验证
-            if not captcha or captcha.upper() != session.get('captcha', '').upper():
-                current_app.logger.warning(f"验证码不匹配: 输入={captcha}, 会话中={session.get('captcha', '无')}")
-                return jsonify({'success': False, 'message': '验证码错误'})
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': '登录成功',
+                    'redirect': next_url
+                })
+            return redirect(next_url)
         else:
-            # 表单提交处理
-            username = request.form.get('username')
-            password = request.form.get('password')
-        
-        # 简单的验证
-        if not username or not password:
-            if is_ajax:
-                return jsonify({'success': False, 'message': '请输入用户名和密码'})
-            else:
-                flash('请输入用户名和密码')
-                return render_template('auth/login.html')
-        
-        try:
-            # 连接数据库
-            db_path = current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db')
-            current_app.logger.info(f"尝试连接数据库: {db_path}")
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            # 登录失败
+            log_auth_activity(user.id if user else None, 'login', 'failed')
+            if request.is_json:
+                return jsonify({
+                    'success': False,
+                    'message': '用户名或密码错误'
+                })
+            flash('用户名或密码错误', 'danger')
+            return redirect(url_for('auth.login', next=next_url))
             
-            # 查询用户
-            query = 'SELECT * FROM users WHERE username = ?'
-            current_app.logger.info(f"执行查询: {query} 参数: {username}")
-            cursor.execute(query, (username,))
-            user = cursor.fetchone()
-            
-            if user:
-                current_app.logger.info(f"找到用户: {username}")
-                password_match = check_password_hash(user['password_hash'], password)
-                current_app.logger.info(f"密码验证结果: {password_match}")
-                
-                if password_match:
-                    # 登录成功
-                    session.clear()
-                    session['user_id'] = user['id']
-                    session['username'] = user['username']
-                    session['role'] = user['role']
-                    
-                    # 生成新的验证码
-                    session['captcha'] = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=4))
-                    current_app.logger.info(f"登录成功，新验证码: {session['captcha']}")
-                    
-                    if is_ajax:
-                        return jsonify({
-                            'success': True,
-                            'message': '登录成功',
-                            'redirect': url_for('main.dashboard')
-                        })
-                    else:
-                        return redirect(url_for('main.dashboard'))
-                else:
-                    current_app.logger.warning(f"密码错误: {username}")
-                    if is_ajax:
-                        return jsonify({'success': False, 'message': '用户名或密码错误'})
-                    else:
-                        flash('用户名或密码错误')
-            else:
-                current_app.logger.warning(f"未找到用户: {username}")
-                if is_ajax:
-                    return jsonify({'success': False, 'message': '用户名或密码错误'})
-                else:
-                    flash('用户名或密码错误')
-                    
-        except Exception as e:
-            current_app.logger.error(f'登录出错: {str(e)}')
-            current_app.logger.error(traceback.format_exc())
-            
-            if is_ajax:
-                return jsonify({'success': False, 'message': '登录时发生错误，请稍后重试'})
-            else:
-                flash('登录时发生错误，请稍后重试')
-        finally:
-            if 'conn' in locals() and conn:
-                conn.close()
-                current_app.logger.info("数据库连接已关闭")
-    
-    # 生成验证码
-    if 'captcha' not in session:
-        session['captcha'] = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=4))
-        current_app.logger.info(f"为登录页生成新验证码: {session['captcha']}")
-    
-    return render_template('auth/login.html')
+    except Exception as e:
+        logging.error(f"登录过程发生错误: {str(e)}")
+        if request.is_json:
+            return jsonify({
+                'success': False,
+                'message': '登录过程发生错误，请稍后重试'
+            }), 500
+        flash('登录过程发生错误，请稍后重试', 'danger')
+        return redirect(url_for('auth.login', next=next_url))
 
 @auth_bp.route('/logout')
+@login_required
 def logout():
-    """登出"""
-    session.clear()
+    """处理用户登出请求"""
+    user_id = current_user.id
+    logout_user()
+    log_auth_activity(user_id, 'logout', 'success')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """注册页面"""
-    if request.method == 'POST':
-        # 判断是否为AJAX请求
-        is_ajax = request.is_json
-        
-        if is_ajax:
-            data = request.get_json()
-            username = data.get('username')
-            password = data.get('password')
-            email = data.get('email')
-            department = data.get('department')
-            captcha = data.get('captcha')
-            
-            # 验证码验证
-            if not captcha or captcha.upper() != session.get('captcha', '').upper():
-                return jsonify({'success': False, 'message': '验证码错误'})
-                
-            # 验证字段
-            if not username or not password or not email:
-                return jsonify({'success': False, 'message': '所有带*的字段都是必填的'})
-        else:
-            # 表单提交处理
-            username = request.form.get('username')
-            password = request.form.get('password')
-            confirm_password = request.form.get('confirm_password')
-            
-            # 简单的验证
-            if not username or not password:
-                flash('请输入用户名和密码')
-                return render_template('auth/register.html')
-            
-            if password != confirm_password:
-                flash('两次输入的密码不一致')
-                return render_template('auth/register.html')
-        
-        try:
-            # 连接数据库
-            db_path = current_app.config.get('DATABASE_PATH', 'instance/medical_workload.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # 检查用户名是否已存在
-            cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
-            if cursor.fetchone():
-                if is_ajax:
-                    return jsonify({'success': False, 'message': '用户名已存在'})
-                else:
-                    flash('用户名已存在')
-                    return render_template('auth/register.html')
-            
-            # 检查邮箱是否已存在（如果是AJAX请求并且提供了邮箱）
-            if is_ajax and email:
-                cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
-                if cursor.fetchone():
-                    return jsonify({'success': False, 'message': '邮箱已被注册'})
-            
-            # 注册新用户
-            hashed_password = generate_password_hash(password)
-            
-            if is_ajax and email and department:
-                cursor.execute(
-                    'INSERT INTO users (username, password_hash, email, department, role) VALUES (?, ?, ?, ?, ?)',
-                    (username, hashed_password, email, department, 'user')
-                )
-            else:
-                cursor.execute(
-                    'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-                    (username, hashed_password, 'user')
-                )
-                
-            conn.commit()
-            
-            if is_ajax:
-                return jsonify({
-                    'success': True,
-                    'message': '注册成功，请登录',
-                    'redirect': url_for('auth.login')
-                })
-            else:
-                flash('注册成功，请登录')
-                return redirect(url_for('auth.login'))
-            
-        except Exception as e:
-            current_app.logger.error(f'注册出错: {str(e)}')
-            traceback.print_exc()
-            
-            if is_ajax:
-                return jsonify({'success': False, 'message': '注册时发生错误，请稍后重试'})
-            else:
-                flash('注册时发生错误，请稍后重试')
-        finally:
-            if conn:
-                conn.close()
+    """处理用户注册请求"""
+    if request.method == 'GET':
+        return render_template('auth/register.html')
     
-    return render_template('auth/register.html')
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        
+        # 检查用户名是否已存在
+        if User.query.filter_by(username=username).first():
+            return jsonify({
+                'success': False,
+                'message': '用户名已存在'
+            })
+        
+        # 创建新用户
+        user = User(username=username, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        log_auth_activity(user.id, 'register', 'success')
+        
+        return jsonify({
+            'success': True,
+            'message': '注册成功，请登录',
+            'redirect': url_for('auth.login')
+        })
+        
+    except Exception as e:
+        logging.error(f"注册过程发生错误: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '注册过程发生错误，请稍后重试'
+        }), 500
 
 @auth_bp.route('/captcha')
 def captcha():
     """生成验证码"""
-    # 验证码图片尺寸
-    width = 240
-    height = 100
+    # 生成验证码内容和图片
+    captcha_text, captcha_image = generate_captcha()
     
-    # 生成随机验证码文本
-    chars = string.ascii_uppercase + string.digits
-    captcha_text = ''.join(random.choices(chars, k=4))
-    
-    # 保存验证码到会话
+    # 将验证码文本存储在会话中
     session['captcha'] = captcha_text
     
-    # 创建图片
-    image = Image.new('RGB', (width, height), color=(255, 255, 255))
-    draw = ImageDraw.Draw(image)
-    
-    # 尝试加载字体
-    try:
-        font = ImageFont.truetype('arial.ttf', 70)
-    except IOError:
-        try:
-            font = ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf', 70)
-        except IOError:
-            font = ImageFont.load_default()
-    
-    # 绘制文本
-    try:
-        # 较新的Pillow版本
-        if hasattr(font, 'getbbox'):
-            bbox = font.getbbox(captcha_text)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-        # 较旧版本
-        elif hasattr(draw, 'textsize'):
-            text_width, text_height = draw.textsize(captcha_text, font=font)
-        else:
-            # 默认情况
-            text_width, text_height = width-40, height-40
-    except Exception:
-        text_width, text_height = width-40, height-40
-        
-    x = (width - text_width) // 2
-    y = (height - text_height) // 2
-    
-    # 添加干扰线
-    for i in range(8):
-        x1 = random.randint(0, width)
-        y1 = random.randint(0, height)
-        x2 = random.randint(0, width)
-        y2 = random.randint(0, height)
-        draw.line([(x1, y1), (x2, y2)], fill=(200, 200, 200), width=2)
-    
-    # 绘制字符
-    for i, char in enumerate(captcha_text):
-        char_x = x + i * (text_width // 4)
-        char_y = y + random.randint(-10, 10)
-        draw.text((char_x, char_y), char, font=font, fill=(0, 0, 139))
-    
-    # 添加干扰点
-    for _ in range(100):
-        x = random.randint(0, width)
-        y = random.randint(0, height)
-        draw.point((x, y), fill=(220, 220, 220))
-    
-    # 将图片保存到字节流
-    out = BytesIO()
-    image.save(out, 'PNG')
-    out.seek(0)
-    
-    # 返回响应
-    return Response(out.getvalue(), mimetype='image/png')
+    # 返回验证码图片
+    response = Response(captcha_image, mimetype='image/png')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response
 
 @auth_bp.route('/profile')
 @login_required

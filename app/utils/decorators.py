@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import abort, flash, redirect, url_for, jsonify, request
+from flask import abort, flash, redirect, url_for, jsonify, request, session
 from flask_login import current_user
 
 def admin_required(f):
@@ -38,16 +38,17 @@ def permission_required(permission):
 def api_login_required(f):
     """
     API接口的登录认证装饰器
-    如果未登录，返回JSON格式的错误信息而不是重定向
+    如果未登录则返回JSON格式的错误信息而不是重定向
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # 检查用户是否已登录
-        if not current_user.is_authenticated:
+        if 'user_id' not in session:
             return jsonify({
                 'status': 'error',
                 'message': '请先登录',
-                'code': 401
+                'code': 401,
+                'redirect': url_for('auth.login')  # 添加正确的登录URL
             }), 401
         return f(*args, **kwargs)
     return decorated_function 

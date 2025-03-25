@@ -16,6 +16,7 @@ import json
 import base64
 from typing import Dict, List, Any, Optional, Tuple, Union
 import importlib
+from app.config import config
 
 # 在app/__init__.py中我们已经判断了ydata_profiling的可用性，这里直接导入全局变量
 from app import YDATA_PROFILING_AVAILABLE
@@ -32,7 +33,7 @@ class DataAnalyzer:
     """
     
     @staticmethod
-    def generate_profile_report(df, title="数据分析报告", minimal=False):
+    def generate_profile_report(df, title=None, minimal=False):
         """
         生成数据分析报告
         
@@ -48,10 +49,14 @@ class DataAnalyzer:
             if not YDATA_PROFILING_AVAILABLE:
                 return "<p>未安装ydata_profiling包，数据分析报告功能不可用</p>"
                 
+            # 设置标题
+            if title is None:
+                title = config.DATA_ANALYSIS['report']['minimal_title'] if minimal else config.DATA_ANALYSIS['report']['default_title']
+                
             # 设置中文显示
             profile = ProfileReport(df, title=title, minimal=minimal, 
                                     explorative=not minimal,
-                                    html={'style':{'full_width':True}})
+                                    html={'style': config.DATA_ANALYSIS['report']['html_style']})
             
             # 返回HTML报告
             return profile.to_html()
@@ -60,7 +65,7 @@ class DataAnalyzer:
             return f"<p>生成报告出错: {str(e)}</p>"
     
     @staticmethod
-    def generate_profile_report_for_query(query, params=None, title="数据分析报告", minimal=False):
+    def generate_profile_report_for_query(query, params=None, title=None, minimal=False):
         """
         根据SQL查询生成数据分析报告
         
@@ -137,11 +142,15 @@ class DataAnalyzer:
             # 创建热图
             fig = px.imshow(
                 corr.values,
-                labels=dict(x="特征", y="特征", color="相关性"),
+                labels=dict(
+                    x=config.DATA_ANALYSIS['chart']['correlation_heatmap']['x_label'],
+                    y=config.DATA_ANALYSIS['chart']['correlation_heatmap']['y_label'],
+                    color=config.DATA_ANALYSIS['chart']['correlation_heatmap']['color_label']
+                ),
                 x=corr.columns,
                 y=corr.columns,
-                color_continuous_scale="RdBu_r",
-                title="特征相关性热图"
+                color_continuous_scale=config.DATA_ANALYSIS['chart']['correlation_heatmap']['color_scale'],
+                title=config.DATA_ANALYSIS['chart']['correlation_heatmap']['title']
             )
             
             # 添加文本标注
@@ -149,7 +158,7 @@ class DataAnalyzer:
                 for j in range(len(corr)):
                     fig.add_annotation(
                         x=j, y=i,
-                        text=str(round(corr.iloc[i, j], 2)),
+                        text=str(round(corr.iloc[i, j], config.DATA_ANALYSIS['trend']['growth_rate']['round_digits'])),
                         showarrow=False,
                         font=dict(color="black" if abs(corr.iloc[i, j]) < 0.6 else "white")
                     )
@@ -160,7 +169,7 @@ class DataAnalyzer:
             return None
 
     @staticmethod
-    def analyze_outpatient_trends(df, time_column='日期', value_column='数量', groupby_column=None):
+    def analyze_outpatient_trends(df, time_column=None, value_column=None, groupby_column=None):
         """
         分析门诊量趋势
         
@@ -177,15 +186,21 @@ class DataAnalyzer:
             if df.empty:
                 return {"error": "数据为空"}
             
+            # 使用默认列名
+            if time_column is None:
+                time_column = config.DATA_ANALYSIS['default_columns']['date']
+            if value_column is None:
+                value_column = config.DATA_ANALYSIS['default_columns']['value']
+            
             # 确保时间列为日期类型
             df[time_column] = pd.to_datetime(df[time_column])
             
             # 添加年月列
-            df['年月'] = df[time_column].dt.strftime('%Y-%m')
+            df[config.DATA_ANALYSIS['default_columns']['year_month']] = df[time_column].dt.strftime('%Y-%m')
             
             # 按年月汇总
             if groupby_column:
-                monthly_data = df.groupby([groupby_column, '年月'])[value_column].sum().reset_index()
+                monthly_data = df.groupby([groupby_column, config.DATA_ANALYSIS['default_columns']['year_month']])[value_column].sum().reset_index()
                 
                 # 计算各分组的趋势指标
                 results = {}
@@ -199,8 +214,8 @@ class DataAnalyzer:
                     min_val = group_data[value_column].min()
                     
                     # 计算环比增长率
-                    group_data = group_data.sort_values('年月')
-                    group_data['增长率'] = group_data[value_column].pct_change() * 100
+                    group_data = group_data.sort_values(config.DATA_ANALYSIS['default_columns']['year_month'])
+                    group_data['增长率'] = group_data[value_column].pct_change() * config.DATA_ANALYSIS['trend']['growth_rate']['multiplier']
                     
                     last_month_growth = None
                     if len(group_data) >= 2:
@@ -219,7 +234,7 @@ class DataAnalyzer:
                     "原始数据": monthly_data.to_dict('records')
                 }
             else:
-                monthly_data = df.groupby('年月')[value_column].sum().reset_index()
+                monthly_data = df.groupby(config.DATA_ANALYSIS['default_columns']['year_month'])[value_column].sum().reset_index()
                 
                 # 计算总量、均值、最大值、最小值
                 total = monthly_data[value_column].sum()
@@ -228,8 +243,8 @@ class DataAnalyzer:
                 min_val = monthly_data[value_column].min()
                 
                 # 计算环比增长率
-                monthly_data = monthly_data.sort_values('年月')
-                monthly_data['增长率'] = monthly_data[value_column].pct_change() * 100
+                monthly_data = monthly_data.sort_values(config.DATA_ANALYSIS['default_columns']['year_month'])
+                monthly_data['增长率'] = monthly_data[value_column].pct_change() * config.DATA_ANALYSIS['trend']['growth_rate']['multiplier']
                 
                 last_month_growth = None
                 if len(monthly_data) >= 2:
@@ -248,14 +263,14 @@ class DataAnalyzer:
             return {"error": str(e)}
             
     @staticmethod
-    def analyze_completion_rate(df, actual_column='实际量', target_column='目标值', rate_column='完成率', groupby_column=None):
+    def analyze_completion_rate(df, actual_column=None, target_column=None, rate_column=None, groupby_column=None):
         """
         分析目标完成率
         
         参数:
             df: DataFrame数据
             actual_column: 实际量列名
-            target_column: 目标量列名
+            target_column: 目标值列名
             rate_column: 完成率列名
             groupby_column: 分组列名
             
@@ -266,55 +281,58 @@ class DataAnalyzer:
             if df.empty:
                 return {"error": "数据为空"}
             
-            # 如果没有完成率列，计算完成率
-            if rate_column not in df.columns:
-                df[rate_column] = df[actual_column] / df[target_column] * 100
+            # 使用默认列名
+            if actual_column is None:
+                actual_column = config.DATA_ANALYSIS['default_columns']['actual']
+            if target_column is None:
+                target_column = config.DATA_ANALYSIS['default_columns']['target']
+            if rate_column is None:
+                rate_column = config.DATA_ANALYSIS['default_columns']['rate']
             
-            # 全局统计
-            overall_avg_rate = df[rate_column].mean()
-            overall_min_rate = df[rate_column].min()
-            overall_max_rate = df[rate_column].max()
+            # 计算完成率
+            df[rate_column] = (df[actual_column] / df[target_column] * 100).round(config.DATA_ANALYSIS['trend']['growth_rate']['round_digits'])
             
-            # 计算超额完成比例和未完成比例
-            over_target_count = (df[rate_column] >= 100).sum()
-            under_target_count = (df[rate_column] < 100).sum()
-            over_target_ratio = over_target_count / len(df) * 100
-            under_target_ratio = under_target_count / len(df) * 100
-            
-            results = {
-                "平均完成率": overall_avg_rate,
-                "最低完成率": overall_min_rate,
-                "最高完成率": overall_max_rate,
-                "超额完成数量": over_target_count,
-                "未完成数量": under_target_count,
-                "超额完成比例": over_target_ratio,
-                "未完成比例": under_target_ratio
-            }
-            
-            # 分组分析
-            if groupby_column and groupby_column in df.columns:
-                group_analysis = {}
+            if groupby_column:
+                # 按分组计算统计指标
+                results = {}
                 for group in df[groupby_column].unique():
                     group_data = df[df[groupby_column] == group]
                     
-                    group_avg_rate = group_data[rate_column].mean()
-                    group_min_rate = group_data[rate_column].min()
-                    group_max_rate = group_data[rate_column].max()
+                    # 计算总量、均值、最大值、最小值
+                    total_actual = group_data[actual_column].sum()
+                    total_target = group_data[target_column].sum()
+                    avg_rate = group_data[rate_column].mean()
+                    max_rate = group_data[rate_column].max()
+                    min_rate = group_data[rate_column].min()
                     
-                    group_over_target = (group_data[rate_column] >= 100).sum()
-                    group_under_target = (group_data[rate_column] < 100).sum()
-                    
-                    group_analysis[group] = {
-                        "平均完成率": group_avg_rate,
-                        "最低完成率": group_min_rate,
-                        "最高完成率": group_max_rate,
-                        "超额完成数量": group_over_target,
-                        "未完成数量": group_under_target
+                    results[group] = {
+                        "实际总量": total_actual,
+                        "目标总量": total_target,
+                        "平均完成率": avg_rate,
+                        "最高完成率": max_rate,
+                        "最低完成率": min_rate
                     }
                 
-                results["分组分析"] = group_analysis
-            
-            return results
+                return {
+                    "分组分析": results,
+                    "原始数据": df.to_dict('records')
+                }
+            else:
+                # 计算总体统计指标
+                total_actual = df[actual_column].sum()
+                total_target = df[target_column].sum()
+                avg_rate = df[rate_column].mean()
+                max_rate = df[rate_column].max()
+                min_rate = df[rate_column].min()
+                
+                return {
+                    "实际总量": total_actual,
+                    "目标总量": total_target,
+                    "平均完成率": avg_rate,
+                    "最高完成率": max_rate,
+                    "最低完成率": min_rate,
+                    "原始数据": df.to_dict('records')
+                }
         except Exception as e:
             print(f"分析目标完成率出错: {str(e)}")
             return {"error": str(e)}

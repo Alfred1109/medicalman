@@ -216,6 +216,43 @@ def log_user_login(username: str, success: bool, ip_address: Optional[str] = Non
         app_logger.error(f"记录用户登录日志时出错: {str(e)}")
         traceback.print_exc()
 
+# 认证活动日志记录
+def log_auth_activity(user_id: int, action: str, status: str, details: Optional[Dict[str, Any]] = None) -> None:
+    """
+    记录认证相关活动
+    
+    参数:
+        user_id: 用户ID
+        action: 活动类型（如：login, logout, register等）
+        status: 活动状态（如：success, failed等）
+        details: 活动详情
+    """
+    try:
+        log_entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "user_id": user_id,
+            "action": action,
+            "status": status
+        }
+        
+        if details:
+            log_entry["details"] = details
+            
+        # 记录到日志文件
+        if status == "success":
+            app_logger.info(f"认证活动: {json.dumps(log_entry, ensure_ascii=False)}")
+        else:
+            app_logger.warning(f"认证活动: {json.dumps(log_entry, ensure_ascii=False)}")
+        
+        # 保存到认证活动历史文件
+        auth_log_file = os.path.join(LOG_DIR, "auth_history.log")
+        with open(auth_log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+            
+    except Exception as e:
+        app_logger.error(f"记录认证活动日志时出错: {str(e)}")
+        traceback.print_exc()
+
 # 获取应用日志记录器
 def get_logger(name: str = "app") -> logging.Logger:
     """
