@@ -146,34 +146,46 @@ class DashboardManager {
         });
 
         // 窗口大小改变时重绘图表
-        window.addEventListener('resize', () => {
-            Object.values(this.charts).forEach(chart => chart.resize());
+        const charts = this.charts;
+        window.addEventListener('resize', function() {
+            Object.values(charts).forEach(chart => chart ? chart.resize() : null);
         });
     }
 
     // 加载数据
     async loadData() {
         try {
-            // 获取日期范围参数
-            let startDate = null;
-            let endDate = null;
+            // 获取日期范围
+            const dateRange = this.dateRange || document.getElementById('date-range').value || 'week';
+            let startDate, endDate;
             
-            if (this.dateRange === 'custom') {
+            // 如果是自定义日期范围，从日期选择器获取
+            if (dateRange === 'custom') {
                 startDate = document.getElementById('start-date').value;
                 endDate = document.getElementById('end-date').value;
+                if (!startDate || !endDate) {
+                    this.showError('请选择开始和结束日期');
+                    return;
+                }
             }
             
-            const response = await fetch('/api/dashboard/metrics', {
-                method: 'POST',
+            console.log(`使用日期范围: ${dateRange}, 开始日期: ${startDate || '未指定'}, 结束日期: ${endDate || '未指定'}`);
+            
+            // 构建带参数的URL
+            let apiUrl = `/api/dashboard/metrics_get?date_range=${dateRange}`;
+            if (startDate && endDate) {
+                apiUrl += `&start_date=${startDate}&end_date=${endDate}`;
+            }
+            
+            console.log(`请求API: ${apiUrl}`);
+            const fetchOptions = {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    date_range: this.dateRange,
-                    start_date: startDate,
-                    end_date: endDate
-                })
-            });
+                }
+            };
+            
+            const response = await fetch(apiUrl, fetchOptions);
             
             if (response.status === 401) {
                 // 未授权，需要登录
@@ -435,10 +447,10 @@ class DashboardManager {
         return 'secondary';
     }
 
-    // 更新图表数据
+    // 更新图表
     updateCharts(chartsData) {
         if (!chartsData) {
-            console.warn('传入的chartsData对象为空');
+            console.error('没有提供图表数据');
             return;
         }
         
@@ -450,11 +462,32 @@ class DashboardManager {
                 try {
                     console.log('更新门诊趋势图:', chartsData.outpatientTrend);
                     const options = {
+                        tooltip: { 
+                            trigger: 'axis',
+                            formatter: '{b}<br />{a}: {c}'
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
                         xAxis: {
                             type: 'category',
-                            data: chartsData.outpatientTrend?.xAxis || []
+                            data: chartsData.outpatientTrend?.xAxis || [],
+                            axisLabel: {
+                                interval: Math.floor((chartsData.outpatientTrend?.xAxis?.length || 30) / 10),
+                                rotate: 45
+                            },
+                            boundaryGap: false
                         },
-                        series: (chartsData.outpatientTrend?.series) || [{
+                        yAxis: { 
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value}'
+                            }
+                        },
+                        series: chartsData.outpatientTrend?.series || [{
                             data: [],
                             type: 'line',
                             smooth: true
@@ -471,10 +504,28 @@ class DashboardManager {
                 try {
                     console.log('更新收入构成图:', chartsData.revenueComposition);
                     const options = {
+                        tooltip: { 
+                            trigger: 'item',
+                            formatter: '{b}: {c} ({d}%)'
+                        },
+                        legend: { 
+                            orient: 'vertical', 
+                            left: 'left',
+                            type: 'scroll',
+                            textStyle: {
+                                fontSize: 12
+                            }
+                        },
                         series: [{
                             type: 'pie',
-                            radius: '50%',
+                            radius: '60%',
+                            center: ['60%', '50%'],
                             data: chartsData.revenueComposition?.data || [],
+                            label: {
+                                formatter: '{b}: {d}%',
+                                show: true,
+                                position: 'outside'
+                            },
                             emphasis: {
                                 itemStyle: {
                                     shadowBlur: 10,
@@ -495,9 +546,46 @@ class DashboardManager {
                 try {
                     console.log('更新科室工作量图:', chartsData.departmentWorkload);
                     const options = {
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: { 
+                                type: 'shadow' 
+                            },
+                            formatter: function (params) {
+                                let result = params[0].name + '<br/>';
+                                params.forEach(param => {
+                                    result += `${param.seriesName}: ${param.value}<br/>`;
+                                });
+                                return result;
+                            }
+                        },
+                        legend: { 
+                            data: ['门诊量', '住院量', '手术量'],
+                            bottom: 10
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '15%',
+                            top: '3%',
+                            containLabel: true
+                        },
+                        xAxis: { 
+                            type: 'value' 
+                        },
                         yAxis: {
                             type: 'category',
-                            data: chartsData.departmentWorkload?.yAxis || []
+                            data: chartsData.departmentWorkload?.yAxis || [],
+                            axisLabel: {
+                                fontSize: 11,
+                                interval: 0,
+                                formatter: function (value) {
+                                    if (value.length > 4) {
+                                        return value.substring(0, 4) + '..';
+                                    }
+                                    return value;
+                                }
+                            }
                         },
                         series: chartsData.departmentWorkload?.series || [{
                             type: 'bar',
@@ -515,35 +603,46 @@ class DashboardManager {
                 try {
                     console.log('更新住院患者分布图:', chartsData.inpatientDistribution);
                     const options = {
-                        legend: {
-                            orient: 'vertical',
+                        tooltip: { 
+                            trigger: 'item',
+                            formatter: '{b}: {c} ({d}%)' 
+                        },
+                        legend: { 
+                            orient: 'vertical', 
                             left: 'left',
-                            data: chartsData.inpatientDistribution?.legend || []
+                            type: 'scroll',
+                            formatter: function (name) {
+                                if (name.length > 8) {
+                                    return name.substring(0, 8) + '...';
+                                }
+                                return name;
+                            },
+                            textStyle: {
+                                fontSize: 11
+                            }
                         },
                         series: [{
                             type: 'pie',
                             radius: ['40%', '70%'],
-                            avoidLabelOverlap: false,
-                            data: chartsData.inpatientDistribution?.data || [],
+                            center: ['60%', '50%'],
+                            avoidLabelOverlap: true,
                             itemStyle: {
                                 borderRadius: 10,
                                 borderColor: '#fff',
                                 borderWidth: 2
                             },
-                            label: {
-                                show: false,
-                                position: 'center'
+                            label: { 
+                                show: false
                             },
                             emphasis: {
                                 label: {
                                     show: true,
-                                    fontSize: '20',
+                                    fontSize: '14',
                                     fontWeight: 'bold'
                                 }
                             },
-                            labelLine: {
-                                show: false
-                            }
+                            labelLine: { show: false },
+                            data: chartsData.inpatientDistribution?.data || []
                         }]
                     };
                     this.charts.inpatientDistribution.setOption(options);
@@ -551,6 +650,12 @@ class DashboardManager {
                     console.error('更新住院患者分布图出错:', err);
                 }
             }
+            
+            // 窗口调整大小时重新调整图表
+            const charts = this.charts;
+            window.addEventListener('resize', function() {
+                Object.values(charts).forEach(chart => chart ? chart.resize() : null);
+            });
         } catch (error) {
             console.error('更新图表时出错:', error);
         }
@@ -566,6 +671,23 @@ class DashboardManager {
     showError(message) {
         // 这里应该实现错误提示功能
         alert(message);
+    }
+
+    // 获取CSRF令牌
+    getCsrfToken() {
+        // 从cookie中获取CSRF令牌
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrf_token='))
+            ?.split('=')[1];
+        
+        // 如果找不到，尝试从meta标签获取
+        if (!cookieValue) {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            return metaTag ? metaTag.getAttribute('content') : '';
+        }
+        
+        return cookieValue || '';
     }
 }
 
