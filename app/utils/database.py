@@ -992,13 +992,17 @@ class QueryBuilder:
         
         return result['count'] if result else 0
 
-def get_database_schema() -> str:
+def get_database_schema(db_path=None) -> str:
     """
     获取数据库表结构信息
     
+    参数:
+        db_path: 数据库路径，默认为None(使用配置的默认路径)
+        
     返回:
         数据库结构描述字符串
     """
+    # 参数未使用但保留参数声明以兼容调用方式
     schema_info = """
     数据库包含以下表：
     1. 门诊量 (门诊表):

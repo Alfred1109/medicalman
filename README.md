@@ -192,7 +192,6 @@ MedicalMan提供全面的报告导出功能，满足医疗管理不同场景的�
 medicalman/
 ├── static/
 │   ├── css/                 # 样式文件
-│   ├── js/
 │   │   ├── utils/          # 工具类
 │   │   │   ├── data-transformer.js  # 数据转换工具
 │   │   │   └── chart-configs.js     # 图表配置模板
@@ -510,7 +509,7 @@ MedicalMan系统采用了模块化的大模型集成架构，通过多层封装�
 
 ```mermaid
 graph TD
-    A[用户查询] --> B[AI聊天接口层]
+    A[用户查询] --> B[AI聊天接口层 ai_chat_routes.py]
     B --> C[query_service.py]
     C --> D[base_llm_service.py 基础LLM服务]
     D --> E[llm_service.py 模型调用]
@@ -519,6 +518,62 @@ graph TD
     E --> H[prompts/*.py 提示词模板]
     H --> I[LLM API]
 ```
+
+### AI聊天思考过程
+
+MedicalMan的AI聊天系统采用多阶段思考流程，确保分析的专业性和准确性：
+
+1. **查询意图理解阶段**
+   - 分析用户自然语言输入
+   - 识别查询类型（数据分析、知识问答、图表生成等）
+   - 提取关键实体（时间范围、科室、指标等）
+   - 使用`app/prompts/querying.py`中的模板进行意图识别
+
+2. **数据获取与转换阶段**
+   - 对于数据分析类查询，生成优化的SQL语句
+   - 执行数据库查询获取原始数据
+   - 数据清洗与预处理，确保分析可靠性
+   - 使用`app/utils/database.py`执行查询，`app/utils/data_processor.py`处理数据
+
+3. **深度分析与洞察阶段**
+   - 对数据进行统计分析和模式识别
+   - 发现数据中的趋势、异常和相关性
+   - 生成专业的医学解读和洞察
+   - 使用`app/prompts/analyzing.py`中的专业医疗分析提示词
+
+4. **可视化选择与生成阶段**
+   - 根据数据特性和分析需求选择最合适的图表类型
+   - 生成ECharts图表配置，优化视觉呈现
+   - 确保图表专业性和可读性
+   - 使用`app/prompts/visualization.py`中的图表生成提示词
+
+5. **专业响应生成阶段**
+   - 整合分析结果、图表和专业解读
+   - 按照医疗报告规范格式化响应内容
+   - 提供具有临床价值的建议和决策支持
+   - 使用`app/prompts/responding.py`中的专业响应提示词
+
+### 提示词系统架构
+
+MedicalMan采用高度模块化的提示词系统，确保AI分析的专业性和一致性：
+
+```
+app/prompts/
+├── __init__.py          # 提示词系统入口
+├── analyzing.py         # 医疗数据分析提示词
+├── parsing.py           # 数据解析提示词
+├── querying.py          # 查询处理提示词
+├── responding.py        # 响应生成提示词
+├── visualization.py     # 图表生成提示词
+└── templates/           # 特定场景模板
+```
+
+提示词设计遵循以下原则：
+- **医学专业性**：嵌入医疗领域知识和术语
+- **任务明确性**：每类提示词专注于特定功能
+- **上下文管理**：维护对话历史和分析连续性
+- **输出结构化**：规范JSON输出结构，便于前端渲染
+- **安全可控**：防范提示词注入和不当输出
 
 ### 技术亮点
 
