@@ -1,3 +1,10 @@
+// AI聊天API模块
+// 处理与后端API的交互
+
+// 全局变量
+let currentConversationId = null;
+let fileList = []; // 上传的文件列表
+
 // 处理响应数据
 function handleResponse(data, responseType) {
     console.log('开始处理响应数据:', data, '类型:', responseType);
@@ -239,19 +246,13 @@ function handleResponse(data, responseType) {
             setTimeout(() => {
                 data.charts.forEach((chartConfig, index) => {
                     console.log(`处理图表 ${index+1}:`, chartConfig);
-                    console.log(`图表类型: ${chartConfig.type || '未指定'}`);
-                    console.log(`是否有xAxis: ${'xAxis' in chartConfig}`);
-                    console.log(`是否有series: ${'series' in chartConfig}`);
                     
                     // 创建图表容器
                     const chartDiv = document.createElement('div');
-                    chartDiv.className = 'chart-item';
-                    chartDiv.id = `chart-${Date.now()}-${index}`;
-                    chartDiv.style.width = '100%';
-                    chartDiv.style.height = '350px';
+                    chartDiv.className = 'analysis-chart';
                     chartsContainer.appendChild(chartDiv);
                     
-                    // 添加图表标题
+                    // 添加图表标题和操作按钮
                     let titleText = '';
                     if (typeof chartConfig.title === 'string') {
                         titleText = chartConfig.title;
@@ -261,58 +262,83 @@ function handleResponse(data, responseType) {
                         titleText = `图表 ${index+1}`;
                     }
                     
-                    const titleDiv = document.createElement('div');
-                    titleDiv.className = 'chart-title';
-                    titleDiv.textContent = titleText;
-                    chartDiv.appendChild(titleDiv);
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'chart-header';
+                    chartDiv.appendChild(headerDiv);
                     
-                    // 创建图表画布
-                    const chartCanvas = document.createElement('div');
-                    chartCanvas.style.width = '100%';
-                    chartCanvas.style.height = '300px';
-                    chartDiv.appendChild(chartCanvas);
+                    const titleElem = document.createElement('h3');
+                    titleElem.className = 'chart-title';
+                    titleElem.textContent = titleText;
+                    headerDiv.appendChild(titleElem);
                     
-                    // 初始化echarts
+                    // 添加操作按钮区域
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'chart-actions';
+                    headerDiv.appendChild(actionsDiv);
+                    
+                    // 下载按钮
+                    const downloadBtn = document.createElement('div');
+                    downloadBtn.className = 'chart-action';
+                    downloadBtn.title = '下载';
+                    downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                    actionsDiv.appendChild(downloadBtn);
+                    
+                    // 全屏按钮
+                    const fullscreenBtn = document.createElement('div');
+                    fullscreenBtn.className = 'chart-action';
+                    fullscreenBtn.title = '全屏';
+                    fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                    actionsDiv.appendChild(fullscreenBtn);
+                    
+                    // 创建图表容器
+                    const chartContainer = document.createElement('div');
+                    chartContainer.className = 'chart-container';
+                    chartContainer.id = `chat-chart-${Date.now()}-${index}`;
+                    chartDiv.appendChild(chartContainer);
+                    
+                    // 使用新的图表工具初始化echarts
                     try {
                         console.log(`初始化图表 ${index+1}`);
-                        const chart = echarts.init(chartCanvas);
                         
                         // 处理直接使用config属性的情况
+                        let finalConfig;
                         if (chartConfig.config) {
                             console.log('使用chartConfig.config作为图表配置');
                             // 适配Chart.js格式到ECharts格式
-                            const adaptedConfig = adaptChartJsToECharts(chartConfig.config);
-                            chart.setOption(adaptedConfig);
+                            finalConfig = Utils.chart.convertChartJsToECharts(chartConfig.config);
                         } else {
                             // 确保图表配置符合echarts要求
-                            let finalConfig = {...chartConfig};
+                            finalConfig = {...chartConfig};
                             
                             // 处理标题格式
                             if (typeof finalConfig.title === 'string') {
                                 finalConfig.title = {
-                                    text: finalConfig.title,
-                                    left: 'center'
+                                    text: finalConfig.title
                                 };
                             }
-                            
-                            // 设置图表配置
-                            console.log('最终图表配置:', JSON.stringify(finalConfig));
-                            chart.setOption(finalConfig);
                         }
                         
-                        // 适应窗口大小变化
-                        window.addEventListener('resize', () => {
-                            chart.resize();
-                        });
+                        console.log('最终图表配置:', JSON.stringify(finalConfig));
+                        
+                        // 使用统一的图表工具初始化
+                        const chart = Utils.chart.initChart(chartContainer.id, finalConfig);
+                        
+                        // 设置按钮事件
+                        if (chart) {
+                            downloadBtn.addEventListener('click', () => {
+                                Utils.chart.downloadChart(chart, `ai-chat-chart-${index+1}`);
+                            });
+                            
+                            fullscreenBtn.addEventListener('click', () => {
+                                Utils.chart.fullscreenChart(chart);
+                            });
+                        }
                         
                         console.log(`图表 ${index+1} 渲染成功`);
                     } catch (e) {
                         console.error(`图表渲染错误:`, e);
                         console.error('错误的图表配置:', JSON.stringify(chartConfig));
-                        const errorDiv = document.createElement('div');
-                        errorDiv.className = 'chart-error';
-                        errorDiv.textContent = `图表渲染失败: ${e.message}`;
-                        chartDiv.appendChild(errorDiv);
+                        chartContainer.innerHTML = `<div class="chart-error-message">图表渲染失败: ${e.message}</div>`;
                     }
                 });
             }, 100);
@@ -338,130 +364,91 @@ function handleResponse(data, responseType) {
     }
 }
 
+/**
+ * 获取CSRF令牌
+ * @returns {string} CSRF令牌
+ */
+function getCsrfToken() {
+    let csrfToken = '';
+    
+    // 从meta标签获取
+    const tokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (tokenElement && tokenElement.content) {
+        csrfToken = tokenElement.content;
+    } else {
+        // 从cookie获取
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrf_token=')) {
+                csrfToken = cookie.substring('csrf_token='.length);
+                break;
+            }
+        }
+    }
+    
+    if (!csrfToken) {
+        console.warn('未找到CSRF令牌，请求可能会被拒绝');
+    }
+    
+    return csrfToken;
+}
+
 // 发送消息
-function sendMessage() {
-    const chatInput = document.getElementById('message-input');
-    const message = chatInput.value.trim();
+function sendMessage(message, callback) {
+    if (!message || message.trim() === '') {
+        console.error('消息不能为空');
+        return;
+    }
+
+    // 获取CSRF令牌
+    const csrfToken = getCsrfToken();
     
-    if (!message) return;
-    
-    // 清空输入框
-    chatInput.value = '';
-    
-    // 添加用户消息到聊天界面
-    addUserMessage(message);
-    
-    // 添加AI消息（加载状态）
-    const aiMsgElement = addAIMessage('思考中', true);
-    console.log('已添加思考中消息元素:', aiMsgElement);
-    
-    // 获取知识库设置
-    const knowledgeSettings = getKnowledgeSettings();
-    
-    console.log('发送消息:', message);
-    console.log('知识库设置:', knowledgeSettings);
-    
-    // 发送请求到后端
+    // 尝试获取知识库设置
+    let knowledgeSettings = {};
+    if (typeof window.getKnowledgeSettings === 'function') {
+        try {
+            knowledgeSettings = window.getKnowledgeSettings();
+            console.log('应用知识库设置:', knowledgeSettings);
+        } catch (error) {
+            console.warn('获取知识库设置失败:', error);
+        }
+    } else {
+        console.log('getKnowledgeSettings未定义，使用默认设置');
+    }
+
+    // 构建请求数据
+    const requestData = {
+        message: message,
+        attachments: fileList.length > 0 ? fileList.map(file => file.path || file.name) : [],
+        knowledge_settings: knowledgeSettings
+    };
+
+    // 发送请求
     fetch('/chat/query', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({
-            query: message,
-            knowledge_settings: knowledgeSettings
-        })
+        body: JSON.stringify(requestData)
     })
     .then(response => {
-        console.log('收到响应:', response);
-        
-        // 检查响应状态
         if (!response.ok) {
-            console.error(`API响应状态错误: ${response.status} ${response.statusText}`);
-            throw new Error(`服务器响应错误: ${response.status}`);
+            throw new Error(`HTTP错误! 状态: ${response.status}`);
         }
-        
-        // 以文本形式获取响应，然后手动解析
-        return response.text().then(text => {
-            try {
-                // 处理NaN、Infinity等特殊值
-                const cleanedText = text.replace(/:\s*NaN\b/g, ': "NaN"')
-                                       .replace(/:\s*Infinity\b/g, ': "Infinity"')
-                                       .replace(/:\s*-Infinity\b/g, ': "-Infinity"')
-                                       .replace(/:\s*undefined\b/g, ': null');
-                
-                // 尝试解析清理后的JSON
-                return JSON.parse(cleanedText);
-            } catch (e) {
-                console.error('JSON解析错误:', e, '原始文本:', text);
-                // 返回一个错误对象而不是抛出异常，这样可以在后续处理
-                return {
-                    success: false,
-                    message: `JSON解析错误: ${e.message}`,
-                    originalText: text.substring(0, 500) // 限制长度以避免过大的日志
-                };
-            }
-        });
+        return response.json();
     })
     .then(data => {
-        console.log('解析的JSON数据:', data);
-        console.log('数据类型:', typeof data);
-        console.log('是否有success字段:', 'success' in data);
-        console.log('是否有message字段:', 'message' in data);
-        console.log('是否有type字段:', 'type' in data);
-        console.log('是否有data字段:', 'data' in data);
-        
-        // 检查响应是否成功
-        if (data && data.success) {
-            console.log('API响应成功');
-            
-            // 确保响应中有message字段
-            const responseMessage = data.message || "未收到有效回复";
-            console.log('响应消息:', responseMessage);
-            
-            // 确定响应类型
-            const responseType = data.type || "text";
-            console.log('响应类型:', responseType);
-            
-            // 根据响应类型处理结果
-            if (responseType === 'data_analysis' || responseType === 'data_only') {
-                console.log('处理数据分析响应');
-                // 数据分析结果，包含图表数据
-                const resultObj = {
-                    text: responseMessage,
-                    data: data.data || []
-                };
-                
-                // 如果有图表数据，添加到结果对象
-                if (data.charts) {
-                    console.log(`添加${data.charts.length}个图表到结果对象`);
-                    resultObj.charts = data.charts;
-                }
-                
-                handleResponse(resultObj, responseType);
-            } 
-            else if (responseType === 'excel_analysis' || responseType === 'file_analysis') {
-                console.log('处理文件分析响应');
-                // 文件分析结果
-                handleResponse(data, responseType);
-            }
-            else {
-                console.log('处理普通文本响应');
-                // 普通文本响应
-                handleResponse(data, responseType);
-            }
-        } else {
-            console.error('API响应失败或格式错误');
-            // 显示错误消息
-            const errorMessage = data && data.message ? data.message : 
-                               (data && data.error ? data.error : "处理请求时出错");
-            console.log('显示错误消息:', errorMessage);
-            handleResponse({success: false, message: errorMessage}, 'error');
+        if (typeof callback === 'function') {
+            callback(null, data);
         }
     })
     .catch(error => {
-        console.error('请求出错:', error);
-        handleResponse({success: false, message: `请求错误: ${error.message}`}, 'error');
+        console.error('发送消息时出错:', error);
+        if (typeof callback === 'function') {
+            callback(error, null);
+        }
     });
 }
 
@@ -554,44 +541,60 @@ function addFileToList(fileName, fileId) {
 
 // 将Chart.js格式转换为ECharts格式
 function adaptChartJsToECharts(chartJsConfig) {
-    const config = chartJsConfig || {};
-    const chartType = config.type || 'bar';
-    const datasets = (config.data && config.data.datasets) || [];
-    const labels = (config.data && config.data.labels) || [];
+    return Utils.chart.convertChartJsToECharts(chartJsConfig);
+}
+
+// 暴露API到全局作用域
+window.ChatAPI = {
+    sendMessage: sendMessage,
+    handleFiles: function(files) {
+        if (typeof FileUpload !== 'undefined' && FileUpload.handleFiles) {
+            return FileUpload.handleFiles(files);
+        } else {
+            console.error('FileUpload模块未加载或handleFiles方法未定义');
+            return false;
+        }
+    },
+    getCsrfToken: getCsrfToken,
+    setCurrentConversationId: function(id) {
+        currentConversationId = id;
+        console.log('设置会话ID:', id);
+    },
+    getCurrentConversationId: function() {
+        return currentConversationId;
+    },
+    getFileList: function() {
+        return fileList;
+    },
+    addToFileList: function(file) {
+        fileList.push(file);
+    },
+    clearFileList: function() {
+        fileList = [];
+    },
+    removeFileFromList: function(filename) {
+        fileList = fileList.filter(file => 
+            (file.name !== filename && (!file.path || file.path !== filename))
+        );
+    }
+};
+
+// 当DOM内容加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('AI聊天API模块已加载');
     
-    // 创建ECharts配置
-    const echartsConfig = {
-        title: {
-            text: config.options && config.options.plugins && config.options.plugins.title 
-                ? config.options.plugins.title.text : '数据图表',
-            left: 'center'
-        },
-        tooltip: {
-            trigger: 'axis'
-        },
-        legend: {
-            data: datasets.map(ds => ds.label || '数据'),
-            top: '8%'
-        },
-        xAxis: {
-            type: 'category',
-            data: labels
-        },
-        yAxis: {
-            type: 'value'
-        },
-        series: datasets.map(ds => {
-            return {
-                name: ds.label || '数据',
-                type: ds.type || chartType,
-                data: ds.data,
-                itemStyle: {
-                    color: ds.backgroundColor || '#5470c6'
-                }
-            }
-        })
-    };
-    
-    console.log('转换后的ECharts配置:', echartsConfig);
-    return echartsConfig;
-} 
+    // 检查FileUpload是否可用
+    setTimeout(() => {
+        if (typeof FileUpload === 'undefined') {
+            console.warn('FileUpload模块未加载，文件上传功能可能不可用');
+        } else {
+            console.log('FileUpload模块已加载');
+        }
+        
+        if (typeof getKnowledgeSettings === 'undefined') {
+            console.warn('getKnowledgeSettings函数未定义，将使用默认知识库设置');
+        } else {
+            console.log('getKnowledgeSettings函数已定义');
+        }
+    }, 500);
+}); 

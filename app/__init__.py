@@ -1,13 +1,16 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, g, jsonify
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
 import os
 from datetime import timedelta, datetime
 import logging
 from logging.handlers import RotatingFileHandler
 from app.config import DevelopmentConfig as Config
+from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
+import sqlite3
 
 # 修改导入ydata_profiling的方式，使其不会重复打印提示信息
 try:
@@ -54,6 +57,11 @@ def create_app(config_name=None):
     
     # 从环境变量加载配置
     app.config.from_prefixed_env()
+    
+    # 禁用CSRF保护，仅用于开发环境
+    if app.config.get('ENV', 'development') == 'development' and not app.config.get('WTF_CSRF_ENABLED', True):
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.logger.warning('开发环境: CSRF保护已禁用，生产环境请启用')
     
     # 确保实例文件夹存在
     os.makedirs('instance', exist_ok=True)

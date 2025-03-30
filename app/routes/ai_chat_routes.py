@@ -37,6 +37,7 @@ from app.prompts.responding import (
     COMPREHENSIVE_RESPONSE_SYSTEM_PROMPT,
     COMPREHENSIVE_RESPONSE_USER_PROMPT
 )
+from app.routes.dashboard_routes import csrf  # 导入csrf实例
 
 # 创建蓝图
 ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/chat')
@@ -52,6 +53,7 @@ def index():
 
 @ai_chat_bp.route('/query', methods=['POST'])
 @api_login_required
+@csrf.exempt  # 豁免CSRF保护
 def process_query():
     """处理用户查询"""
     try:
@@ -61,7 +63,8 @@ def process_query():
             return jsonify({'error': '请求数据为空'}), 400
             
         query = data.get('query') or data.get('message')  # 兼容前端可能发送的message参数
-        knowledge_settings = data.get('knowledge_settings', {}) or {'data_source': data.get('data_source', 'auto')}  # 兼容旧的data_source参数
+        knowledge_settings = data.get('knowledge_settings', {})
+        attachments = data.get('attachments', [])
         
         if not query:
             return jsonify({'error': '查询内容为空'}), 400
@@ -70,9 +73,13 @@ def process_query():
         username = session.get('username', 'guest')
         log_user_query(username, query)
         
+        # 记录附件和知识库设置
+        current_app.logger.info(f"查询附件: {attachments}")
+        current_app.logger.info(f"知识库设置: {knowledge_settings}")
+        
         # 处理查询
         start_time = time.time()
-        result = process_user_query(query, knowledge_settings)
+        result = process_user_query(query, knowledge_settings, attachments)
         process_time = time.time() - start_time
         
         # 记录处理时间
@@ -86,16 +93,18 @@ def process_query():
             # 错误响应也需要安全处理
             error_response = {
                 'success': False,
-                'message': result.get('message', '处理查询时出错')
+                'message': result.get('message', '处理查询时出错'),
+                'answer': result.get('message', '很抱歉，处理您的查询时出现了问题。请稍后再试。')
             }
-            return safe_json_dumps(error_response), 500, {'Content-Type': 'application/json'}
+            return safe_json_dumps(error_response), 200, {'Content-Type': 'application/json'}
     except Exception as e:
         traceback.print_exc()
         error_response = {
             'success': False,
-            'message': f'处理查询失败: {str(e)}'
+            'message': f'处理查询失败: {str(e)}',
+            'answer': f'很抱歉，服务器遇到了错误：{str(e)}。请稍后再试。'
         }
-        return safe_json_dumps(error_response), 500, {'Content-Type': 'application/json'}
+        return safe_json_dumps(error_response), 200, {'Content-Type': 'application/json'}
 
 @ai_chat_bp.route('/render-chart', methods=['POST'])
 @api_login_required

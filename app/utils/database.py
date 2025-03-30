@@ -45,7 +45,7 @@ def get_db_connection():
     except sqlite3.Error as e:
         log_error(config.DB_ERROR_MESSAGES['connection_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['connection'], 
-                  error_type=ErrorType.DATABASE_ERROR)
+                  error_type=ErrorType.DATABASE)
         if 'conn' in locals():
             conn.rollback()
         raise
@@ -94,7 +94,7 @@ def execute_query(query: str, params: Optional[Tuple] = None, fetch_one: bool = 
         error_message = str(e)
         log_error(config.DB_ERROR_MESSAGES['query_error'].format(error_message), 
                   error_code=config.DB_ERROR_CODES['query'], 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"query": query})
         raise
 
@@ -121,7 +121,7 @@ def transaction():
             conn.rollback()
         log_error(config.DB_ERROR_MESSAGES['transaction_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['transaction'], 
-                  error_type=ErrorType.DATABASE_ERROR)
+                  error_type=ErrorType.DATABASE)
         raise
     finally:
         if conn:
@@ -151,7 +151,7 @@ def insert_record(table: str, data: Dict[str, Any]) -> Optional[int]:
     except sqlite3.Error as e:
         log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['data'], 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return None
 
@@ -182,7 +182,7 @@ def update_record(table: str, data: Dict[str, Any], condition: str, params: Tupl
     except sqlite3.Error as e:
         log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['data'], 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return False
 
@@ -207,7 +207,7 @@ def delete_record(table: str, condition: str, params: Tuple) -> bool:
     except sqlite3.Error as e:
         log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['data'], 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return False
 
@@ -236,7 +236,7 @@ def get_record(table: str, fields: str = '*', condition: str = '', params: Tuple
     except sqlite3.Error as e:
         log_error(config.DB_ERROR_MESSAGES['query_error'].format(str(e)), 
                   error_code=config.DB_ERROR_CODES['query'], 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return None
 
@@ -273,9 +273,9 @@ def get_records(table: str, fields: str = '*', condition: str = '', params: Tupl
             rows = cur.fetchall()
             return [dict(row) for row in rows]
     except sqlite3.Error as e:
-        log_error(f"获取记录列表错误: {str(e)}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR,
+        log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['data'], 
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return []
 
@@ -301,9 +301,9 @@ def count_records(table: str, condition: str = '', params: Tuple = ()) -> int:
             row = cur.fetchone()
             return row['count'] if row else 0
     except sqlite3.Error as e:
-        log_error(f"统计记录数错误: {str(e)}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR,
+        log_error(config.DB_ERROR_MESSAGES['data_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['data'], 
+                  error_type=ErrorType.DATABASE,
                   details={"table": table})
         return 0
 
@@ -348,9 +348,9 @@ def init_database(schema_file: str = None) -> bool:
         
         return True
     except (sqlite3.Error, IOError) as e:
-        log_error(f"初始化数据库错误: {str(e)}", 
-                  error_code=ErrorCode.DB_INIT_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR)
+        log_error(config.DB_ERROR_MESSAGES['init_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['init'], 
+                  error_type=ErrorType.DATABASE)
         return False
 
 def create_mock_tables(conn):
@@ -1258,7 +1258,7 @@ def execute_query_to_dataframe(query: str, params: Optional[Tuple] = None) -> pd
         
         log_error(error_msg, 
                   error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR,
+                  error_type=ErrorType.DATABASE,
                   details={"query": query})
         
         return pd.DataFrame()
@@ -1285,13 +1285,13 @@ def db_cursor():
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        log_error(f"数据库游标操作错误: {str(e)}", 
-                   error_code=ErrorCode.DB_QUERY_ERROR, 
-                   error_type=ErrorType.DATABASE_ERROR)
+        log_error(config.DB_ERROR_MESSAGES['transaction_error'].format(str(e)), 
+                   error_code=config.DB_ERROR_CODES['transaction'], 
+                   error_type=ErrorType.DATABASE)
         raise
     finally:
         if conn:
-            conn.close() 
+            conn.close()
 
 def execute_many(query: str, params_list: list):
     """
@@ -1311,9 +1311,9 @@ def execute_many(query: str, params_list: list):
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        log_error(f"批量执行查询失败: {str(e)}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR)
+        log_error(config.DB_ERROR_MESSAGES['transaction_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['transaction'], 
+                  error_type=ErrorType.DATABASE)
         return False
     finally:
         if conn:
@@ -1339,9 +1339,9 @@ def execute_transaction(queries: list):
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        log_error(f"执行事务失败: {str(e)}", 
-                  error_code=ErrorCode.DB_QUERY_ERROR, 
-                  error_type=ErrorType.DATABASE_ERROR)
+        log_error(config.DB_ERROR_MESSAGES['transaction_error'].format(str(e)), 
+                  error_code=config.DB_ERROR_CODES['transaction'], 
+                  error_type=ErrorType.DATABASE)
         return False
     finally:
         if conn:

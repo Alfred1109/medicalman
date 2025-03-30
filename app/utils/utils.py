@@ -658,7 +658,8 @@ def date_range_to_dates(date_range):
     返回:
         包含开始日期和结束日期的元组 (start_date, end_date)，格式为'YYYY-MM-DD'
     """
-    today = datetime.datetime.now().date()
+    # 对于演示系统，使用2025年3月28日作为"今天"
+    today = datetime.datetime(2025, 3, 28).date()
     
     if date_range == 'today':
         start_date = today.strftime('%Y-%m-%d')
@@ -668,21 +669,20 @@ def date_range_to_dates(date_range):
         start_date = yesterday.strftime('%Y-%m-%d')
         end_date = start_date
     elif date_range == 'week':
-        # 本周一到今天
-        start_date = (today - datetime.timedelta(days=today.weekday())).strftime('%Y-%m-%d')
+        # 最近7天，而不是本周一到今天
+        start_date = (today - datetime.timedelta(days=6)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
     elif date_range == 'month':
-        # 本月1日到今天
-        start_date = f"{today.year}-{today.month:02d}-01"
+        # 最近30天，而不是本月1日到今天
+        start_date = (today - datetime.timedelta(days=29)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
     elif date_range == 'quarter':
-        # 本季度第一个月1日到今天
-        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
-        start_date = f"{today.year}-{quarter_start_month:02d}-01"
+        # 最近90天，而不是本季度第一个月1日到今天
+        start_date = (today - datetime.timedelta(days=89)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
     elif date_range == 'year':
-        # 本年1月1日到今天
-        start_date = f"{today.year}-01-01"
+        # 最近365天，而不是本年1月1日到今天
+        start_date = (today - datetime.timedelta(days=364)).strftime('%Y-%m-%d')
         end_date = today.strftime('%Y-%m-%d')
     else:
         # 默认返回最近7天

@@ -202,6 +202,51 @@ $(document).ready(function() {
     }
 });
 
+// 立即执行清除重复标题
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fixDuplicateTitles);
+    } else {
+        fixDuplicateTitles();
+    }
+    
+    function fixDuplicateTitles() {
+        setTimeout(() => {
+            // 查找所有图表标题
+            const titles = document.querySelectorAll('.chart-title');
+            const titlesByText = {};
+            
+            // 收集每个文本内容对应的标题元素
+            titles.forEach(title => {
+                const text = title.textContent.trim();
+                if (!titlesByText[text]) {
+                    titlesByText[text] = [];
+                }
+                titlesByText[text].push(title);
+            });
+            
+            // 对于每组相同文本的标题，保留第一个，删除其余的
+            Object.values(titlesByText).forEach(titleGroup => {
+                if (titleGroup.length > 1) {
+                    // 保留第一个，删除其余的
+                    for (let i = 1; i < titleGroup.length; i++) {
+                        const title = titleGroup[i];
+                        // 如果标题是chart-header的子元素，可能需要移除整个header
+                        const header = title.closest('.chart-header');
+                        if (header) {
+                            header.remove();
+                        } else {
+                            title.remove();
+                        }
+                    }
+                }
+            });
+            
+            console.log('重复标题清理完成');
+        }, 500); // 等待500毫秒以确保DOM已完全加载
+    }
+})();
+
 // 等待文档加载完成
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化移动端菜单
@@ -212,6 +257,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化通知功能
     initNotifications();
+    
+    // 清除重复标题
+    cleanupDuplicateChartTitles();
+    
+    // 初始增强
+    enhanceChartContainers();
+    
+    // 监听DOM变化，找到新添加的图表容器并增强
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                cleanupDuplicateChartTitles();
+                enhanceChartContainers();
+            }
+        });
+    });
+    
+    // 开始观察文档变化
+    observer.observe(document.body, { childList: true, subtree: true });
 });
 
 // 初始化移动端菜单
@@ -300,4 +364,192 @@ function markNotificationAsRead(notificationId) {
 }
 
 // 导出函数
-window.markNotificationAsRead = markNotificationAsRead; 
+window.markNotificationAsRead = markNotificationAsRead;
+window.cleanupDuplicateChartTitles = cleanupDuplicateChartTitles;
+
+// 增强所有图表容器，添加下载和全屏按钮
+function enhanceChartContainers() {
+    document.querySelectorAll('.chart-container').forEach(container => {
+        // 跳过已经增强过的容器
+        if (container.getAttribute('data-enhanced') === 'true') return;
+        
+        // 获取父元素，通常是card-body或类似的容器
+        const parent = container.parentElement;
+        if (!parent) return;
+        
+        // 检查是否已经有chart-header元素
+        const existingHeader = parent.querySelector('.chart-header');
+        if (existingHeader) {
+            // 已有标题，只需添加操作按钮
+            const actionsDiv = existingHeader.querySelector('.chart-actions');
+            if (!actionsDiv) {
+                // 如果没有操作区，创建一个
+                const newActionsDiv = document.createElement('div');
+                newActionsDiv.className = 'chart-actions';
+                
+                // 下载按钮
+                const downloadBtn = document.createElement('div');
+                downloadBtn.className = 'chart-action';
+                downloadBtn.title = '下载';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                
+                // 全屏按钮
+                const fullscreenBtn = document.createElement('div');
+                fullscreenBtn.className = 'chart-action';
+                fullscreenBtn.title = '全屏';
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                
+                // 添加按钮到操作区
+                newActionsDiv.appendChild(downloadBtn);
+                newActionsDiv.appendChild(fullscreenBtn);
+                
+                // 添加操作区到标题栏
+                existingHeader.appendChild(newActionsDiv);
+                
+                // 查找是否有echarts实例关联到此容器
+                const chart = window.echartsInstances ? 
+                    window.echartsInstances.find(c => c && c.getDom && c.getDom() === container) : null;
+                
+                // 如果找到图表实例，设置按钮事件
+                if (chart) {
+                    downloadBtn.addEventListener('click', () => {
+                        Utils.chart.downloadChart(chart, container.id || 'chart');
+                    });
+                    
+                    fullscreenBtn.addEventListener('click', () => {
+                        Utils.chart.fullscreenChart(chart);
+                    });
+                } else {
+                    // 如果没有找到图表实例，禁用按钮
+                    downloadBtn.classList.add('disabled');
+                    fullscreenBtn.classList.add('disabled');
+                }
+            }
+            
+            // 标记为已增强
+            container.setAttribute('data-enhanced', 'true');
+            return;
+        }
+        
+        // 查找父元素中是否已有标题元素
+        const existingTitle = parent.querySelector('.chart-title, .card-title, h3, h4');
+        let titleText = existingTitle ? existingTitle.textContent.trim() : '图表';
+        
+        // 如果父元素是card-body，标题可能在card-header中
+        if (parent.classList.contains('card-body')) {
+            const cardElement = parent.parentElement;
+            if (cardElement && cardElement.classList.contains('card')) {
+                const cardHeader = cardElement.querySelector('.card-header');
+                if (cardHeader) {
+                    titleText = cardHeader.textContent.trim();
+                }
+            }
+        }
+        
+        // 创建标题和操作区
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'chart-header';
+        
+        const titleDiv = document.createElement('h3');
+        titleDiv.className = 'chart-title';
+        titleDiv.textContent = titleText;
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'chart-actions';
+        
+        // 下载按钮
+        const downloadBtn = document.createElement('div');
+        downloadBtn.className = 'chart-action';
+        downloadBtn.title = '下载';
+        downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+        
+        // 全屏按钮
+        const fullscreenBtn = document.createElement('div');
+        fullscreenBtn.className = 'chart-action';
+        fullscreenBtn.title = '全屏';
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        
+        // 组装UI元素
+        actionsDiv.appendChild(downloadBtn);
+        actionsDiv.appendChild(fullscreenBtn);
+        headerDiv.appendChild(titleDiv);
+        headerDiv.appendChild(actionsDiv);
+        
+        // 查找是否有echarts实例关联到此容器
+        const chart = window.echartsInstances ? 
+            window.echartsInstances.find(c => c && c.getDom && c.getDom() === container) : null;
+        
+        // 如果找到图表实例，设置按钮事件
+        if (chart) {
+            downloadBtn.addEventListener('click', () => {
+                Utils.chart.downloadChart(chart, container.id || 'chart');
+            });
+            
+            fullscreenBtn.addEventListener('click', () => {
+                Utils.chart.fullscreenChart(chart);
+            });
+        } else {
+            // 如果没有找到图表实例，禁用按钮
+            downloadBtn.classList.add('disabled');
+            fullscreenBtn.classList.add('disabled');
+        }
+        
+        // 如果发现页面上已经有相同的标题，就不再添加
+        const similarTitles = Array.from(document.querySelectorAll('.chart-title, .card-title, h3, h4'))
+            .filter(el => el.textContent.trim() === titleText && el !== titleDiv);
+        
+        if (similarTitles.length === 0) {
+            // 将现有容器替换为新结构
+            // 只有在容器不是作为card-body的直接子元素时才进行DOM修改
+            if (!parent.classList.contains('card-body')) {
+                container.parentNode.insertBefore(headerDiv, container);
+            }
+        }
+        
+        // 标记为已增强
+        container.setAttribute('data-enhanced', 'true');
+    });
+}
+
+// 清除重复的图表标题
+function cleanupDuplicateChartTitles() {
+    // 查找所有图表标题
+    const titles = document.querySelectorAll('.chart-title');
+    const titlesByText = {};
+    
+    // 收集每个文本内容对应的标题元素
+    titles.forEach(title => {
+        const text = title.textContent.trim();
+        if (!titlesByText[text]) {
+            titlesByText[text] = [];
+        }
+        titlesByText[text].push(title);
+    });
+    
+    // 对于每组相同文本的标题，保留第一个，删除其余的
+    Object.values(titlesByText).forEach(titleGroup => {
+        if (titleGroup.length > 1) {
+            // 保留第一个，删除其余的
+            for (let i = 1; i < titleGroup.length; i++) {
+                const title = titleGroup[i];
+                // 如果标题是chart-header的子元素，可能需要移除整个header
+                const header = title.closest('.chart-header');
+                if (header) {
+                    header.remove();
+                } else {
+                    title.remove();
+                }
+            }
+        }
+    });
+}
+
+// 立即执行的重复标题清理（确保页面渲染后立即处理）
+(function() {
+    setTimeout(function() {
+        if (typeof cleanupDuplicateChartTitles === 'function') {
+            cleanupDuplicateChartTitles();
+            console.log('初始标题重复清理已执行');
+        }
+    }, 100);
+})(); 

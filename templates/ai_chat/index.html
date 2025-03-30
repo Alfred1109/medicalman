@@ -2,6 +2,12 @@
 
 {% block title %}智能问答 - 医疗管理系统{% endblock %}
 
+{% block head %}
+{{ super() }}
+<!-- CSRF令牌 -->
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item active">智能问答</li>
 {% endblock %}
@@ -10,7 +16,7 @@
 
 {% block page_actions %}
 <div class="d-flex gap-2">
-    <button class="btn btn-sm btn-outline-primary" id="clearChat">
+    <button class="btn btn-sm btn-outline-primary" id="clear-button">
         <i class="fas fa-trash me-1"></i> 清空对话
     </button>
     <button class="btn btn-sm btn-outline-primary" id="historyButton">
@@ -18,6 +24,9 @@
     </button>
     <button class="btn btn-sm btn-outline-primary" id="toggleKnowledgePanel">
         <i class="fas fa-database me-1"></i> 知识库
+    </button>
+    <button class="btn btn-sm btn-outline-primary" id="exportReport">
+        <i class="fas fa-file-export me-1"></i> 导出报告
     </button>
 </div>
 {% endblock %}
@@ -29,55 +38,13 @@
 
 {% block content %}
     <div class="chat-container">
-        <div class="chat-body" id="chatMessages">
-            <div class="chat-message">
-                <div class="chat-avatar ai">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="chat-bubble ai">
-                    <div>您好，我是医院运营指标智能分析助手。请问有什么可以帮您解答的问题？</div>
-                    <div class="chat-time">09:30</div>
-                    <div class="chat-suggestions">
-                        <div class="chat-suggestion">门诊目标的达成情况如何？</div>
-                        <div class="chat-suggestion">门诊量的整体趋势是怎样的？</div>
-                        <div class="chat-suggestion">如何分析科室绩效？</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-message user">
-                <div class="chat-avatar user">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="chat-bubble user">
-                    <div>请分析一下最近一周的门诊量变化趋势</div>
-                    <div class="chat-time">09:31</div>
-                </div>
-            </div>
-            
-            <div class="chat-message">
-                <div class="chat-avatar ai">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="chat-bubble ai">
-                    <div>根据数据分析，最近一周的门诊量呈现波动上升趋势：<br>
-                    周一：120人次<br>
-                    周二：132人次<br>
-                    周三：101人次<br>
-                    周四：134人次<br>
-                    周五：90人次<br>
-                    周六：230人次<br>
-                    周日：210人次<br><br>
-                    
-                    周末门诊量明显高于工作日，建议适当增加周末医护人员配置。周三和周五门诊量较低，可以考虑在这两天安排一些特色门诊或优惠活动来提升就诊人数。</div>
-                    <div class="chat-time">09:32</div>
-                </div>
-            </div>
+        <div class="chat-body" id="chat-messages">
+            <!-- 聊天消息将通过JavaScript动态添加 -->
         </div>
         
         <div class="chat-footer">
-            <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="message-input"></textarea>
-            <button class="chat-send" id="sendButton">
+            <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="chat-input"></textarea>
+            <button class="chat-send" id="send-button">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
@@ -245,9 +212,10 @@
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
 
-<!-- 引入分离后的JS文件 -->
+<!-- 引入JS文件（按依赖顺序） -->
+<!-- utils.js已在base.html中引入，这里无需重复引入 -->
 <script src="{{ url_for('static', filename='js/ai-chat-utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ai-chat-api.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat-upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat-api.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 {% endblock %}

@@ -339,10 +339,12 @@
                             </div>
                         </div>
                 </div>
-                
-                <div class="analysis-chart">
-                    <div class="chart-header">
-        <h3 class="chart-title">科室工作量趋势变化</h3>
+            </div>
+            
+            <!-- 单独的趋势图表容器，确保独立的结构 -->
+            <div class="analysis-chart">
+                <div class="chart-header">
+            <h3 class="chart-title">科室工作量趋势变化</h3>
                         <div class="chart-actions">
                             <div class="chart-action" title="下载">
                                 <i class="fas fa-download"></i>
@@ -352,8 +354,8 @@
                             </div>
                         </div>
                     </div>
-    <div class="chart-container">
-        <!-- 图表将通过JavaScript渲染 -->
+    <div class="chart-container" id="trendChartContainer">
+        <!-- 趋势图表将在这里渲染 -->
     </div>
 </div>
 {% endblock %}
@@ -362,10 +364,42 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 确保DOM元素存在后再初始化图表
+    const outpatientContainer = document.querySelector('.analysis-grid .analysis-chart:nth-child(1) .chart-container');
+    const inpatientContainer = document.querySelector('.analysis-grid .analysis-chart:nth-child(2) .chart-container');
+    const trendContainer = document.getElementById('trendChartContainer');
+    
+    // 检查容器是否存在
+    if (!outpatientContainer) {
+        console.error('门诊量图表容器未找到');
+        return;
+    }
+    
+    if (!inpatientContainer) {
+        console.error('住院量图表容器未找到');
+        return;
+    }
+    
+    if (!trendContainer) {
+        console.error('趋势图表容器未找到');
+        return;
+    }
+    
+    console.log('容器已检查，开始初始化图表');
+    console.log('趋势图表容器:', trendContainer);
+    
     // 初始化图表对象
-    const departmentOutpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
-    const departmentInpatientChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
-    const departmentTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
+    let departmentOutpatientChart, departmentInpatientChart, departmentTrendChart;
+    
+    try {
+        departmentOutpatientChart = echarts.init(outpatientContainer);
+        departmentInpatientChart = echarts.init(inpatientContainer);
+        departmentTrendChart = echarts.init(trendContainer);
+        console.log('图表初始化成功');
+    } catch (error) {
+        console.error('图表初始化失败:', error);
+        return;
+    }
     
     // 获取CSRF令牌
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -397,18 +431,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // 显示加载状态
     showLoading([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart]);
     
+    // 窗口调整大小时重新渲染图表
+    window.addEventListener('resize', function() {
+        departmentOutpatientChart.resize();
+        departmentInpatientChart.resize();
+        departmentTrendChart.resize();
+    });
+    
     // 获取科室列表
     fetch('/analytics/api/department/list', {
         method: 'GET',
         headers: headers,
         credentials: 'same-origin'
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('网络响应不正常');
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(result => {
         if (result.success) {
             const departments = result.data;
@@ -416,45 +452,45 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDepartmentFilter(departments);
             
             // 获取科室工作量数据
-            return fetch('/analytics/api/department/workload', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    start_date: startDate,
-                    end_date: endDate
-                }),
-                credentials: 'same-origin'
+            return Utils.api.post('/analytics/api/department/workload', {
+                start_date: startDate,
+                end_date: endDate
+            }).then(result => {
+                if (result.success) {
+                    const workloadData = result.data;
+                    
+                    // 调试信息
+                    console.log('================== 科室工作量数据 ==================');
+                    console.log('原始数据条数:', workloadData.length);
+                    console.log('首条数据样例:', workloadData[0]);
+                    console.log('最后一条数据样例:', workloadData[workloadData.length - 1]);
+                    console.log('日期范围:', [...new Set(workloadData.map(item => item.date))].sort());
+                    console.log('科室列表:', [...new Set(workloadData.map(item => item.department))].sort());
+                    
+                    // 处理门诊量数据
+                    const outpatientData = processOutpatientData(workloadData);
+                    console.log('门诊图表数据:', outpatientData);
+                    updateOutpatientChart(departmentOutpatientChart, outpatientData);
+                    
+                    // 处理住院量数据
+                    const inpatientData = processInpatientData(workloadData);
+                    console.log('住院图表数据:', inpatientData);
+                    updateInpatientChart(departmentInpatientChart, inpatientData);
+                    
+                    // 处理趋势数据
+                    const trendData = processTrendData(workloadData);
+                    console.log('趋势图表数据:', trendData);
+                    updateTrendChart(departmentTrendChart, trendData);
+                    
+                    // 隐藏加载状态
+                    hideLoading([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart]);
+                    return workloadData;
+                } else {
+                    throw new Error(result.message || '获取科室工作量数据失败');
+                }
             });
         } else {
             throw new Error(result.message || '获取科室列表失败');
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('网络响应不正常');
-        }
-        return response.json();
-    })
-    .then(result => {
-        if (result.success) {
-            const workloadData = result.data;
-            
-            // 处理门诊量数据
-            const outpatientData = processOutpatientData(workloadData);
-            updateOutpatientChart(departmentOutpatientChart, outpatientData);
-            
-            // 处理住院量数据
-            const inpatientData = processInpatientData(workloadData);
-            updateInpatientChart(departmentInpatientChart, inpatientData);
-            
-            // 处理趋势数据
-            const trendData = processTrendData(workloadData);
-            updateTrendChart(departmentTrendChart, trendData);
-            
-            // 隐藏加载状态
-            hideLoading([departmentOutpatientChart, departmentInpatientChart, departmentTrendChart]);
-        } else {
-            throw new Error(result.message || '获取科室工作量数据失败');
         }
     })
     .catch(error => {
@@ -483,16 +519,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 更新KPI卡片
     function updateKPICards(startDate, endDate) {
-        fetch('/analytics/api/department/workload', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                start_date: startDate,
-                end_date: endDate
-            }),
-            credentials: 'same-origin'
+        // 显示加载状态
+        const kpiCards = document.querySelectorAll('.kpi-card .kpi-value');
+        kpiCards.forEach(card => {
+            card.innerHTML = '<span class="loading-dot">加载中</span>';
+        });
+        
+        // 获取科室工作量数据
+        Utils.api.post('/analytics/api/department/workload', {
+            start_date: startDate,
+            end_date: endDate
         })
-        .then(response => response.json())
         .then(result => {
             if (result.success) {
                 const workloadData = result.data;
@@ -514,20 +551,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelector('.kpi-card:nth-child(3) .kpi-value').textContent = totalSurgery.toLocaleString();
                 
                 // 获取效率数据以更新平均住院日
-                return fetch('/analytics/api/department/efficiency', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({
-                        start_date: startDate,
-                        end_date: endDate
-                    }),
-                    credentials: 'same-origin'
+                return Utils.api.post('/analytics/api/department/efficiency', {
+                    start_date: startDate,
+                    end_date: endDate
                 });
             } else {
                 throw new Error(result.message || '获取工作量数据失败');
             }
         })
-        .then(response => response.json())
         .then(result => {
             if (result.success) {
                 const efficiencyData = result.data;
@@ -551,6 +582,10 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('KPI数据加载失败:', error);
+            // 显示错误状态
+            kpiCards.forEach(card => {
+                card.textContent = '加载失败';
+            });
         });
     }
     
@@ -631,48 +666,82 @@ document.addEventListener('DOMContentLoaded', function() {
         const departmentWorkload = {};
         
         workloadData.forEach(item => {
+            // 确保item.department和item.total_count都存在
+            if (!item.department || item.total_count === undefined) {
+                console.log('数据项缺少department或total_count字段:', item);
+                return;
+            }
+            
             if (!departmentWorkload[item.department]) {
                 departmentWorkload[item.department] = 0;
             }
             departmentWorkload[item.department] += item.total_count;
         });
         
+        // 检查是否有有效的科室工作量数据
+        if (Object.keys(departmentWorkload).length === 0) {
+            console.error('没有可用的科室工作量数据');
+            return { xAxis: [], series: [] };
+        }
+        
         const topDepartments = Object.entries(departmentWorkload)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(item => item[0]);
+            
+        console.log('选择的顶级科室:', topDepartments);
         
         // 按月份聚合数据
         const monthlyData = {};
         
         workloadData.forEach(item => {
-            const date = new Date(item.date);
-            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-            
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = {};
-                topDepartments.forEach(dept => {
-                    monthlyData[monthKey][dept] = 0;
-                });
+            // 检查日期有效性
+            if (!item.date) {
+                console.log('数据项缺少date字段:', item);
+                return;
             }
             
-            if (topDepartments.includes(item.department)) {
-                monthlyData[monthKey][item.department] += item.total_count;
+            try {
+                const date = new Date(item.date);
+                const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {};
+                    topDepartments.forEach(dept => {
+                        monthlyData[monthKey][dept] = 0;
+                    });
+                }
+                
+                if (topDepartments.includes(item.department)) {
+                    monthlyData[monthKey][item.department] += item.total_count;
+                }
+            } catch (e) {
+                console.error('处理日期时出错:', item.date, e);
             }
         });
         
-        // 构建x轴数据（月份）
+        // 构建x轴数据（月份）并确保按时间顺序排序
         const months = Object.keys(monthlyData).sort();
+        console.log('可用月份数据:', months);
+        
+        // 如果没有月份数据，提供提示
+        if (months.length === 0) {
+            console.error('没有可用的月份数据');
+            return { xAxis: [], series: [] };
+        }
         
         // 构建各个科室的系列数据
         const series = topDepartments.map(dept => {
+            const data = months.map(month => monthlyData[month][dept] || 0);
+            console.log(`科室 ${dept} 的月度数据:`, data);
+            
             return {
                 name: dept,
                 type: 'line',
                 stack: '总量',
                 areaStyle: {},
                 emphasis: { focus: 'series' },
-                data: months.map(month => monthlyData[month][dept] || 0)
+                data: data
             };
         });
         
@@ -780,30 +849,64 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 更新趋势图表
     function updateTrendChart(chart, data) {
-        const option = {
-            tooltip: {
-                trigger: 'axis'
-            },
-            legend: {
-                data: data.series.map(item => item.name)
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: data.xAxis
-            },
-            yAxis: {
-                type: 'value'
-            },
-            series: data.series
-        };
-        chart.setOption(option);
+        if (!chart) {
+            console.error('趋势图表对象不存在');
+            return;
+        }
+        
+        if (!data || !data.xAxis || !data.series) {
+            console.error('趋势图表数据无效:', data);
+            // 设置一个默认的空图表，避免错误
+            chart.setOption({
+                title: {
+                    text: '暂无数据',
+                    left: 'center',
+                    top: 'center',
+                    textStyle: {
+                        color: '#999',
+                        fontSize: 14,
+                        fontWeight: 'normal'
+                    }
+                }
+            });
+            return;
+        }
+        
+        console.log('正在更新趋势图表:', {
+            xAxis: data.xAxis,
+            seriesCount: data.series.length,
+            firstSeries: data.series[0]
+        });
+        
+        try {
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: data.series.map(item => item.name)
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: data.xAxis
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: data.series
+            };
+            chart.setOption(option);
+            console.log('趋势图表更新成功');
+        } catch (error) {
+            console.error('趋势图表更新失败:', error);
+        }
     }
     
     // 显示加载状态

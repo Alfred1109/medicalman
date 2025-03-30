@@ -1,12 +1,20 @@
 # 基础框架
-flask==3.0.2
-flask-login==0.6.3
-flask-migrate==4.1.0
-flask-session==0.6.0
-flask-sqlalchemy==3.1.1
-sqlalchemy==2.0.39
+Flask==3.0.2
+Flask-Login==0.6.3
+Flask-Migrate==4.1.0
+Flask-Session==0.6.0
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.2
+SQLAlchemy==2.0.39
+Werkzeug==3.0.1
+Jinja2==3.1.6
 python-dotenv==1.0.1
-werkzeug==3.0.1
+alembic==1.15.2
+itsdangerous==2.2.0
+WTForms==3.2.1
+greenlet==3.1.1
+blinker==1.9.0
+cachelib==0.13.0
 
 # 数据处理
 pandas==2.2.0
@@ -19,20 +27,69 @@ seaborn==0.13.2
 openpyxl==3.1.2
 xlrd==2.0.1
 odfpy==1.4.1
+statsmodels==0.14.4
+patsy==1.0.0
+joblib==1.4.2
+threadpoolctl==3.6.0
+pytz==2025.2
+tzdata==2025.2
+python-dateutil==2.9.0.post0
+contourpy==1.3.1
+kiwisolver==1.4.8
+cycler==0.12.1
+pyparsing==3.2.3
+fonttools==4.56.0
+pillow==10.2.0
+six==1.17.0
 
 # 数据可视化和报告
 ydata-profiling==4.15.1
+visions==0.8.1
+htmlmin==0.1.12
+phik==0.12.4
+multimethod==1.12
+wordcloud==1.9.4
+ImageHash==4.3.1
+PyWavelets==1.8.0
+networkx==3.4.2
+tenacity==9.0.0
 
 # NLP 和文本处理
 nltk==3.8.1
 jieba_fast==0.53
+spacy==3.7.2
+spacy-pkuseg==0.0.33
+spacy-legacy==3.0.12
+spacy-loggers==1.0.5
+thinc==8.2.5
+wasabi==1.1.3
+srsly==2.5.1
+catalogue==2.0.10
+preshed==3.0.9
+murmurhash==1.0.12
+cymem==2.0.11
+blis==0.7.11
+confection==0.1.5
+regex==2024.11.6
+weasel==0.3.4
+typer==0.9.4
+langcodes==3.5.0
+language_data==1.3.0
+marisa-trie==1.2.1
+shellingham==1.5.4
+smart-open==6.4.0
+cloudpathlib==0.16.0
+# 安装完spacy后，需要执行: python -m spacy download zh_core_web_sm
 
 # 文档处理
-pillow==10.2.0
+Pillow==10.2.0
 PyPDF2==3.0.1
 pdfplumber==0.10.3
 python-docx==1.1.0
 pytesseract==0.3.10
+pdfminer.six==20221105
+pypdfium2==4.30.1
+puremagic==1.28
 
 # LLM 和 AI 相关
 langchain==0.3.21
@@ -41,13 +98,75 @@ langchain-core==0.3.47
 langchain-openai==0.3.9
 langchain-text-splitters==0.3.7
 openai==1.68.2
+tiktoken==0.9.0
+langsmith==0.3.19
+dataclasses-json==0.6.7
+propcache==0.3.1
+marshmallow==3.26.1
+typing-inspect==0.9.0
+narwhals==1.32.0
+jiter==0.9.0
+jsonpatch==1.33
+jsonpointer==3.0.0
+requests-toolbelt==1.0.0
+
+# HTTP和网络
+httpx==0.28.1
+httpcore==1.0.7
+anyio==4.9.0
+sniffio==1.3.1
+h11==0.14.0
+httpx-sse==0.4.0
+aiohttp==3.11.14
+frozenlist==1.5.0
+multidict==6.2.0
+yarl==1.18.3
+aiosignal==1.3.2
+attrs==25.3.0
+aiohappyeyeballs==2.6.1
 
 # 工具类
 requests==2.31.0
 tqdm==4.67.1
 pyyaml==6.0.2
+packaging==24.2
+typing_extensions==4.13.0
+typing-inspection==0.4.0
+typeguard==4.4.2
+pydantic==2.11.1
+pydantic_core==2.33.0
+pydantic-settings==2.8.1
+annotated-types==0.7.0
+mypy-extensions==1.0.0
+rich==13.9.4
+Pygments==2.19.1
+markdown-it-py==3.0.0
+mdurl==0.1.2
+certifi==2025.1.31
+urllib3==2.3.0
+idna==3.10
+charset-normalizer==3.4.1
+orjson==3.10.16
+setuptools==78.1.0
+wrapt==1.17.2
+click==8.1.8
+zstandard==0.23.0
+dacite==1.9.2
 
 # 报告生成
 weasyprint==60.1
 pdfkit==1.0.0
-wkhtmltopdf==0.2 
+wkhtmltopdf==0.2
+pydyf==0.11.0
+cssselect2==0.8.0
+tinycss2==1.4.0
+Brotli==1.1.0
+cffi==1.17.1
+defusedxml==0.7.1
+html5lib==1.1
+webencodings==0.5.1
+lxml==5.3.1
+zopfli==0.2.3.post1
+cryptography==44.0.2
+distro==1.9.0
+pycparser==2.22 

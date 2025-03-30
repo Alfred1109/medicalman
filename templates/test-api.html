@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>仪表盘API测试</h1>
+    <p>点击下面的按钮测试API:</p>
+    
+    <div>
+        <button id="testApi">测试仪表盘API</button>
+        <button id="clearLog">清除日志</button>
+    </div>
+    
+    <div id="result">
+        <h3>API响应:</h3>
+        <pre id="response">尚未发送请求...</pre>
+    </div>
+    
+    <script>
+        document.getElementById('testApi').addEventListener('click', async () => {
+            const responseElement = document.getElementById('response');
+            responseElement.textContent = '正在请求中...';
+            
+            try {
+                const response = await fetch('/api/dashboard/metrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({date_range: 'week'})
+                });
+                
+                const data = await response.json();
+                responseElement.textContent = JSON.stringify(data, null, 2);
+                
+                // 控制台输出详细信息
+                console.log('API响应完整数据:', data);
+                
+                if (data && data.data && data.data.stats) {
+                    console.log('Stats数据:', data.data.stats);
+                    
+                    // 检查outpatient字段
+                    if (data.data.stats.outpatient) {
+                        console.log('outpatient字段存在:', data.data.stats.outpatient);
+                    } else {
+                        console.error('outpatient字段不存在!');
+                        responseElement.innerHTML += '\n\n<span class="error">错误: outpatient字段不存在!</span>';
+                    }
+                } else {
+                    console.error('stats字段不存在或结构不完整!');
+                    responseElement.innerHTML += '\n\n<span class="error">错误: stats字段不存在或结构不完整!</span>';
+                }
+            } catch (error) {
+                console.error('API请求失败:', error);
+                responseElement.innerHTML = `<span class="error">请求失败: ${error.message}</span>`;
+            }
+        });
+        
+        document.getElementById('clearLog').addEventListener('click', () => {
+            document.getElementById('response').textContent = '日志已清除';
+        });
+    </script>
+</body>
+</html> 

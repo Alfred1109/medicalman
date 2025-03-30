@@ -287,19 +287,30 @@ class DemoDataGenerator:
                 weekday = current_date.weekday()
                 weekday_factor = 1.0
                 if weekday >= 5:  # 周末
-                    weekday_factor = 0.6
+                    weekday_factor = 0.4  # 增加周末和工作日的差异
+                elif weekday == 0:  # 周一
+                    weekday_factor = 1.4  # 周一人数更多
+                elif weekday == 4:  # 周五
+                    weekday_factor = 1.2  # 周五也较多
                 
                 # 添加季节性变化
                 month = current_date.month
                 season_factor = 1.0
                 if month in [12, 1, 2]:  # 冬季
-                    season_factor = 1.2  # 冬季疾病增多
+                    season_factor = 1.5  # 增加冬季疾病差异
                 elif month in [6, 7, 8]:  # 夏季
-                    season_factor = 0.9  # 夏季略有下降
+                    season_factor = 1.3  # 夏季疾病也增加
+                elif month in [3, 4, 5]:  # 春季
+                    season_factor = 0.9  # 春季较少
+                elif month in [9, 10, 11]:  # 秋季
+                    season_factor = 1.1  # 秋季适中
+                
+                # 添加随机波动，使数据更真实
+                daily_variation = random.uniform(0.7, 1.3)
                 
                 # 计算最终工作量
                 outpatient_count = cls.normal_random_int(
-                    base_outpatient * weekday_factor * season_factor, 
+                    base_outpatient * weekday_factor * season_factor * daily_variation, 
                     base_outpatient * 0.2
                 )
                 inpatient_count = cls.normal_random_int(
@@ -692,10 +703,29 @@ class DemoDataGenerator:
         try:
             print("开始初始化各模块演示数据...")
             
-            # 初始化仪表盘数据
+            # 初始化仪表盘数据 - 强制重新生成
             print("\n===== 初始化仪表盘数据 =====")
-            from app.routes.dashboard_routes import initialize_demo_data
-            initialize_demo_data()
+            from app.routes.dashboard_routes import initialize_demo_data, get_db_connection
+            
+            # 检查visits表是否为空，如果为空则强制重新生成数据
+            try:
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM visits")
+                    count = cursor.fetchone()[0]
+                    if count == 0:
+                        print("visits表为空，强制重新生成数据...")
+                        # 删除visits表以重新创建
+                        cursor.execute("DROP TABLE IF EXISTS visits")
+                        conn.commit()
+                        initialize_demo_data(force=True)
+                    else:
+                        print(f"visits表中已有{count}条记录")
+                        initialize_demo_data()
+            except Exception as e:
+                print(f"检查visits表时出错: {str(e)}")
+                # 如果出错，强制重新生成
+                initialize_demo_data(force=True)
             
             # 初始化科室分析数据
             print("\n===== 初始化科室分析数据 =====")

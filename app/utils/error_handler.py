@@ -5,7 +5,7 @@ import traceback
 from typing import Dict, Any, Optional, Tuple, Callable
 from functools import wraps
 import json
-from flask import jsonify, Response, current_app
+from flask import jsonify, Response, current_app, request
 from contextlib import contextmanager
 import logging
 from app.config import config
@@ -40,11 +40,14 @@ class ErrorCode:
     API_RATE_LIMIT = 2002
     API_RESOURCE_NOT_FOUND = 2003
     API_PERMISSION_DENIED = 2004
+    API_INVALID_PARAMS = 2005
+    API_FORMAT_ERROR = 2006
     
     # 认证错误 (3xxx)
     AUTH_INVALID_CREDENTIALS = 3001
     AUTH_TOKEN_EXPIRED = 3002
     AUTH_INSUFFICIENT_PERMISSIONS = 3003
+    AUTH_REQUIRED = 3004
     
     # 验证错误 (4xxx)
     VALIDATION_MISSING_FIELD = 4001
@@ -73,6 +76,28 @@ class ErrorCode:
     # 自定义数据库错误
     DB_INIT_ERROR = 1010
     DB_QUERY_ERROR = 1011
+
+# API错误类，用于抛出API错误
+class ApiError(Exception):
+    """API错误异常类"""
+    def __init__(self, message, error_code=ErrorCode.API_INVALID_REQUEST, 
+                 http_status=400, details=None):
+        self.message = message
+        self.error_code = error_code
+        self.http_status = http_status
+        self.details = details or {}
+        super().__init__(self.message)
+    
+    def to_dict(self):
+        """转换为字典表示"""
+        error_dict = {
+            "success": False,
+            "error": self.message,
+            "error_code": self.error_code
+        }
+        if self.details:
+            error_dict["details"] = self.details
+        return error_dict
 
 # 标准错误响应格式
 def error_response(
@@ -111,6 +136,80 @@ def error_response(
     log_error(message, error_code=error_code, error_type=error_type, details=details)
     
     return jsonify(response_data), status_code
+
+# API错误处理装饰器
+def api_error_handler(func):
+    """
+    API错误处理装饰器，捕获异常并返回标准化的JSON响应
+    
+    参数:
+        func: 要装饰的函数
+        
+    返回:
+        装饰后的函数
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ApiError as e:
+            # 处理自定义API错误
+            current_app.logger.error(f"API错误: {e.message}")
+            return jsonify(e.to_dict()), e.http_status
+        except ValueError as e:
+            # 处理参数验证错误
+            current_app.logger.error(f"参数验证错误: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "error_code": ErrorCode.VALIDATION_INVALID_VALUE
+            }), 400
+        except TypeError as e:
+            # 处理类型错误
+            current_app.logger.error(f"类型错误: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "error_code": ErrorCode.API_INVALID_PARAMS
+            }), 400
+        except KeyError as e:
+            # 处理字典键错误
+            current_app.logger.error(f"缺少关键字段: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": f"缺少必要字段: {str(e)}",
+                "error_code": ErrorCode.VALIDATION_MISSING_FIELD
+            }), 400
+        except json.JSONDecodeError as e:
+            # 处理JSON解析错误
+            current_app.logger.error(f"JSON解析错误: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": f"无效的JSON格式: {str(e)}",
+                "error_code": ErrorCode.API_FORMAT_ERROR
+            }), 400
+        except Exception as e:
+            # 记录未预期的异常
+            error_info = {
+                "endpoint": request.endpoint,
+                "method": request.method,
+                "url": request.url,
+                "user_agent": request.user_agent.string if request.user_agent else "Unknown",
+                "traceback": traceback.format_exc()
+            }
+            
+            current_app.logger.error(f"API请求处理出错: {str(e)}")
+            current_app.logger.error(f"详细信息: {json.dumps(error_info, ensure_ascii=False)}")
+            
+            # 返回通用错误信息
+            return jsonify({
+                "success": False,
+                "error": "服务器内部错误，请稍后重试",
+                "error_code": ErrorCode.INTERNAL_SERVER,
+                "request_id": request.headers.get("X-Request-ID", "unknown")
+            }), 500
+    
+    return wrapper
 
 # 错误处理装饰器
 def handle_exceptions(func: Callable) -> Callable:

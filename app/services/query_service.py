@@ -57,6 +57,7 @@ def create_response(success: bool, message: str, data: Any = None, error: str = 
     response = {
         "success": success,
         "message": message,
+        "answer": message,
         "process_time": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     }
     
@@ -86,13 +87,14 @@ def execute_sql_query(sql: str) -> pd.DataFrame:
         traceback.print_exc()
         raise e  # 向上抛出异常以便更好地处理
 
-def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
+def process_user_query(user_message: str, knowledge_settings: Dict = None, attachments: List = None) -> Dict[str, Any]:
     """
     处理用户查询并返回结果
     
     参数:
         user_message: 用户查询消息
         knowledge_settings: 知识库查询设置
+        attachments: 用户上传的附件列表
         
     返回:
         包含处理结果的字典
@@ -100,8 +102,17 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None) -> Di
     if not knowledge_settings:
         knowledge_settings = {}
     
+    if not attachments:
+        attachments = []
+    
     # 数据源选择，默认为'auto'
     data_source = knowledge_settings.get('data_source', 'auto')
+    
+    # 如果有附件，优先使用文件查询处理
+    if attachments and len(attachments) > 0:
+        print(f"检测到用户上传的附件: {attachments}，使用文件查询处理")
+        data_source = 'file'
+        knowledge_settings['attachments'] = attachments
     
     start_time = datetime.now()
     

@@ -214,4 +214,14 @@ def get_reports():
         return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"获取报告数据失败: {str(e)}")
-        return jsonify([]) 
+        return jsonify([])
+
+@main_bp.route('/test-api')
+def test_api():
+    """API测试页面"""
+    return render_template('test-api.html')
+
+@main_bp.route('/test_chat')
+def test_chat():
+    """测试聊天气泡页面"""
+    return render_template('test_chat.html') 

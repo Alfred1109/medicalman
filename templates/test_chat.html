@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>聊天测试</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --primary-light: #e1f0fa;
+            --secondary-color: #2ecc71;
+            --secondary-light: #eafaf1;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-light: #999;
+            --light-bg: #f5f8fa;
+            --border-color: #ddd;
+            --hover-color: #f0f0f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --border-radius-sm: 4px;
+            --border-radius-md: 6px;
+            --border-radius-lg: 8px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 24px;
+            --transition-fast: 0.2s;
+            --background-light: #f9f9f9;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--light-bg);
+            color: var(--text-primary);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+        
+        /* 聊天样式 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            margin-bottom: var(--spacing-md);
+            position: relative;
+        }
+
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            background-color: var(--light-bg);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chat-footer {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: var(--font-size-md);
+            resize: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .chat-send {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 var(--spacing-lg);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+        }
+
+        .chat-send:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* 消息样式 */
+        .message {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: var(--spacing-md);
+            max-width: 85%;
+        }
+
+        .message.user-message {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message.bot-message {
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .message.system-message {
+            align-self: center;
+            max-width: 60%;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: var(--font-size-xs);
+            color: var(--text-light);
+            padding: 0 var(--spacing-sm);
+        }
+
+        .message-content {
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-md);
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .user-message .message-content {
+            background-color: var(--primary-color);
+            color: white;
+            border-top-right-radius: 0;
+        }
+
+        .user-message .message-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -10px;
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-left-color: var(--primary-color);
+            border-right: 0;
+            border-top: 0;
+        }
+
+        .bot-message .message-content {
+            background-color: white;
+            color: var(--text-primary);
+            border-top-left-radius: 0;
+        }
+
+        .bot-message .message-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-right-color: white;
+            border-left: 0;
+            border-top: 0;
+        }
+
+        .system-message .message-content {
+            background-color: var(--secondary-light);
+            color: var(--text-primary);
+            text-align: center;
+            font-style: italic;
+            box-shadow: none;
+        }
+
+        /* 思考中动画 */
+        .thinking-dots {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            height: 24px;
+        }
+
+        .thinking-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .thinking-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: var(--font-size-md);
+            transition: background-color var(--transition-fast);
+        }
+        
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>聊天气泡测试</h1>
+        
+        <div class="chat-container">
+            <div class="chat-body" id="chat-messages">
+                <!-- 聊天消息将在此显示 -->
+            </div>
+            
+            <div class="chat-footer">
+                <textarea class="chat-input" placeholder="请输入您的问题..." rows="2" id="chat-input"></textarea>
+                <button class="chat-send" id="send-button">发送</button>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button id="add-user">添加用户消息</button>
+            <button id="add-bot">添加AI消息</button>
+            <button id="add-system">添加系统消息</button>
+            <button id="add-thinking">显示思考中</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const addUserButton = document.getElementById('add-user');
+            const addBotButton = document.getElementById('add-bot');
+            const addSystemButton = document.getElementById('add-system');
+            const addThinkingButton = document.getElementById('add-thinking');
+            
+            // 初始消息
+            addSystemMessage('欢迎使用聊天气泡测试页面');
+            
+            // 发送按钮点击事件
+            sendButton.addEventListener('click', function() {
+                sendUserMessage();
+            });
+            
+            // 输入框回车事件
+            chatInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendUserMessage();
+                }
+            });
+            
+            // 添加示例消息按钮事件
+            addUserButton.addEventListener('click', function() {
+                addUserMessage('这是一条用户消息示例');
+            });
+            
+            addBotButton.addEventListener('click', function() {
+                addBotMessage('这是一条AI助手消息示例');
+            });
+            
+            addSystemButton.addEventListener('click', function() {
+                addSystemMessage('这是一条系统消息示例');
+            });
+            
+            addThinkingButton.addEventListener('click', function() {
+                displayThinking();
+                
+                // 3秒后移除思考状态并显示回复
+                setTimeout(function() {
+                    hideThinking();
+                    addBotMessage('思考完毕，这是我的回复');
+                }, 3000);
+            });
+            
+            // 发送用户消息
+            function sendUserMessage() {
+                const message = chatInput.value.trim();
+                if (!message) return;
+                
+                addUserMessage(message);
+                chatInput.value = '';
+                
+                // 显示思考状态
+                displayThinking();
+                
+                // 模拟AI思考过程，2秒后回复
+                setTimeout(function() {
+                    hideThinking();
+                    addBotMessage(`您发送的消息是: "${message}"`);
+                }, 2000);
+            }
+            
+            // 添加用户消息
+            function addUserMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message user-message';
+                
+                const formattedMessage = message.replace(/\n/g, '<br>');
+                
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">您</span>
+                        <span class="message-time">${formatTime(new Date())}</span>
+                    </div>
+                    <div class="message-content">${formattedMessage}</div>
+                `;
+                
+                messagesContainer.appendChild(messageElement);
+                scrollToBottom();
+            }
+            
+            // 添加AI消息
+            function addBotMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message bot-message';
+                
+                const formattedMessage = message.replace(/\n/g, '<br>');
+                
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">AI助手</span>
+                        <span class="message-time">${formatTime(new Date())}</span>
+                    </div>
+                    <div class="message-content">${formattedMessage}</div>
+                `;
+                
+                messagesContainer.appendChild(messageElement);
+                scrollToBottom();
+            }
+            
+            // 添加系统消息
+            function addSystemMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message system-message';
+                
+                messageElement.innerHTML = `
+                    <div class="message-content">${message}</div>
+                `;
+                
+                messagesContainer.appendChild(messageElement);
+                scrollToBottom();
+            }
+            
+            // 显示思考中状态
+            function displayThinking() {
+                const thinkingElement = document.createElement('div');
+                thinkingElement.id = 'thinking-indicator';
+                thinkingElement.className = 'message bot-message thinking';
+                
+                thinkingElement.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">AI助手</span>
+                        <span class="message-time">${formatTime(new Date())}</span>
+                    </div>
+                    <div class="message-content">
+                        <div class="thinking-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                `;
+                
+                messagesContainer.appendChild(thinkingElement);
+                scrollToBottom();
+            }
+            
+            // 隐藏思考中状态
+            function hideThinking() {
+                const thinkingIndicator = document.getElementById('thinking-indicator');
+                if (thinkingIndicator) {
+                    thinkingIndicator.remove();
+                }
+            }
+            
+            // 格式化时间
+            function formatTime(date) {
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                return `${hours}:${minutes}`;
+            }
+            
+            // 滚动到底部
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html> 

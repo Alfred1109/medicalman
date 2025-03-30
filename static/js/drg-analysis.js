@@ -44,60 +44,59 @@ function loadFilterOptions() {
         .catch(error => console.error('加载科室数据失败:', error));
     
     // 加载DRG组选项
-    const drgGroupData = {
-        time_range: getTimeRange(),
-        department: getDepartment()
-    };
+    loadDrgGroups();
+}
+
+// 加载DRG组选项
+function loadDrgGroups() {
+    const timeRange = getTimeRange();
+    const department = getDepartment();
     
-    fetch('/api/drg/groups', {
-        method: 'POST',
+    fetch(`/api/drg/groups?time_range=${timeRange}&department=${encodeURIComponent(department)}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(drgGroupData)
+        }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const drgGroupSelect = document.getElementById('drgGroup');
-                // 清除现有选项（保留"全部"选项）
-                while (drgGroupSelect.options.length > 1) {
-                    drgGroupSelect.remove(1);
-                }
-                
-                data.data.forEach(group => {
-                    const option = document.createElement('option');
-                    option.value = group.drg_group;
-                    option.textContent = `${group.drg_group} (${group.case_count}例)`;
-                    drgGroupSelect.appendChild(option);
-                });
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const drgGroupSelect = document.getElementById('drgGroup');
+            // 清除现有选项（保留"全部"选项）
+            while (drgGroupSelect.options.length > 1) {
+                drgGroupSelect.remove(1);
             }
-        })
-        .catch(error => console.error('加载DRG组数据失败:', error));
+            
+            data.data.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.drg_group;
+                option.textContent = `${group.drg_group} (${group.case_count}例)`;
+                drgGroupSelect.appendChild(option);
+            });
+        }
+    })
+    .catch(error => console.error('加载DRG组数据失败:', error));
 }
 
 // 加载摘要数据
 function loadSummaryData() {
-    const summaryData = {
-        time_range: getTimeRange(),
-        department: getDepartment(),
-        drg_group: getDrgGroup()
-    };
+    const timeRange = getTimeRange();
+    const department = getDepartment();
+    const drgGroup = getDrgGroup();
     
-    fetch('/api/drg/summary', {
-        method: 'POST',
+    fetch(`/api/drg/summary?time_range=${timeRange}&department=${encodeURIComponent(department)}&drg_group=${encodeURIComponent(drgGroup)}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(summaryData)
+        }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateSummaryCards(data.data);
-            }
-        })
-        .catch(error => console.error('加载摘要数据失败:', error));
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateSummaryCards(data.data);
+        }
+    })
+    .catch(error => console.error('加载摘要数据失败:', error));
 }
 
 // 更新摘要卡片
@@ -154,94 +153,86 @@ function loadChartData() {
 
 // 加载DRG组分布图表
 function loadDistributionChart() {
-    const distributionData = {
-        time_range: getTimeRange(),
-        department: getDepartment()
-    };
+    const timeRange = getTimeRange();
+    const department = getDepartment();
     
-    fetch('/api/drg/distribution', {
-        method: 'POST',
+    fetch(`/api/drg/distribution?time_range=${timeRange}&department=${encodeURIComponent(department)}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(distributionData)
+        }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const ctx = document.getElementById('drgDistributionChart').getContext('2d');
-                
-                // 销毁现有图表
-                if (window.drgDistributionChart) {
-                    window.drgDistributionChart.destroy();
-                }
-                
-                // 创建新图表
-                window.drgDistributionChart = new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-                        labels: data.data.labels,
-                        datasets: [{
-                            data: data.data.values,
-                            backgroundColor: [
-                                'rgba(54, 162, 235, 0.8)',
-                                'rgba(255, 99, 132, 0.8)',
-                                'rgba(255, 206, 86, 0.8)',
-                                'rgba(75, 192, 192, 0.8)',
-                                'rgba(153, 102, 255, 0.8)'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'right'
-                            },
-                            title: {
-                                display: true,
-                                text: 'DRG组分布'
-                            }
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const ctx = document.getElementById('drgDistributionChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (window.drgDistributionChart) {
+                window.drgDistributionChart.destroy();
+            }
+            
+            // 创建新图表
+            window.drgDistributionChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.data.labels,
+                    datasets: [{
+                        data: data.data.values,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'DRG组分布'
                         }
                     }
-                });
-            }
-        })
-        .catch(error => console.error('加载DRG分布数据失败:', error));
+                }
+            });
+        }
+    })
+    .catch(error => console.error('加载DRG分布数据失败:', error));
 }
 
 // 加载CMI趋势图表
 function loadTrendChart() {
-    const trendData = {
-        time_range: getTimeRange(),
-        department: getDepartment(),
-        drg_group: getDrgGroup(),
-        metric: 'cmi',
-        period: 'day'
-    };
+    const timeRange = getTimeRange();
+    const department = getDepartment();
+    const drgGroup = getDrgGroup();
     
-    fetch('/api/drg/trend', {
-        method: 'POST',
+    fetch(`/api/drg/trend?time_range=${timeRange}&department=${encodeURIComponent(department)}&drg_group=${encodeURIComponent(drgGroup)}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(trendData)
+        }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const ctx = document.getElementById('cmiTrendChart').getContext('2d');
-                
-                // 销毁现有图表
-                if (window.cmiTrendChart) {
-                    window.cmiTrendChart.destroy();
-                }
-                
-                // 创建新图表
-                window.cmiTrendChart = new Chart(ctx, data.data.chart);
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const ctx = document.getElementById('cmiTrendChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (window.cmiTrendChart) {
+                window.cmiTrendChart.destroy();
             }
-        })
-        .catch(error => console.error('加载CMI趋势数据失败:', error));
+            
+            // 创建新图表
+            window.cmiTrendChart = new Chart(ctx, data.data.chart);
+        }
+    })
+    .catch(error => console.error('加载CMI趋势数据失败:', error));
 }
 
 // 加载象限分析图表
@@ -385,28 +376,23 @@ function loadRWDistributionChart() {
 
 // 加载表格数据
 function loadTableData() {
-    const tableData = {
-        time_range: getTimeRange(),
-        department: getDepartment(),
-        drg_group: getDrgGroup(),
-        page: 1,
-        page_size: 10
-    };
+    const timeRange = getTimeRange();
+    const department = getDepartment();
+    const drgGroup = getDrgGroup();
     
-    fetch('/api/drg/details', {
-        method: 'POST',
+    fetch(`/api/drg/details?time_range=${timeRange}&department=${encodeURIComponent(department)}&drg_group=${encodeURIComponent(drgGroup)}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(tableData)
+        }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateTable(data.data.records);
-            }
-        })
-        .catch(error => console.error('加载表格数据失败:', error));
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateTable(data.data);
+        }
+    })
+    .catch(error => console.error('加载DRG明细数据失败:', error));
 }
 
 // 更新表格

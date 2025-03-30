@@ -483,200 +483,662 @@ const PerformanceUtils = {
     }
 };
 
-// ===== 图表工具函数 =====
-const ChartUtils = {
+// ===== 数据缓存和管理 =====
+const DataCache = {
     /**
-     * 获取图表主题配置
-     * @param {string} theme - 主题名称
-     * @returns {Object} 图表主题配置
+     * 设置缓存数据
+     * @param {string} key - 缓存键
+     * @param {*} data - 要缓存的数据
+     * @param {number} expirationMs - 过期时间(毫秒)
      */
-    getChartTheme: function(theme = 'default') {
-        const themes = {
-            default: {
-                color: ['#5b8db8', '#6fc0ba', '#f2c94c', '#f2994a', '#eb5757', '#9b51e0'],
-                backgroundColor: 'transparent',
-                textStyle: {
-                    color: '#333'
-                },
-                title: {
-                    textStyle: {
-                        color: '#333'
-                    }
-                },
-                line: {
-                    itemStyle: {
-                        borderWidth: 2
-                    },
-                    lineStyle: {
-                        width: 2
-                    },
-                    symbolSize: 8
-                }
-            },
-            dark: {
-                color: ['#5b8db8', '#6fc0ba', '#f2c94c', '#f2994a', '#eb5757', '#9b51e0'],
-                backgroundColor: 'transparent',
-                textStyle: {
-                    color: '#eee'
-                },
-                title: {
-                    textStyle: {
-                        color: '#eee'
-                    }
-                },
-                line: {
-                    itemStyle: {
-                        borderWidth: 2
-                    },
-                    lineStyle: {
-                        width: 2
-                    },
-                    symbolSize: 8
-                }
-            }
-        };
-        
-        return themes[theme] || themes.default;
+    set: function(key, data, expirationMs = 300000) { // 默认5分钟
+        try {
+            const item = {
+                data: data,
+                expiry: Date.now() + expirationMs
+            };
+            localStorage.setItem(`api_cache:${key}`, JSON.stringify(item));
+        } catch (e) {
+            console.error('缓存数据失败:', e);
+        }
     },
     
     /**
-     * 更新所有图表的主题
-     * @param {string} theme - 主题名称
+     * 获取缓存数据
+     * @param {string} key - 缓存键
+     * @returns {*} 缓存的数据，如果过期或不存在则返回null
      */
-    updateChartsTheme: function(theme) {
-        if (window.echarts) {
-            const chartTheme = this.getChartTheme(theme);
-            const charts = window.echartsInstances || [];
+    get: function(key) {
+        try {
+            const item = localStorage.getItem(`api_cache:${key}`);
+            if (!item) return null;
             
-            charts.forEach(chart => {
-                if (chart && typeof chart.setOption === 'function') {
-                    const option = chart.getOption();
-                    const newOption = {
-                        color: chartTheme.color,
-                        textStyle: chartTheme.textStyle,
-                        title: {
-                            textStyle: chartTheme.title.textStyle
-                        }
-                    };
-                    chart.setOption(newOption);
+            const parsedItem = JSON.parse(item);
+            if (Date.now() > parsedItem.expiry) {
+                this.remove(key);
+                return null;
+            }
+            
+            return parsedItem.data;
+        } catch (e) {
+            this.remove(key);
+            return null;
+        }
+    },
+    
+    /**
+     * 删除缓存数据
+     * @param {string} key - 缓存键
+     */
+    remove: function(key) {
+        localStorage.removeItem(`api_cache:${key}`);
+    },
+    
+    /**
+     * 清空所有缓存数据
+     */
+    clear: function() {
+        Object.keys(localStorage)
+            .filter(key => key.startsWith('api_cache:'))
+            .forEach(key => localStorage.removeItem(key));
+    }
+};
+
+// ===== 增强型图表工具函数 =====
+const ChartUtils = {
+    // 存储已注册的图表
+    chartInstances: {},
+    
+    /**
+     * 注册图表实例
+     * @param {string} id - 图表ID
+     * @param {Object} chart - 图表实例
+     */
+    registerChart: function(id, chart) {
+        if (!id || !chart) return;
+        
+        // 如果已存在同ID图表，先清除
+        if (this.chartInstances[id]) {
+            this.chartInstances[id].dispose();
+        }
+        
+        // 注册新图表
+        this.chartInstances[id] = chart;
+        console.log(`图表已注册: ${id}`);
+        
+        // 添加窗口调整大小时自动调整图表
+        if (!this._resizeListenerAdded) {
+            window.addEventListener('resize', this.resizeAllCharts.bind(this));
+            this._resizeListenerAdded = true;
+        }
+    },
+    
+    /**
+     * 获取已注册的图表
+     * @param {string} id - 图表ID
+     * @returns {Object} 图表实例
+     */
+    getChart: function(id) {
+        return this.chartInstances[id];
+    },
+    
+    /**
+     * 调整所有图表大小
+     */
+    resizeAllCharts: function() {
+        Object.values(this.chartInstances).forEach(chart => {
+            if (chart && typeof chart.resize === 'function') {
+                chart.resize();
+            }
+        });
+    },
+    
+    /**
+     * 清除特定图表
+     * @param {string} id - 图表ID
+     */
+    clearChart: function(id) {
+        if (this.chartInstances[id]) {
+            this.chartInstances[id].dispose();
+            delete this.chartInstances[id];
+        }
+    },
+    
+    /**
+     * 清除所有图表
+     */
+    clearAllCharts: function() {
+        Object.keys(this.chartInstances).forEach(id => {
+            if (this.chartInstances[id]) {
+                this.chartInstances[id].dispose();
+            }
+        });
+        this.chartInstances = {};
+    },
+    
+    /**
+     * 统一的图表初始化函数，支持更多选项和错误处理
+     * @param {string|HTMLElement} container - 图表容器ID或DOM元素
+     * @param {Object} options - ECharts配置选项
+     * @param {boolean} forceCreate - 是否强制创建新实例（忽略已有实例）
+     * @param {Object} fallbackData - 如果初始化失败，使用的备用数据
+     * @returns {Object} ECharts实例
+     */
+    initChart: function(container, options, forceCreate = false, fallbackData = null) {
+        try {
+            // 规范化容器参数
+            let containerElement;
+            if (typeof container === 'string') {
+                containerElement = document.getElementById(container);
+            } else {
+                containerElement = container;
+            }
+            
+            // 验证容器存在
+            if (!containerElement) {
+                console.error(`图表容器未找到: ${container}`);
+                return null;
+            }
+            
+            // 确保容器有ID
+            const containerId = containerElement.id || `chart-container-${Date.now()}`;
+            if (!containerElement.id) {
+                containerElement.id = containerId;
+            }
+            
+            // 如果不强制创建且已有实例，则返回现有实例
+            if (!forceCreate && this.chartInstances[containerId]) {
+                const instance = this.chartInstances[containerId];
+                instance.setOption(options, true);
+                return instance;
+            }
+            
+            // 清除可能存在的旧实例
+            if (this.chartInstances[containerId]) {
+                this.chartInstances[containerId].dispose();
+            }
+            
+            // 创建新实例
+            const chartInstance = echarts.init(containerElement);
+            chartInstance.setOption(options);
+            
+            // 保存实例引用
+            this.chartInstances[containerId] = chartInstance;
+            
+            // 添加窗口大小调整监听
+            if (!this._resizeListenerAdded) {
+                window.addEventListener('resize', this._handleResize.bind(this));
+                this._resizeListenerAdded = true;
+            }
+            
+            // 添加自动清理
+            this._setupAutoCleanup(containerElement, containerId);
+            
+            return chartInstance;
+        } catch (error) {
+            console.error(`初始化图表失败: ${error.message}`, error);
+            
+            // 如果提供了备用数据，尝试使用它
+            if (fallbackData) {
+                try {
+                    const containerElement = typeof container === 'string' ? 
+                        document.getElementById(container) : container;
+                    
+                    if (containerElement) {
+                        // 显示错误信息
+                        containerElement.innerHTML = `
+                            <div class="chart-error">
+                                <p>图表加载失败</p>
+                                <p class="text-muted small">${error.message}</p>
+                            </div>
+                        `;
+                    }
+                } catch (fallbackError) {
+                    console.error('使用备用数据失败', fallbackError);
                 }
+            }
+            
+            return null;
+        }
+    },
+    
+    /**
+     * 更新图表数据
+     * @param {string|Object} chart - 图表ID或图表实例
+     * @param {Object} options - 新的ECharts配置选项
+     * @param {boolean} notMerge - 是否不合并配置（完全替换）
+     * @returns {boolean} 操作成功状态
+     */
+    updateChart: function(chart, options, notMerge = false) {
+        try {
+            let chartInstance;
+            
+            // 获取图表实例
+            if (typeof chart === 'string') {
+                chartInstance = this.chartInstances[chart] || 
+                                echarts.getInstanceByDom(document.getElementById(chart));
+            } else {
+                chartInstance = chart;
+            }
+            
+            if (!chartInstance) {
+                console.error('更新图表失败：找不到图表实例');
+                return false;
+            }
+            
+            // 更新配置
+            chartInstance.setOption(options, notMerge);
+            return true;
+        } catch (error) {
+            console.error(`更新图表失败: ${error.message}`, error);
+            return false;
+        }
+    },
+    
+    /**
+     * 处理窗口大小调整，自动重新绘制所有图表
+     * @private
+     */
+    _handleResize: function() {
+        // 使用节流函数，防止频繁调整大小时过多重绘
+        if (this._resizeTimer) {
+            clearTimeout(this._resizeTimer);
+        }
+        
+        this._resizeTimer = setTimeout(() => {
+            Object.values(this.chartInstances).forEach(chart => {
+                if (chart && !chart.isDisposed()) {
+                    chart.resize();
+                }
+            });
+        }, 200);
+    },
+    
+    /**
+     * 为图表容器设置自动清理，避免内存泄漏
+     * @param {HTMLElement} container - 图表容器
+     * @param {string} containerId - 容器ID
+     * @private
+     */
+    _setupAutoCleanup: function(container, containerId) {
+        // 使用MutationObserver监听DOM变化，检测容器何时被移除
+        if (!this._observer) {
+            this._observer = new MutationObserver(mutations => {
+                mutations.forEach(mutation => {
+                    mutation.removedNodes.forEach(node => {
+                        // 检查移除的节点是否包含任何图表容器
+                        Object.keys(this.chartInstances).forEach(id => {
+                            try {
+                                const element = document.getElementById(id);
+                                if (!element || node.contains(element)) {
+                                    // 容器已移除，销毁图表实例
+                                    const chart = this.chartInstances[id];
+                                    if (chart && !chart.isDisposed()) {
+                                        chart.dispose();
+                                    }
+                                    delete this.chartInstances[id];
+                                }
+                            } catch (e) {
+                                console.warn(`清理图表${id}时出错:`, e);
+                            }
+                        });
+                    });
+                });
+            });
+            
+            // 开始监听document.body的变化
+            this._observer.observe(document.body, { 
+                childList: true,
+                subtree: true
             });
         }
     },
     
     /**
-     * 注册图表实例
-     * @param {Object} chart - ECharts实例
-     */
-    registerChart: function(chart) {
-        if (!window.echartsInstances) {
-            window.echartsInstances = [];
-        }
-        window.echartsInstances.push(chart);
-    },
-    
-    /**
-     * 销毁图表实例
-     * @param {Object} chart - ECharts实例
+     * 销毁指定图表
+     * @param {string|Object} chart - 图表ID或图表实例
      */
     destroyChart: function(chart) {
-        if (chart && typeof chart.dispose === 'function') {
-            chart.dispose();
-        }
-        
-        if (window.echartsInstances) {
-            const index = window.echartsInstances.indexOf(chart);
-            if (index > -1) {
-                window.echartsInstances.splice(index, 1);
+        try {
+            let chartInstance, chartId;
+            
+            if (typeof chart === 'string') {
+                chartId = chart;
+                chartInstance = this.chartInstances[chartId];
+            } else {
+                chartInstance = chart;
+                // 查找实例的ID
+                chartId = Object.keys(this.chartInstances).find(id => 
+                    this.chartInstances[id] === chartInstance
+                );
             }
+            
+            if (chartInstance && !chartInstance.isDisposed()) {
+                chartInstance.dispose();
+            }
+            
+            if (chartId) {
+                delete this.chartInstances[chartId];
+            }
+        } catch (error) {
+            console.error(`销毁图表失败: ${error.message}`, error);
         }
     },
     
     /**
-     * 生成随机颜色数组
-     * @param {number} count - 需要的颜色数量
-     * @returns {Array} 颜色数组
+     * 清除所有图表实例
      */
-    generateColors: function(count) {
-        const colors = [];
-        for (let i = 0; i < count; i++) {
-            const hue = (i * 137) % 360; // 使用黄金角生成分散的颜色
-            colors.push(`hsl(${hue}, 70%, 60%)`);
-        }
-        return colors;
-    },
-    
-    /**
-     * 获取渐变背景
-     * @param {Object} ctx - Canvas上下文
-     * @param {string} color - 基础颜色
-     * @returns {Object} 渐变对象
-     */
-    getGradient: function(ctx, color) {
-        const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
-        gradient.addColorStop(0, color);
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
-        return gradient;
-    },
-    
-    /**
-     * 将数据格式化为图表所需的格式
-     * @param {Array} data - 原始数据
-     * @param {string} labelKey - 标签字段名
-     * @param {string} valueKey - 值字段名
-     * @returns {Object} 格式化后的图表数据
-     */
-    formatChartData: function(data, labelKey, valueKey) {
-        const labels = data.map(item => item[labelKey]);
-        const values = data.map(item => item[valueKey]);
+    destroyAllCharts: function() {
+        Object.values(this.chartInstances).forEach(chart => {
+            if (chart && !chart.isDisposed()) {
+                try {
+                    chart.dispose();
+                } catch (e) {
+                    console.warn('销毁图表时出错:', e);
+                }
+            }
+        });
         
-        return {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: this.generateColors(values.length)
-            }]
-        };
+        this.chartInstances = {};
+    },
+    
+    /**
+     * 生成图表的备用数据，当API请求失败时使用
+     * @param {string} chartType - 图表类型
+     * @param {Object} options - 选项（数据点数量等）
+     * @returns {Object} 备用数据
+     */
+    generateFallbackData: function(chartType, options = {}) {
+        const pointCount = options.pointCount || 7;
+        const maxValue = options.maxValue || 100;
+        const categories = options.categories || ['类别A', '类别B', '类别C', '类别D', '类别E'];
+        
+        switch (chartType) {
+            case 'line':
+                // 生成折线图数据
+                const dates = [];
+                const values = [];
+                const now = new Date();
+                
+                for (let i = 0; i < pointCount; i++) {
+                    const date = new Date(now);
+                    date.setDate(date.getDate() - (pointCount - i - 1));
+                    dates.push(date.toISOString().split('T')[0]);
+                    values.push(Math.floor(Math.random() * maxValue));
+                }
+                
+                return {
+                    xAxis: {
+                        type: 'category',
+                        data: dates
+                    },
+                    series: [{
+                        name: '模拟数据',
+                        data: values
+                    }]
+                };
+                
+            case 'bar':
+                // 生成柱状图数据
+                return {
+                    xAxis: {
+                        type: 'category',
+                        data: categories.slice(0, pointCount)
+                    },
+                    series: [{
+                        name: '模拟数据',
+                        data: Array.from({length: pointCount}, () => Math.floor(Math.random() * maxValue))
+                    }]
+                };
+                
+            case 'pie':
+                // 生成饼图数据
+                const pieData = categories.slice(0, pointCount).map(category => ({
+                    name: category,
+                    value: Math.floor(Math.random() * maxValue)
+                }));
+                
+                return {
+                    series: [{
+                        name: '模拟数据',
+                        data: pieData
+                    }]
+                };
+                
+            default:
+                return null;
+        }
     }
 };
 
-// 导出所有工具函数
+/**
+ * API 请求工具函数
+ * 提供统一的API调用方法，自动添加CSRF令牌和处理常见错误
+ */
+const ApiUtils = {
+    /**
+     * 获取CSRF令牌
+     * @returns {string} CSRF令牌
+     */
+    getCsrfToken() {
+        // 1. 尝试从meta标签获取
+        const tokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (tokenElement && tokenElement.content) {
+            return tokenElement.content;
+        }
+        
+        // 2. 尝试从cookie获取
+        try {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith('csrf_token=')) {
+                    return cookie.substring('csrf_token='.length, cookie.length);
+                }
+            }
+        } catch (e) {
+            console.warn('从cookie获取CSRF token失败:', e);
+        }
+        
+        console.warn('无法获取CSRF token');
+        return '';
+    },
+    
+    /**
+     * 发送API请求
+     * @param {string} url - 请求URL
+     * @param {string} method - HTTP方法(GET, POST, PUT, DELETE)
+     * @param {Object} data - 请求数据(对象)
+     * @param {Object} options - 额外选项
+     * @returns {Promise} 请求Promise
+     */
+    async sendRequest(url, method = 'GET', data = null, options = {}) {
+        const csrfToken = this.getCsrfToken();
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        // 添加CSRF令牌
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        const fetchOptions = {
+            method,
+            headers,
+            credentials: 'same-origin',
+            ...options
+        };
+        
+        // 添加请求体
+        if (data && method !== 'GET') {
+            fetchOptions.body = JSON.stringify(data);
+        }
+        
+        try {
+            const response = await fetch(url, fetchOptions);
+            
+            // 检查响应状态
+            if (!response.ok) {
+                // 尝试解析错误响应
+                const errorData = await response.json().catch(() => null);
+                
+                // 创建错误对象
+                const error = new Error(errorData?.message || `HTTP error ${response.status}`);
+                error.status = response.status;
+                error.data = errorData;
+                throw error;
+            }
+            
+            // 解析JSON响应
+            return await response.json();
+        } catch (error) {
+            console.error('API请求失败:', error);
+            // 重新抛出以便调用者处理
+            throw error;
+        }
+    },
+    
+    /**
+     * GET请求
+     * @param {string} url - 请求URL
+     * @param {Object} params - 请求参数
+     * @param {boolean} useCache - 是否使用缓存
+     * @returns {Promise} 请求Promise
+     */
+    async get(url, params = {}, useCache = true) {
+        // 如果使用缓存，先尝试从缓存获取
+        if (useCache) {
+            const cacheKey = url + JSON.stringify(params);
+            const cachedData = DataCache.get(cacheKey);
+            if (cachedData) {
+                console.log('使用缓存数据:', cacheKey);
+                return cachedData;
+            }
+        }
+        
+        // 无缓存或缓存过期，发送请求
+        const result = await this.sendRequest(url, 'GET', null, params);
+        
+        // 请求成功时缓存结果
+        if (useCache && result) {
+            const cacheKey = url + JSON.stringify(params);
+            DataCache.set(cacheKey, result, 5 * 60 * 1000); // 5分钟缓存
+        }
+        
+        return result;
+    },
+    
+    /**
+     * POST请求
+     * @param {string} url - 请求URL
+     * @param {Object} data - 请求数据
+     * @param {Object} options - 请求选项
+     * @returns {Promise} 请求Promise
+     */
+    async post(url, data, options = {}) {
+        const useCache = options.useCache !== undefined ? options.useCache : false;
+        
+        // 如果使用缓存，先尝试从缓存获取
+        if (useCache) {
+            const cacheKey = url + JSON.stringify(data);
+            const cachedData = DataCache.get(cacheKey);
+            if (cachedData) {
+                console.log('使用缓存数据:', cacheKey);
+                return cachedData;
+            }
+        }
+        
+        // 无缓存或缓存过期，发送请求
+        const result = await this.sendRequest(url, 'POST', data, options);
+        
+        // 请求成功时缓存结果
+        if (useCache && result) {
+            const cacheKey = url + JSON.stringify(data);
+            DataCache.set(cacheKey, result, 5 * 60 * 1000); // 5分钟缓存
+        }
+        
+        return result;
+    },
+    
+    /**
+     * PUT请求
+     * @param {string} url - 请求URL
+     * @param {Object} data - 请求数据
+     * @param {Object} options - 请求选项
+     * @returns {Promise} 请求Promise
+     */
+    put(url, data, options = {}) {
+        return this.sendRequest(url, 'PUT', data, options);
+    },
+    
+    /**
+     * DELETE请求
+     * @param {string} url - 请求URL
+     * @param {Object} options - 请求选项
+     * @returns {Promise} 请求Promise
+     */
+    delete(url, options = {}) {
+        return this.sendRequest(url, 'DELETE', null, options);
+    }
+};
+
+/**
+ * 统一导出工具函数
+ */
 const Utils = {
     date: DateUtils,
     format: FormatUtils,
     dom: DOMUtils,
     data: DataUtils,
     performance: PerformanceUtils,
-    chart: ChartUtils
+    chart: ChartUtils,
+    api: ApiUtils,
+    cache: DataCache,
+    
+    /**
+     * 创建唯一ID
+     * @returns {string} 唯一ID
+     */
+    generateId() {
+        return '_' + Math.random().toString(36).substr(2, 9);
+    },
+    
+    /**
+     * 防抖函数
+     * @param {Function} func - 要执行的函数
+     * @param {number} wait - 延迟时间(毫秒)
+     * @returns {Function} 防抖处理后的函数
+     */
+    debounce(func, wait = 300) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    },
+    
+    /**
+     * 节流函数
+     * @param {Function} func - 要执行的函数
+     * @param {number} limit - 时间间隔(毫秒)
+     * @returns {Function} 节流处理后的函数
+     */
+    throttle(func, limit = 300) {
+        let inThrottle;
+        return function() {
+            const context = this;
+            const args = arguments;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    }
 };
 
-// 全局暴露
-window.Utils = Utils;
-
-// 显示Toast消息
-function showToast(type, message, duration = 3000) {
-    // 删除已有的toast
-    $('.toast').remove();
-    
-    // 创建toast元素
-    const toast = `
-        <div class="toast toast-${type}" role="alert">
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-    
-    // 添加到页面
-    $('body').append(toast);
-    
-    // 显示toast
-    $('.toast').fadeIn();
-    
-    // 定时关闭
-    setTimeout(function() {
-        $('.toast').fadeOut(function() {
-            $(this).remove();
-        });
-    }, duration);
-} 
+// ===== 添加其他全局工具函数 ===== 

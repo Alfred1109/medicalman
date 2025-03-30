@@ -315,7 +315,7 @@
                             </div>
                         </div>
                     </div>
-        <div class="chart-container">
+        <div class="chart-container" id="ageDistributionChart">
             <!-- 图表将通过JavaScript渲染 -->
         </div>
                 </div>
@@ -332,7 +332,7 @@
                             </div>
                         </div>
                     </div>
-        <div class="chart-container">
+        <div class="chart-container" id="regionDistributionChart">
             <!-- 图表将通过JavaScript渲染 -->
         </div>
     </div>
@@ -350,7 +350,7 @@
                             </div>
                         </div>
                     </div>
-    <div class="chart-container">
+    <div class="chart-container" id="patientTrendChart">
         <!-- 图表将通过JavaScript渲染 -->
     </div>
 </div>
@@ -360,27 +360,54 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 患者年龄分布图
-    const ageDistributionChart = echarts.init(document.querySelector('.analysis-chart:nth-child(1) .chart-container'));
-    const ageDistributionOption = {
+    // 确保DOM元素存在后再初始化图表
+    const ageDistributionContainer = document.getElementById('ageDistributionChart');
+    const regionDistributionContainer = document.getElementById('regionDistributionChart');
+    const patientTrendContainer = document.getElementById('patientTrendChart');
+    
+    // 检查容器是否存在
+    if (!ageDistributionContainer) {
+        console.error('年龄分布图表容器未找到');
+        return;
+    }
+    
+    if (!regionDistributionContainer) {
+        console.error('地区分布图表容器未找到');
+        return;
+    }
+    
+    if (!patientTrendContainer) {
+        console.error('就诊趋势图表容器未找到');
+        return;
+    }
+    
+    console.log('容器已检查，开始初始化图表');
+    
+    // 初始化图表对象
+    let ageDistributionChart, regionDistributionChart, patientTrendChart;
+    
+    try {
+        // 患者年龄分布图
+        ageDistributionChart = echarts.init(ageDistributionContainer);
+        const ageDistributionOption = {
             tooltip: {
                 trigger: 'item',
                 formatter: '{a} <br/>{b}: {c} ({d}%)'
             },
             legend: {
-            orient: 'vertical',
-            right: 10,
-            top: 'center',
-            data: ['0-17岁', '18-30岁', '31-45岁', '46-60岁', '60岁以上']
+                orient: 'vertical',
+                right: 10,
+                top: 'center',
+                data: ['0-17岁', '18-30岁', '31-45岁', '46-60岁', '60岁以上']
             },
             series: [
                 {
-                name: '年龄分布',
+                    name: '年龄分布',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     itemStyle: {
-                    borderRadius: 5,
+                        borderRadius: 5,
                         borderColor: '#fff',
                         borderWidth: 2
                     },
@@ -399,20 +426,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         show: false
                     },
                     data: [
-                    { value: 1248, name: '0-17岁' },
-                    { value: 2851, name: '18-30岁' },
-                    { value: 4521, name: '31-45岁' },
-                    { value: 3254, name: '46-60岁' },
-                    { value: 2658, name: '60岁以上' }
+                        { value: 1248, name: '0-17岁' },
+                        { value: 2851, name: '18-30岁' },
+                        { value: 4521, name: '31-45岁' },
+                        { value: 3254, name: '46-60岁' },
+                        { value: 2658, name: '60岁以上' }
                     ]
                 }
             ]
         };
-    ageDistributionChart.setOption(ageDistributionOption);
-    
-    // 患者地区分布图
-    const regionDistributionChart = echarts.init(document.querySelector('.analysis-chart:nth-child(2) .chart-container'));
-    const regionDistributionOption = {
+        ageDistributionChart.setOption(ageDistributionOption);
+        console.log('年龄分布图表初始化成功');
+        
+        // 患者地区分布图
+        regionDistributionChart = echarts.init(regionDistributionContainer);
+        const regionDistributionOption = {
             tooltip: {
                 trigger: 'item',
                 formatter: '{a} <br/>{b}: {c} ({d}%)'
@@ -421,19 +449,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 orient: 'vertical',
                 right: 10,
                 top: 'center',
-            data: ['市内', '周边城市', '本省其他地区', '外省', '国外']
+                data: ['市内', '周边城市', '本省其他地区', '外省', '国外']
             },
             series: [
                 {
-                name: '地区分布',
+                    name: '地区分布',
                     type: 'pie',
-                radius: ['40%', '70%'],
+                    radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
-                itemStyle: {
-                    borderRadius: 5,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                },
+                    itemStyle: {
+                        borderRadius: 5,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
                     label: {
                         show: false,
                         position: 'center'
@@ -449,25 +477,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         show: false
                     },
                     data: [
-                    { value: 8954, name: '市内' },
-                    { value: 3452, name: '周边城市' },
-                    { value: 1235, name: '本省其他地区' },
-                    { value: 845, name: '外省' },
-                    { value: 46, name: '国外' }
+                        { value: 8954, name: '市内' },
+                        { value: 3452, name: '周边城市' },
+                        { value: 1235, name: '本省其他地区' },
+                        { value: 845, name: '外省' },
+                        { value: 46, name: '国外' }
                     ]
                 }
             ]
         };
-    regionDistributionChart.setOption(regionDistributionOption);
-    
-    // 就诊患者趋势图
-    const patientTrendChart = echarts.init(document.querySelector('.analysis-chart:nth-child(3) .chart-container'));
-    const patientTrendOption = {
+        regionDistributionChart.setOption(regionDistributionOption);
+        console.log('地区分布图表初始化成功');
+        
+        // 就诊患者趋势图
+        patientTrendChart = echarts.init(patientTrendContainer);
+        const patientTrendOption = {
             tooltip: {
-            trigger: 'axis'
-        },
-        legend: {
-            data: ['总就诊', '门诊', '住院', '急诊']
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['总就诊', '门诊', '住院', '急诊']
             },
             grid: {
                 left: '3%',
@@ -477,59 +506,68 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             xAxis: {
                 type: 'category',
-            boundaryGap: false,
-            data: ['1月', '2月', '3月', '4月', '5月', '6月']
-        },
-        yAxis: {
-            type: 'value'
-        },
-        series: [
-            {
-                name: '总就诊',
-                type: 'line',
-                data: [2500, 2320, 2450, 2800, 2650, 2750],
-                smooth: true,
+                boundaryGap: false,
+                data: ['1月', '2月', '3月', '4月', '5月', '6月']
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name: '总就诊',
+                    type: 'line',
+                    data: [2500, 2320, 2450, 2800, 2650, 2750],
+                    smooth: true,
                     lineStyle: {
-                    width: 3
-                }
-            },
-            {
-                name: '门诊',
-                type: 'line',
-                data: [1800, 1750, 1850, 2100, 1950, 2050],
-                smooth: true,
-                lineStyle: {
-                    width: 3
-                }
-            },
-            {
-                name: '住院',
-                type: 'line',
-                data: [450, 420, 400, 480, 500, 510],
-                smooth: true,
+                        width: 3
+                    }
+                },
+                {
+                    name: '门诊',
+                    type: 'line',
+                    data: [1800, 1750, 1850, 2100, 1950, 2050],
+                    smooth: true,
                     lineStyle: {
-                    width: 3
+                        width: 3
+                    }
+                },
+                {
+                    name: '住院',
+                    type: 'line',
+                    data: [450, 420, 400, 480, 500, 510],
+                    smooth: true,
+                    lineStyle: {
+                        width: 3
+                    }
+                },
+                {
+                    name: '急诊',
+                    type: 'line',
+                    data: [250, 150, 200, 220, 200, 190],
+                    smooth: true,
+                    lineStyle: {
+                        width: 3
+                    }
                 }
-            },
-            {
-                name: '急诊',
-                type: 'line',
-                data: [250, 150, 200, 220, 200, 190],
-                smooth: true,
-                lineStyle: {
-                    width: 3
-                }
-            }
-        ]
-    };
-    patientTrendChart.setOption(patientTrendOption);
+            ]
+        };
+        patientTrendChart.setOption(patientTrendOption);
+        console.log('就诊趋势图表初始化成功');
+    } catch (error) {
+        console.error('图表初始化失败:', error);
+        return;
+    }
     
     // 响应式调整
-        window.addEventListener('resize', function() {
-        ageDistributionChart.resize();
-        regionDistributionChart.resize();
-        patientTrendChart.resize();
+    window.addEventListener('resize', function() {
+        try {
+            ageDistributionChart && ageDistributionChart.resize();
+            regionDistributionChart && regionDistributionChart.resize();
+            patientTrendChart && patientTrendChart.resize();
+        } catch (error) {
+            console.error('图表调整大小失败:', error);
+        }
     });
-        });
+});
     </script>
 {% endblock %} 
