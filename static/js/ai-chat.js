@@ -314,40 +314,63 @@ function sendUserMessage() {
         
         console.log('收到回复:', response);
         
-        // 处理响应
-        if (response && response.answer) {
-            addBotMessage(response.answer, response.charts || []);
-        } else {
-            // 增强无效响应的处理和显示
-            console.error('收到无效响应格式:', response);
-            let errorMessage = '收到无效的响应';
-            
-            // 尝试提取更多信息
-            if (response) {
-                if (typeof response === 'string') {
-                    addBotMessage(response, []);
-                    return;
-                } else if (response.message) {
-                    addBotMessage(response.message, response.charts || []);
-                    return;
-                } else if (response.text) {
-                    addBotMessage(response.text, response.charts || []);
-                    return;
-                } else if (response.success === false && response.message) {
-                    errorMessage = `错误: ${response.message}`;
-                } else {
-                    // 显示响应内容作为调试信息
-                    try {
-                        const responseStr = JSON.stringify(response, null, 2);
-                        addBotMessage(`服务器响应数据:\n\`\`\`json\n${responseStr}\n\`\`\``, []);
-                        return;
-                    } catch (e) {
-                        errorMessage = '无法解析的响应数据';
-                    }
-                }
+        // 统一查找消息内容的逻辑
+        let messageContent = null;
+        let chartsData = null;
+        let tablesData = null;
+        
+        // 按优先级查找消息内容
+        if (response) {
+            // 1. 优先检查answer字段（标准统一字段）
+            if (response.answer) {
+                messageContent = response.answer;
+            } 
+            // 2. 如果没有answer，检查message字段
+            else if (response.message) {
+                messageContent = response.message;
+            }
+            // 3. 其他可能的字段
+            else if (response.text) {
+                messageContent = response.text;
+            } else if (typeof response === 'string') {
+                messageContent = response;
             }
             
-            displaySystemMessage(errorMessage);
+            // 按统一路径查找图表数据
+            if (response.charts && Array.isArray(response.charts)) {
+                chartsData = response.charts;
+            } else if (response.data && response.data.charts && Array.isArray(response.data.charts)) {
+                chartsData = response.data.charts;
+            }
+            
+            // 按统一路径查找表格数据
+            if (response.tables && Array.isArray(response.tables)) {
+                tablesData = response.tables;
+            } else if (response.data && response.data.tables && Array.isArray(response.data.tables)) {
+                tablesData = response.data.tables;
+            }
+        }
+        
+        // 处理消息内容
+        if (messageContent) {
+            // 添加AI回复到UI
+            addBotMessage(messageContent, chartsData || []);
+            
+            // 处理表格数据
+            if (tablesData && tablesData.length > 0) {
+                handleTablesData(tablesData);
+            }
+        } else {
+            // 无法识别的响应格式
+            console.error('无法识别的响应格式:', response);
+            
+            // 尝试将响应转换为可读文本
+            try {
+                const responseStr = JSON.stringify(response, null, 2);
+                addBotMessage(`服务器响应数据:\n\`\`\`json\n${responseStr}\n\`\`\``, []);
+            } catch (e) {
+                displaySystemMessage('收到无法识别的响应');
+            }
         }
     });
 }
@@ -672,4 +695,99 @@ function exportChatReport(title) {
         console.error('生成报告时出错:', error);
         displaySystemMessage('生成报告失败: ' + error.message);
     }
+}
+
+/**
+ * 处理表格数据，在聊天消息中渲染表格
+ * @param {Array} tables - 表格数据数组
+ */
+function handleTablesData(tables) {
+    if (!tables || !Array.isArray(tables) || tables.length === 0) {
+        return;
+    }
+    
+    // 获取最后一条AI消息
+    const messagesContainer = document.getElementById('chat-messages');
+    const lastBotMessage = messagesContainer.querySelector('.bot-message:last-child');
+    
+    if (!lastBotMessage) {
+        console.error('未找到AI消息元素，无法添加表格');
+        return;
+    }
+    
+    // 获取消息内容元素
+    const messageContent = lastBotMessage.querySelector('.message-content');
+    
+    // 为每个表格创建HTML
+    tables.forEach((table, index) => {
+        // 检查表格数据的有效性
+        if (!table.headers || !table.rows) {
+            console.error(`表格数据 #${index+1} 格式无效`, table);
+            return;
+        }
+        
+        // 创建表格容器
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'data-table-container';
+        
+        // 添加表格标题（如果有）
+        if (table.title) {
+            const titleElement = document.createElement('h4');
+            titleElement.textContent = table.title;
+            tableContainer.appendChild(titleElement);
+        }
+        
+        // 创建表格元素
+        const tableElement = document.createElement('table');
+        tableElement.className = 'data-table';
+        
+        // 创建表头
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        table.headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        tableElement.appendChild(thead);
+        
+        // 创建表格内容
+        const tbody = document.createElement('tbody');
+        
+        table.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            // 处理行数据
+            if (Array.isArray(row)) {
+                // 行是数组形式
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell !== null && cell !== undefined ? cell.toString() : '';
+                    tr.appendChild(td);
+                });
+            } else if (typeof row === 'object') {
+                // 行是对象形式，按表头顺序显示
+                table.headers.forEach(header => {
+                    const td = document.createElement('td');
+                    const value = row[header];
+                    td.textContent = value !== null && value !== undefined ? value.toString() : '';
+                    tr.appendChild(td);
+                });
+            }
+            
+            tbody.appendChild(tr);
+        });
+        
+        tableElement.appendChild(tbody);
+        tableContainer.appendChild(tableElement);
+        
+        // 将表格添加到消息内容后
+        messageContent.appendChild(tableContainer);
+    });
+    
+    // 滚动到底部确保表格可见
+    scrollToBottom();
 } 

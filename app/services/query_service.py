@@ -41,7 +41,7 @@ from app.config import (
 )
 
 # 统一的响应格式
-def create_response(success: bool, message: str, data: Any = None, error: str = None) -> Dict[str, Any]:
+def create_response(success: bool, message: str, data: Any = None, error: str = None, charts: List = None, tables: List = None) -> Dict[str, Any]:
     """
     创建标准格式的响应
     
@@ -50,20 +50,41 @@ def create_response(success: bool, message: str, data: Any = None, error: str = 
         message: 消息内容
         data: 响应数据
         error: 错误消息
+        charts: 图表数据
+        tables: 表格数据
         
     返回:
         格式化的响应字典
     """
+    # 基本响应结构
     response = {
         "success": success,
         "message": message,
-        "answer": message,
+        "answer": message,  # 前端使用answer字段显示回复
         "process_time": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     }
     
+    # 直接在根级别添加图表和表格数据（前端可能直接访问）
+    if charts:
+        response["charts"] = charts
+        
+    if tables:
+        response["tables"] = tables
+    
+    # 结构化数据放在data字段中（集中管理）
     if data is not None:
         response["data"] = data
         
+        # 同时在data中也包含图表和表格数据（如果有）
+        if charts and "charts" not in data:
+            if isinstance(data, dict):
+                data["charts"] = charts
+                
+        if tables and "tables" not in data:
+            if isinstance(data, dict):
+                data["tables"] = tables
+        
+    # 错误信息
     if error is not None:
         response["error"] = error
         
@@ -87,6 +108,89 @@ def execute_sql_query(sql: str) -> pd.DataFrame:
         traceback.print_exc()
         raise e  # 向上抛出异常以便更好地处理
 
+def analyze_query_intent(user_message: str) -> Dict[str, Any]:
+    """
+    使用LLM分析用户查询意图
+    
+    参数:
+        user_message: 用户查询消息
+        
+    返回:
+        包含查询意图分析的字典
+    """
+    try:
+        print(f"开始分析查询意图: {user_message}")
+        
+        # 获取LLM服务
+        base_service = LLMServiceFactory.get_base_service()
+        
+        # 构建系统提示词
+        system_prompt = """你是一位医疗信息系统查询意图分析专家。你的任务是分析用户查询的意图，并将其分类为以下类型之一:
+
+1. DATABASE_QUERY: 请求查询数据库中的数据、统计、表格结构，或与系统存储的数据相关的信息
+2. KNOWLEDGE_QUERY: 请求医学知识、概念解释、疾病信息等知识库内容
+3. FILE_ANALYSIS: 请求分析文件内容或处理上传的文档
+4. GENERAL_QUERY: 一般问题，不需要访问数据库或特定资源
+
+请以JSON格式返回，包含以下字段:
+- intent: 查询意图类型(上述四种之一)
+- confidence: 置信度(0-1)
+- explanation: 简短解释
+- requires_data: 是否需要访问数据(布尔值)
+
+只返回JSON格式的结果，不要包含其他解释文本。"""
+        
+        # 构建用户提示词
+        user_prompt = f"""请分析以下医疗系统用户查询的意图:
+
+用户查询: "{user_message}"
+
+请注意:
+- 如果查询涉及"数据库内容"、"表格结构"、"系统数据"等，应该归类为DATABASE_QUERY
+- 如果查询要求统计分析、趋势、数量等，应该归类为DATABASE_QUERY
+- 任何提及系统存储数据的查询都应归类为DATABASE_QUERY"""
+        
+        # 调用LLM
+        response = base_service.call_api(system_prompt, user_prompt)
+        
+        # 解析JSON响应
+        try:
+            import json
+            result = json.loads(response)
+            print(f"查询意图分析结果: {result}")
+            return result
+        except json.JSONDecodeError:
+            print(f"LLM返回的意图分析无法解析为JSON: {response}")
+            # 尝试提取JSON部分
+            import re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                    print(f"提取的JSON结果: {result}")
+                    return result
+                except:
+                    pass
+            
+            # 返回默认分析结果
+            return {
+                "intent": "GENERAL_QUERY",
+                "confidence": 0.5,
+                "explanation": "无法解析LLM响应，默认为一般查询",
+                "requires_data": False
+            }
+    
+    except Exception as e:
+        print(f"分析查询意图时出错: {str(e)}")
+        traceback.print_exc()
+        # 返回默认的意图
+        return {
+            "intent": "GENERAL_QUERY",
+            "confidence": 0.5,
+            "explanation": f"分析查询意图时出错: {str(e)}",
+            "requires_data": False
+        }
+
 def process_user_query(user_message: str, knowledge_settings: Dict = None, attachments: List = None) -> Dict[str, Any]:
     """
     处理用户查询并返回结果
@@ -105,7 +209,7 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None, attac
     if not attachments:
         attachments = []
     
-    # 数据源选择，默认为'auto'
+    # 默认数据源
     data_source = knowledge_settings.get('data_source', 'auto')
     
     # 如果有附件，优先使用文件查询处理
@@ -117,25 +221,40 @@ def process_user_query(user_message: str, knowledge_settings: Dict = None, attac
     start_time = datetime.now()
     
     try:
-        # 检查查询是否包含数据分析关键词
-        contains_data_keywords = any(keyword in user_message for keyword in DATA_ANALYSIS_KEYWORDS)
-        
-        # 根据数据源选择查询处理方式
-        print(f"处理用户查询，使用数据源: {data_source}")
-        
-        if data_source == 'database' or (data_source == 'auto' and contains_data_keywords):
-            # 数据库查询处理
-            print(f"检测到数据分析关键词，使用数据库查询处理")
-            result = process_database_query(user_message)
-        elif data_source == 'knowledge_base':
-            # 知识库查询处理
-            result = process_knowledge_query(user_message, knowledge_settings)
-        elif data_source == 'file':
-            # 文件分析查询处理
-            result = process_file_query(user_message, knowledge_settings)
+        # 使用LLM分析用户查询意图
+        if data_source == 'auto':
+            intent_analysis = analyze_query_intent(user_message)
+            print(f"LLM分析查询意图结果: {intent_analysis}")
+            
+            # 根据意图分析结果选择处理方式
+            if intent_analysis.get("intent") == "DATABASE_QUERY":
+                print(f"基于意图分析，使用数据库查询处理")
+                result = process_database_query(user_message)
+            elif intent_analysis.get("intent") == "KNOWLEDGE_QUERY":
+                print(f"基于意图分析，使用知识库查询处理")
+                result = process_knowledge_query(user_message, knowledge_settings)
+            elif intent_analysis.get("intent") == "FILE_ANALYSIS":
+                print(f"基于意图分析，使用文件查询处理")
+                result = process_file_query(user_message, knowledge_settings)
+            else:
+                # 默认为通用查询
+                print(f"基于意图分析，使用通用查询处理")
+                result = process_general_query(user_message)
         else:
-            # 通用查询处理
-            result = process_general_query(user_message)
+            # 使用指定的数据源处理方式
+            print(f"使用指定的数据源: {data_source}")
+            if data_source == 'database':
+                # 数据库查询处理
+                result = process_database_query(user_message)
+            elif data_source == 'knowledge_base':
+                # 知识库查询处理
+                result = process_knowledge_query(user_message, knowledge_settings)
+            elif data_source == 'file':
+                # 文件分析查询处理
+                result = process_file_query(user_message, knowledge_settings)
+            else:
+                # 通用查询处理
+                result = process_general_query(user_message)
         
         # 处理完成时间
         end_time = datetime.now()
@@ -174,161 +293,28 @@ def process_database_query(user_message: str) -> Dict[str, Any]:
     """
     try:
         print(f"开始处理数据库查询: {user_message}")
-        
-        # 使用LLM生成SQL
+        # 获取SQL服务实例
         sql_service = LLMServiceFactory.get_sql_service()
-        sql_result = sql_service.generate_sql(user_message)
         
-        if not sql_result or 'sql' not in sql_result:
-            print("无法生成有效的SQL查询")
-            return create_response(
-                success=False,
-                message="无法生成有效的SQL查询，请尝试重新表述您的问题。"
-            )
+        # 生成并执行SQL查询
+        print("生成SQL查询...")
+        sql_response = sql_service.process_query(user_message)
+        print(f"SQL服务响应: {sql_response}")
         
-        sql = sql_result['sql']
-        explanation = sql_result.get('explanation', '未提供解释')
-        
-        print(f"生成的SQL查询: {sql}")
-        print(f"查询解释: {explanation}")
-        
-        # 执行SQL查询
-        try:
-            print("开始执行SQL查询...")
-            df = execute_query_to_dataframe(sql)
-            
-            if df.empty:
-                print("查询执行成功，但未找到符合条件的数据")
-                return create_response(
-                    success=True,
-                    message="查询执行成功，但未找到符合条件的数据。",
-                    data={
-                        "sql": sql,
-                        "explanation": explanation
-                    }
-                )
-                
-            print(f"查询成功，返回了 {len(df)} 行数据")
-            
-            # 将DataFrame转换为字典列表
-            data_list = df.to_dict(orient='records')
-            
-            # 使用ChartService生成图表
-            print("使用ChartService生成动态图表...")
-            chart_service = LLMServiceFactory.get_chart_service()
-            chart_result = chart_service.generate_chart_config(
-                user_message, 
-                json.dumps(data_list, ensure_ascii=False)
-            )
-            
-            charts = chart_result.get('charts', []) if chart_result else []
-            if charts:
-                print(f"成功生成 {len(charts)} 个图表")
-            else:
-                print("未能生成有效的图表配置")
-                charts = []
-            
-            # 检查数据表格结构
-            columns = df.columns.tolist()
-            print(f"数据表列: {columns}")
-            print(f"数据示例: {df.head(2).to_dict(orient='records')}")
-            
-            # 构建结构化结果
-            structured_result = {
-                "data": data_list,
-                "charts": charts,
-                "tables": [
-                    {
-                        "type": "detail",
-                        "title": "查询结果数据",
-                        "headers": df.columns.tolist(),
-                        "rows": df.values.tolist(),
-                        "description": "SQL查询的详细结果数据"
-                    }
-                ]
-            }
-            
-            # 使用LLM服务对查询结果进行丰富的解释和分析
-            try:
-                print("开始使用LLM进行结果分析...")
-                base_service = LLMServiceFactory.get_base_service()
-                
-                # 将DataFrame转换为描述性文本
-                df_summary = f"查询数据包含{len(df)}行，{len(df.columns)}列。\n"
-                df_summary += f"列名: {', '.join(df.columns.tolist())}\n"
-                df_summary += f"数据样例（前5行）:\n{df.head(5).to_string(index=False)}\n"
-                
-                # 添加一些基本统计信息
-                try:
-                    df_summary += "\n基本统计:\n"
-                    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-                    if numeric_cols:
-                        df_summary += f"数值列统计:\n{df[numeric_cols].describe().to_string()}\n"
-                except Exception as stats_err:
-                    print(f"生成统计信息时出错: {str(stats_err)}")
-                
-                # 准备用户分析请求
-                analysis_request = QUERY_ANALYSIS_PROMPT.format(
-                    user_query=user_message,
-                    sql_query=sql,
-                    data_summary=df_summary,
-                    chart_types=', '.join([chart.get('type', 'unknown') for chart in charts]) if charts else '无'
-                )
-                
-                # 调用LLM进行分析
-                print("请求LLM对查询结果进行专业分析...")
-                llm_analysis = base_service.call_api(QUERY_SYSTEM_PROMPT, analysis_request)
-                
-                analysis_message = llm_analysis if llm_analysis else "查询执行成功，但未能生成详细分析。"
-                    
-            except Exception as analysis_err:
-                print(f"生成分析时出错: {str(analysis_err)}")
-                traceback.print_exc()
-                analysis_message = "查询执行成功。"
-                
-            # 构建返回结果
-            return create_response(
-                success=True,
-                message=analysis_message,
-                data={
-                    "sql": sql,
-                    "explanation": explanation,
-                    "structured_result": structured_result,
-                    "charts": charts
-                }
-            )
-                
-        except Exception as exec_err:
-            print(f"执行SQL查询时出错: {str(exec_err)}")
-            traceback.print_exc()
-            
-            # 检查错误类型，提供更具体的错误消息
-            error_message = f"执行SQL查询时出错: {str(exec_err)}"
-            
-            # 检查常见的SQL错误
-            if "no such table" in str(exec_err).lower():
-                table_match = re.search(r"no such table: (\w+)", str(exec_err).lower())
-                if table_match:
-                    table_name = table_match.group(1)
-                    error_message = f"数据库中不存在表 '{table_name}'。请确认表名是否正确，或查询其他可用表。"
-            elif "no such column" in str(exec_err).lower():
-                column_match = re.search(r"no such column: (\w+)", str(exec_err).lower())
-                if column_match:
-                    column_name = column_match.group(1)
-                    error_message = f"数据库中不存在列 '{column_name}'。请确认列名是否正确，或查询其他可用列。"
-            elif "syntax error" in str(exec_err).lower():
-                error_message = "SQL语法错误。请尝试简化您的查询或使用其他方式表述。"
-            
+        # 检查是否成功执行
+        if isinstance(sql_response, dict) and sql_response.get('success') is False:
+            error_message = sql_response.get('message', '无法生成有效的SQL查询，请尝试重新表述您的问题。')
             return create_response(
                 success=False,
                 message=error_message,
-                data={"sql": sql, "explanation": explanation},
-                error=str(exec_err)
+                error=sql_response.get('error')
             )
-    
+        
+        return sql_response
     except Exception as e:
         print(f"处理数据库查询时出错: {str(e)}")
         traceback.print_exc()
+        
         return create_response(
             success=False,
             message=f"处理数据库查询时出错: {str(e)}",
@@ -410,114 +396,43 @@ def get_latest_excel_file() -> Optional[Tuple[str, pd.DataFrame]]:
         traceback.print_exc()
         return None
 
-def process_file_query(user_message: str, settings: Dict = None) -> Dict[str, Any]:
+def process_file_query(user_message: str, knowledge_settings: Dict = None) -> Dict[str, Any]:
     """
     处理文件分析查询
     
     参数:
         user_message: 用户查询消息
-        settings: 文件分析设置
+        knowledge_settings: 知识库查询设置，包含附件信息
         
     返回:
         包含处理结果的字典
     """
     try:
-        print(f"开始处理文件分析查询: {user_message}")
+        print(f"处理文件分析查询: {user_message}")
         
-        # 获取最新的Excel文件
-        file_data = get_latest_excel_file()
+        # 获取附件
+        attachments = knowledge_settings.get('attachments', []) if knowledge_settings else []
         
-        if not file_data:
+        if not attachments or len(attachments) == 0:
             return create_response(
                 success=False,
-                message="未找到可分析的Excel文件，请先上传文件。"
+                message="未提供文件进行分析",
+                error="文件分析需要上传文件"
             )
         
-        file_name, df = file_data
+        # 这里添加文件分析逻辑
+        # 可以调用LLM服务来分析文件内容
         
-        # 准备文件内容摘要
-        if len(df) > 100:
-            df_sample = df.head(100)  # 只取前100行作为样本
-            file_summary = f"文件名: {file_name}\n总行数: {len(df)}\n前100行样本数据:\n{df_sample.to_string()}"
-        else:
-            file_summary = f"文件名: {file_name}\n总行数: {len(df)}\n全部数据:\n{df.to_string()}"
-        
-        # 使用LLM分析文件
-        base_service = LLMServiceFactory.get_base_service()
-        
-        # 准备提示词
-        analysis_prompt = FILE_ANALYSIS_USER_PROMPT.format(
-            user_query=user_message,
-            file_content=file_summary
-        )
-        
-        # 调用LLM API
-        analysis_result = base_service.call_api(
-            system_prompt=FILE_ANALYSIS_SYSTEM_PROMPT,
-            user_message=analysis_prompt
-        )
-        
-        if not analysis_result:
-            return create_response(
-                success=False,
-                message="无法分析文件内容，请稍后重试。"
-            )
-        
-        # 尝试提取表格数据用于前端显示
-        try:
-            # 转换为HTML表格
-            html_table = df.head(50).to_html(index=False)
-            
-            # 提取列名和行数据
-            headers = df.columns.tolist()
-            rows = df.head(50).values.tolist()
-            
-            # 构建表格结构
-            table_data = {
-                "type": "detail",
-                "title": f"文件数据: {file_name}",
-                "headers": headers,
-                "rows": rows,
-                "description": f"显示文件中的前50行数据(共{len(df)}行)"
-            }
-            
-            # 尝试自动生成图表
-            chart_service = LLMServiceFactory.get_chart_service()
-            chart_data = chart_service.generate_chart_config(
-                user_message, 
-                json.dumps(df.head(200).to_dict(orient='records'), ensure_ascii=False)
-            )
-            
-            charts = chart_data.get('charts', []) if chart_data else []
-            
-            return create_response(
-                success=True,
-                message=analysis_result,
-                data={
-                    "file_name": file_name,
-                    "tables": [table_data],
-                    "charts": charts,
-                    "row_count": len(df)
-                }
-            )
-            
-        except Exception as table_err:
-            print(f"生成表格数据时出错: {str(table_err)}")
-            traceback.print_exc()
-            
-            # 即使表格生成失败，仍返回分析结果
-            return create_response(
-                success=True,
-                message=analysis_result,
-                data={"file_name": file_name}
-            )
+        # 暂时使用通用查询处理返回简单响应
+        return process_general_query(user_message)
         
     except Exception as e:
-        print(f"处理文件查询时出错: {str(e)}")
+        print(f"处理文件分析查询时出错: {str(e)}")
         traceback.print_exc()
+        
         return create_response(
             success=False,
-            message=f"处理文件查询时出错: {str(e)}",
+            message=f"处理文件分析查询时出错: {str(e)}",
             error=str(e)
         )
 

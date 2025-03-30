@@ -6,6 +6,8 @@ import sqlite3
 import datetime
 from app.routes.auth_routes import login_required, api_login_required
 from app.config import config
+import traceback
+from app.routes.dashboard_routes import csrf  # 导入csrf实例
 
 # 创建蓝图
 main_bp = Blueprint('main', __name__)  # 移除URL前缀,因为这是主蓝图
@@ -224,4 +226,45 @@ def test_api():
 @main_bp.route('/test_chat')
 def test_chat():
     """测试聊天气泡页面"""
-    return render_template('test_chat.html') 
+    return render_template('test_chat.html')
+
+@main_bp.route('/test_chat/query', methods=['POST'])
+@csrf.exempt
+def test_chat_query():
+    """处理测试聊天页面的查询请求"""
+    from app.services.query_service import process_user_query, analyze_query_intent, create_response
+    
+    try:
+        # 获取请求数据
+        request_data = request.get_json()
+        if not request_data:
+            return jsonify({
+                'success': False,
+                'message': '请求数据为空'
+            }), 400
+        
+        # 提取消息和知识库设置
+        user_message = request_data.get('message', '')
+        knowledge_settings = request_data.get('knowledge_settings', {})
+        
+        # 首先进行查询意图分析
+        intent_analysis = analyze_query_intent(user_message)
+        
+        # 然后处理查询
+        result = process_user_query(user_message, knowledge_settings)
+        
+        # 添加意图分析结果到响应中
+        if isinstance(result, dict):
+            result['intent_analysis'] = intent_analysis
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"测试聊天查询处理出错: {str(e)}")
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'message': f'查询处理出错: {str(e)}',
+            'error': str(e)
+        }), 500 

@@ -93,6 +93,22 @@ def create_app(config_name=None):
     login_manager.login_message = '请先登录'
     login_manager.login_message_category = 'warning'
     
+    # 设置CSRF豁免的路由
+    csrf_exempt_routes = [
+        '/login', 
+        '/api/login', 
+        '/api/register', 
+        '/api/dashboard/metrics', 
+        '/api/dashboard/metrics_get',
+        '/api/dashboard/export_report',
+        '/api/query',
+        '/test_chat/query'
+    ]
+    
+    # 添加CSRF豁免
+    for route in csrf_exempt_routes:
+        csrf.exempt(route)
+    
     # 注册蓝图
     register_blueprints(app)
     

@@ -34,7 +34,10 @@ class LLMServiceFactory:
         """
         key = f"sql_{model_name or VOLCENGINE_MODEL}"
         if key not in cls._instances:
-            cls._instances[key] = SQLService(model_name)
+            # 获取数据库路径
+            from app.config import config
+            db_path = config.DATABASE_PATH
+            cls._instances[key] = SQLService(db_path)
         return cls._instances[key]
     
     @classmethod

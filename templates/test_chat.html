@@ -343,11 +343,41 @@
                 // 显示思考状态
                 displayThinking();
                 
-                // 模拟AI思考过程，2秒后回复
-                setTimeout(function() {
+                // 发送消息到后端
+                fetch('/test_chat/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}' // 添加CSRF令牌
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        knowledge_settings: {
+                            data_source: 'auto' // 使用自动意图分析
+                        }
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
                     hideThinking();
-                    addBotMessage(`您发送的消息是: "${message}"`);
-                }, 2000);
+                    if (data.success) {
+                        let replyMessage = data.message || "无回复内容";
+                        
+                        // 如果有意图分析结果，添加到消息中
+                        if (data.intent_analysis) {
+                            replyMessage += `\n\n查询意图分析: ${data.intent_analysis.intent} (置信度: ${data.intent_analysis.confidence})`;
+                            replyMessage += `\n解释: ${data.intent_analysis.explanation}`;
+                        }
+                        
+                        addBotMessage(replyMessage);
+                    } else {
+                        addSystemMessage(`错误: ${data.message || data.error || "未知错误"}`);
+                    }
+                })
+                .catch(error => {
+                    hideThinking();
+                    addSystemMessage(`请求错误: ${error.message}`);
+                });
             }
             
             // 添加用户消息

@@ -7,7 +7,7 @@ import traceback
 import time
 from datetime import datetime
 
-from app.services.query_service import process_user_query
+from app.services.query_service import process_user_query, create_response
 from app.services.chart_service import ChartService
 from app.services.ai_chat_service import AIChatService
 from app.utils.report_generator import ReportGenerator
@@ -85,25 +85,18 @@ def process_query():
         # 记录处理时间
         current_app.logger.info(f"查询处理完成，耗时: {process_time:.2f}秒")
         
-        # 使用安全的JSON序列化
-        if result.get('success'):
-            # 直接返回安全处理后的JSON响应字符串
-            return safe_json_dumps(result), 200, {'Content-Type': 'application/json'}
-        else:
-            # 错误响应也需要安全处理
-            error_response = {
-                'success': False,
-                'message': result.get('message', '处理查询时出错'),
-                'answer': result.get('message', '很抱歉，处理您的查询时出现了问题。请稍后再试。')
-            }
-            return safe_json_dumps(error_response), 200, {'Content-Type': 'application/json'}
+        # 使用安全的JSON序列化，直接返回标准格式响应（无需额外转换）
+        # process_user_query已经返回标准格式响应
+        return safe_json_dumps(result), 200, {'Content-Type': 'application/json'}
+        
     except Exception as e:
         traceback.print_exc()
-        error_response = {
-            'success': False,
-            'message': f'处理查询失败: {str(e)}',
-            'answer': f'很抱歉，服务器遇到了错误：{str(e)}。请稍后再试。'
-        }
+        # 导入create_response确保错误响应也使用标准格式
+        error_response = create_response(
+            success=False,
+            message=f'处理查询失败: {str(e)}',
+            error=str(e)
+        )
         return safe_json_dumps(error_response), 200, {'Content-Type': 'application/json'}
 
 @ai_chat_bp.route('/render-chart', methods=['POST'])

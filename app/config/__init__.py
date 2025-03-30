@@ -89,6 +89,24 @@ ERROR_STATUS_CODES = {
     'service_unavailable': 503
 }
 
+# SQL查询状态码
+SQL_STATUS_CODES = {
+    'success': 'success',
+    'error': 'error',
+    'warning': 'warning',
+    'info': 'info'
+}
+
+# SQL错误消息
+SQL_ERROR_MESSAGES = {
+    'invalid_query': '无效的SQL查询',
+    'unsafe_query': '不安全的SQL查询，仅支持SELECT语句',
+    'processing_failed': '处理SQL查询失败: {}',
+    'execution_failed': '执行SQL查询失败: {}',
+    'optimization_failed': '优化SQL查询失败: {}',
+    'analysis_failed': '分析SQL查询结果失败: {}'
+}
+
 # LLM环境变量配置
 LLM_ENV_VARS = {
     'api_key': 'VOLCENGINE_API_KEY',
