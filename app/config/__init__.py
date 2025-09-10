@@ -114,9 +114,9 @@ LLM_ENV_VARS = {
     'model': 'VOLCENGINE_MODEL'
 }
 
-# LLM默认配置
+# LLM默认配置 - 使用VolcEngine支持的DeepSeek模型
 LLM_DEFAULTS = {
-    'model': 'moonshot-v1-8k',
+    'model': 'deepseek-v3-241226',
     'timeout': 60,
     'max_retries': 3,
     'retry_delay': 5

@@ -226,10 +226,33 @@ function getFileType(fileName) {
 
 // 安全的解析Markdown内容
 function parseMarkdown(text) {
+    console.log('开始解析Markdown，输入文本长度:', text.length);
+    console.log('输入文本前100个字符:', text.substring(0, 100));
+    
     // 检查marked库是否可用
-    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+    if (typeof marked !== 'undefined') {
         try {
-            return marked.parse(text);
+            console.log('使用marked.js解析Markdown');
+            // 配置marked选项
+            if (typeof marked.setOptions === 'function') {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    sanitize: false,
+                    highlight: function(code, lang) {
+                        if (typeof hljs !== 'undefined' && hljs.getLanguage && hljs.getLanguage(lang)) {
+                            return hljs.highlight(code, { language: lang }).value;
+                        }
+                        return code;
+                    }
+                });
+            }
+            
+            // 使用marked.parse或marked（兼容不同版本）
+            const result = (typeof marked.parse === 'function') ? 
+                marked.parse(text) : marked(text);
+            console.log('Markdown解析成功，输出HTML长度:', result.length);
+            return result;
         } catch (e) {
             console.error('Markdown解析失败:', e);
             // 回退到基本的HTML转换
@@ -243,31 +266,52 @@ function parseMarkdown(text) {
 
 // 基本的HTML格式化（回退机制）
 function basicHtmlFormat(text) {
-    // 安全地转义HTML特殊字符
-    const escaped = text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    console.log('使用基本HTML格式化');
     
-    // 基本的Markdown转换
-    return escaped
+    if (!text || text.trim() === '') {
+        return '';
+    }
+    
+    // 基本的Markdown转换（无需转义，因为是markdown文本）
+    let result = text
+        // 代码块（三个反引号）
+        .replace(/```([^`]*?)```/gs, '<pre><code>$1</code></pre>')
+        // 行内代码
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // 标题
+        .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
         // 粗体
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         // 斜体
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        // 换行
-        .replace(/\n/g, '<br>')
-        // 标题
-        .replace(/#{1,6}\s+(.*?)(?:\n|$)/g, function(match, content) {
-            const level = match.trim().indexOf(' ');
-            return `<h${level}>${content}</h${level}>`;
-        })
-        // 列表项
-        .replace(/^\s*\-\s+(.*?)(?:\n|$)/mg, '<li>$1</li>')
-        // 包装列表项
-        .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+        // 链接
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        // 无序列表
+        .replace(/^\s*[-*+]\s+(.*)$/gm, '<li>$1</li>')
+        // 有序列表
+        .replace(/^\s*\d+\.\s+(.*)$/gm, '<li>$1</li>')
+        // 换行符
+        .replace(/\n\n+/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    
+    // 包装列表项
+    result = result.replace(/(<li>.*?<\/li>(?:\s*<br>\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>');
+    
+    // 包装段落
+    if (result && !result.startsWith('<')) {
+        result = '<p>' + result + '</p>';
+    }
+    
+    // 清理多余的换行
+    result = result.replace(/<br>\s*<\/p>/g, '</p>')
+                   .replace(/<p>\s*<br>/g, '<p>')
+                   .replace(/<ul>\s*<br>/g, '<ul>')
+                   .replace(/<\/li>\s*<br>/g, '</li>');
+    
+    console.log('基本格式化完成，输出长度:', result.length);
+    return result;
 }
 
 // 获取知识库设置

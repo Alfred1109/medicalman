@@ -19,10 +19,14 @@ ENV_FILE = ROOT_DIR / '.env'
 print(f"加载环境变量文件: {ENV_FILE}")
 load_dotenv(dotenv_path=ENV_FILE)
 
-# 从配置中获取API设置
-VOLCENGINE_API_KEY = os.getenv(config.LLM_ENV_VARS['api_key'])
-VOLCENGINE_API_URL = os.getenv(config.LLM_ENV_VARS['api_url'])
-VOLCENGINE_MODEL = os.getenv(config.LLM_ENV_VARS['model'], config.LLM_DEFAULTS['model'])
+# 从配置中获取API设置，使用配置文件中的默认值作为fallback
+from app.config.base import VOLCENGINE_API_KEY as DEFAULT_API_KEY
+from app.config.base import VOLCENGINE_API_URL as DEFAULT_API_URL
+from app.config.base import VOLCENGINE_MODEL as DEFAULT_MODEL
+
+VOLCENGINE_API_KEY = os.getenv(config.LLM_ENV_VARS['api_key']) or DEFAULT_API_KEY
+VOLCENGINE_API_URL = os.getenv(config.LLM_ENV_VARS['api_url']) or DEFAULT_API_URL
+VOLCENGINE_MODEL = os.getenv(config.LLM_ENV_VARS['model'], config.LLM_DEFAULTS['model']) or DEFAULT_MODEL
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", str(config.LLM_DEFAULTS['timeout'])))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", str(config.LLM_DEFAULTS['max_retries'])))
 RETRY_DELAY = int(os.getenv("RETRY_DELAY", str(config.LLM_DEFAULTS['retry_delay'])))
