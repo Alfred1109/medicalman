@@ -154,12 +154,12 @@ class AuthService:
             # 从配置中获取字体路径
             font_path = config.CAPTCHA_FONT_PATH
             if font_path and os.path.exists(font_path):
-                font = ImageFont.truetype(font_path, 70)
+                font = ImageFont.truetype(font_path, 45)
             else:
                 # 尝试加载系统字体
                 system_font_path = config.CAPTCHA_SYSTEM_FONT_PATH
                 if system_font_path and os.path.exists(system_font_path):
-                    font = ImageFont.truetype(system_font_path, 70)
+                    font = ImageFont.truetype(system_font_path, 45)
                 else:
                     # 如果无法加载指定字体，使用默认字体
                     font = ImageFont.load_default()

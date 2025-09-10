@@ -147,8 +147,8 @@ def register():
 def captcha():
     """生成验证码"""
     # 大幅增大验证码尺寸
-    width = 240
-    height = 100
+    width = 400
+    height = 150
     chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     length = 4
     

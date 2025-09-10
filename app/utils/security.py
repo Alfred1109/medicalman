@@ -147,7 +147,7 @@ class Security:
         
         return True
 
-def generate_captcha(width=240, height=100, length=4):
+def generate_captcha(width=300, height=120, length=4):
     """
     生成图形验证码
     
@@ -163,18 +163,22 @@ def generate_captcha(width=240, height=100, length=4):
     chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     captcha_text = ''.join(random.choices(chars, k=length))
     
-    # 创建图片
-    image = Image.new('RGB', (width, height), color=(255, 255, 255))
+    # 创建图片 - 使用浅灰色背景提高对比度
+    image = Image.new('RGB', (width, height), color=(245, 245, 245))
     draw = ImageDraw.Draw(image)
     
-    # 尝试加载字体
+    # 尝试加载字体 - 增大字体大小
     try:
-        font = ImageFont.truetype('arial.ttf', 70)
+        font = ImageFont.truetype('arial.ttf', 80)
     except IOError:
         try:
-            font = ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf', 70)
+            font = ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf', 80)
         except IOError:
-            font = ImageFont.load_default()
+            try:
+                # 尝试Linux系统字体
+                font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 80)
+            except IOError:
+                font = ImageFont.load_default()
     
     # 绘制文本
     try:

@@ -179,8 +179,8 @@ def register():
 @auth_bp.route('/captcha')
 def captcha():
     """生成验证码"""
-    # 生成验证码内容和图片
-    captcha_text, captcha_image = generate_captcha()
+    # 生成验证码内容和图片 - 合适尺寸确保字体完整显示
+    captcha_text, captcha_image = generate_captcha(width=250, height=80)
     
     # 将验证码文本存储在会话中
     session['captcha'] = captcha_text
