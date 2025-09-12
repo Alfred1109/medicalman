@@ -247,33 +247,53 @@ class TextAnalysisService(BaseLLMService):
                     except Exception as sort_error:
                         print(f"排序X轴数据时出错: {str(sort_error)}")
                 
-                # 创建图表配置
-                chart_type = "line" if date_fields else "bar"
+                # 创建Vega-Lite图表配置
+                mark_type = "line" if date_fields else "bar"
                 
-                # 创建符合ECharts要求的图表配置
+                # 重建数据格式以适应Vega-Lite
+                chart_data = []
+                for i, x_val in enumerate(x_values):
+                    chart_data.append({
+                        x_field: x_val,
+                        y_field: y_values[i] if i < len(y_values) else 0
+                    })
+                
+                # 确定数据类型
+                x_type = "temporal" if date_fields else "nominal"
+                y_type = "quantitative"
+                
+                # 创建符合Vega-Lite要求的图表配置
                 chart = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
                     "title": {
                         "text": f"{y_field} vs {x_field}",
-                        "left": "center"
+                        "fontSize": 16,
+                        "fontWeight": "bold"
                     },
-                    "tooltip": {"trigger": "axis"},
-                    "legend": {"data": [y_field]},
-                    "xAxis": {
-                        "type": "category",
-                        "data": x_values,
-                        "name": x_field
+                    "mark": {
+                        "type": mark_type,
+                        "point": True if mark_type == "line" else False,
+                        "color": "#4A90E2"
                     },
-                    "yAxis": {
-                        "type": "value",
-                        "name": y_field
+                    "data": {"values": chart_data},
+                    "encoding": {
+                        "x": {
+                            "field": x_field,
+                            "type": x_type,
+                            "title": x_field
+                        },
+                        "y": {
+                            "field": y_field,
+                            "type": y_type,
+                            "title": y_field
+                        },
+                        "tooltip": [
+                            {"field": x_field, "type": x_type},
+                            {"field": y_field, "type": y_type}
+                        ]
                     },
-                    "series": [
-                        {
-                            "name": y_field,
-                            "data": y_values,
-                            "type": chart_type
-                        }
-                    ]
+                    "width": 400,
+                    "height": 300
                 }
                 
                 print(f"生成的图表配置: {json.dumps(chart, ensure_ascii=False)}")

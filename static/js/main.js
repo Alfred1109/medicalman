@@ -12,7 +12,7 @@ function scrollToBottom() {
     chatContainer.scrollTop(chatContainer[0].scrollHeight);
 }
 
-// 显示图表
+// 显示Vega-Lite图表
 function displayCharts(charts) {
     if (!charts || charts.length === 0) return;
     
@@ -27,22 +27,44 @@ function displayCharts(charts) {
             .attr('id', 'chart-' + index)
             .css({
                 'width': '100%',
-                'height': '300px',
-                'margin-bottom': '20px'
+                'min-height': '300px',
+                'margin-bottom': '20px',
+                'border': '1px solid #e0e0e0',
+                'border-radius': '4px',
+                'padding': '10px'
             });
         
         chartsContainer.append(chartDiv);
         
-        // 初始化ECharts实例
-        const chartInstance = echarts.init(document.getElementById('chart-' + index));
-        
-        // 设置图表选项
-        chartInstance.setOption(chart);
-        
-        // 响应窗口大小变化
-        $(window).on('resize', function() {
-            chartInstance.resize();
-        });
+        // 使用VegaChartUtils渲染图表
+        if (typeof VegaChartUtils !== 'undefined') {
+            VegaChartUtils.render('chart-' + index, chart)
+                .then(result => {
+                    console.log(`图表 ${index} 渲染成功`);
+                })
+                .catch(error => {
+                    console.error(`图表 ${index} 渲染失败:`, error);
+                    // 显示错误信息
+                    chartDiv.html(`
+                        <div class="alert alert-warning">
+                            <h6>图表渲染失败</h6>
+                            <small>${error.message || '未知错误'}</small>
+                        </div>
+                    `);
+                });
+        } else {
+            // 备用方案：使用全局renderChart函数
+            if (typeof renderChart === 'function') {
+                renderChart('chart-' + index, chart);
+            } else {
+                chartDiv.html(`
+                    <div class="alert alert-danger">
+                        <h6>图表渲染器未加载</h6>
+                        <small>Vega-Lite渲染器不可用</small>
+                    </div>
+                `);
+            }
+        }
     });
     
     scrollToBottom();

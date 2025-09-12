@@ -1,30 +1,24 @@
 """
-图表服务模块 - 处理医疗数据图表生成和解析
+图表服务模块 - 处理医疗数据图表生成和解析 (Vega-Lite)
 """
 import json
 import re
 import traceback
-from typing import Dict, Any, Optional, List
 import copy
+from typing import Dict, Any, Optional, List
 
 from app.services.base_llm_service import BaseLLMService
 from app.utils.utils import robust_json_parser, safe_json_dumps, extract_json_object
-from app.prompts.visualization import (
-    CHART_GENERATION_SYSTEM_PROMPT,
-    CHART_GENERATION_USER_PROMPT,
-    CHART_PARSING_SYSTEM_PROMPT,
-    CHART_PARSING_USER_PROMPT
-)
 from app.config import config
 
 class ChartService(BaseLLMService):
     """
-    图表服务类，处理图表配置生成和解析
+    Vega-Lite 图表服务类，处理图表配置生成和解析
     """
     
     def __init__(self, model_name=None, api_key=None, api_url=None):
         """
-        初始化图表服务
+        初始化 Vega-Lite 图表服务
         
         参数:
             model_name: 模型名称，默认使用环境变量中的设置
@@ -32,152 +26,131 @@ class ChartService(BaseLLMService):
             api_url: API端点URL，默认使用环境变量中的设置
         """
         super().__init__(model_name, api_key, api_url)
-        print(f"初始化ChartService，使用模型: {self.model_name}")
+        print(f"初始化ChartService (Vega-Lite)，使用模型: {self.model_name}")
     
     def generate_chart_config(self, user_query: str, structured_data: str) -> Dict[str, Any]:
         """
-        根据用户查询和结构化数据生成图表配置
+        根据用户查询和结构化数据生成Vega-Lite图表配置
         
         参数:
             user_query: 用户查询
             structured_data: 结构化数据（JSON格式）
             
         返回:
-            图表配置（JSON格式）
+            Vega-Lite图表配置（JSON格式）
         """
         try:
-            # 生成提示词
-            prompt = CHART_GENERATION_USER_PROMPT.format(
-                user_query=user_query,
-                structured_data=structured_data
-            )
+            # 先尝试智能数据分析生成图表
+            auto_charts = self._generate_smart_vega_charts(structured_data, user_query)
+            if auto_charts:
+                return {"charts": auto_charts}
+            
+            # 如果自动生成失败，使用LLM生成
+            prompt = self._build_vega_generation_prompt(user_query, structured_data)
             
             # 调用大模型，将温度设置更低以减少随机性
             response = self.call_api(
-                system_prompt=CHART_GENERATION_SYSTEM_PROMPT,
+                system_prompt=self._get_vega_system_prompt(),
                 user_message=prompt,
                 temperature=0.1,
                 top_p=0.9
             )
             
             if not response:
-                print("生成图表配置时大模型返回为空")
+                print("生成Vega-Lite图表配置时大模型返回为空")
                 return {"charts": []}
             
-            # 使用新的解析方法处理响应
+            # 解析响应
             result = self.parse_llm_response(response)
             
-            # 检查结果
+            # 检查结果并增强图表质量
             if result and 'charts' in result and isinstance(result['charts'], list) and len(result['charts']) > 0:
-                print(f"成功生成 {len(result['charts'])} 个图表配置")
-                return result
+                # 增强图表配置
+                enhanced_charts = self._enhance_vega_configs(result['charts'], user_query)
+                print(f"成功生成并增强 {len(enhanced_charts)} 个Vega-Lite图表配置")
+                return {"charts": enhanced_charts}
             else:
-                print("未能生成有效的图表配置")
+                print("未能生成有效的Vega-Lite图表配置")
                 return {"charts": []}
         
         except Exception as e:
-            print(f"生成图表配置时出错: {str(e)}")
+            print(f"生成Vega-Lite图表配置时出错: {str(e)}")
             traceback.print_exc()
             return {"charts": []}
     
-    def extract_chart_configs(self, content: str) -> List[Dict[str, Any]]:
-        """
-        从LLM响应中提取图表配置
-        
-        参数:
-            content: LLM响应内容
-            
-        返回:
-            提取的图表配置列表
-        """
-        chart_configs = []
-        
-        # 尝试直接解析整个响应内容
-        try:
-            # 首先清理响应，移除Markdown代码块标记和其他非JSON内容
-            print(f"原始响应内容 (前200字符): {content[:200]}...")
-            
-            # 尝试提取JSON代码块
-            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
-            cleaned_content = json_match.group(1) if json_match else content
-            
-            # 移除可能的前导和尾随文本，只保留JSON部分
-            json_start = cleaned_content.find('{')
-            if json_start >= 0:
-                # 尝试找到匹配的右大括号
-                open_count = 1
-                for i in range(json_start + 1, len(cleaned_content)):
-                    if cleaned_content[i] == '{':
-                        open_count += 1
-                    elif cleaned_content[i] == '}':
-                        open_count -= 1
-                        if open_count == 0:
-                            json_str = cleaned_content[json_start:i+1]
-                            try:
-                                config = json.loads(json_str)
-                                if isinstance(config, dict) and 'charts' in config:
-                                    chart_configs.extend(config['charts'])
-                            except json.JSONDecodeError:
-                                print(f"JSON解析失败: {json_str[:100]}...")
-            
-            # 如果没有找到完整的JSON，尝试提取部分配置
-            if not chart_configs:
-                # 使用正则表达式提取可能的图表配置片段
-                chart_patterns = [
-                    r'"type"\s*:\s*"([^"]+)"',  # 图表类型
-                    r'"title"\s*:\s*"([^"]+)"',  # 图表标题
-                    r'"data"\s*:\s*\[([^\]]+)\]',  # 数据数组
-                    r'"name"\s*:\s*"([^"]+)"'  # 名称
-                ]
-                
-                for pattern in chart_patterns:
-                    matches = re.finditer(pattern, cleaned_content)
-                    for match in matches:
-                        try:
-                            # 尝试构建基本的图表配置
-                            chart_config = {
-                                "type": config.CHART_DEFAULT_TYPE,
-                                "title": match.group(1) if pattern == r'"title"\s*:\s*"([^"]+)"' else config.CHART_DEFAULT_TITLE,
-                                "data": json.loads(f"[{match.group(1)}]") if pattern == r'"data"\s*:\s*\[([^\]]+)\]' else [],
-                                "name": match.group(1) if pattern == r'"name"\s*:\s*"([^"]+)"' else config.CHART_DEFAULT_SERIES_NAME
-                            }
-                            chart_configs.append(chart_config)
-                        except:
-                            continue
-            
-            # 验证提取的配置
-            if chart_configs:
-                # 使用LLM验证配置
-                validation_prompt = CHART_PARSING_USER_PROMPT.format(
-                    chart_config=json.dumps({"charts": chart_configs}, ensure_ascii=False)
-                )
-                
-                validation_response = self.call_api(
-                    system_prompt=CHART_PARSING_SYSTEM_PROMPT,
-                    user_message=validation_prompt,
-                    temperature=0.1
-                )
-                
-                if validation_response:
-                    try:
-                        validation_result = json.loads(validation_response)
-                        if validation_result.get("is_valid"):
-                            chart_configs = validation_result.get("validated_config", {}).get("charts", chart_configs)
-                        else:
-                            print(f"配置验证发现问题: {validation_result.get('issues')}")
-                    except:
-                        print("配置验证结果解析失败")
-            
-            return chart_configs
-            
-        except Exception as e:
-            print(f"提取图表配置时出错: {str(e)}")
-            traceback.print_exc()
-            return []
+    def _get_vega_system_prompt(self) -> str:
+        """获取Vega-Lite系统提示词"""
+        return """你是一个专业的医疗数据分析师助手，擅长根据数据生成Vega-Lite图表配置。
+请根据用户查询和数据结构，生成最适合的Vega-Lite图表配置。
+
+Vega-Lite的核心概念：
+1. mark: 图形标记类型 (point, line, bar, area, rect, circle等)
+2. encoding: 数据到视觉属性的映射
+   - x: 横轴映射
+   - y: 纵轴映射  
+   - color: 颜色映射
+   - size: 大小映射
+   - opacity: 透明度映射
+
+数据类型：
+- quantitative: 数值型数据
+- ordinal: 有序分类数据
+- nominal: 无序分类数据
+- temporal: 时间数据
+
+你应当特别关注：
+- 数据的时间序列特征 → temporal类型
+- 分类数据的分布情况 → nominal/ordinal类型
+- 数值数据的统计特征 → quantitative类型
+- 多维度数据的关联关系 → 多重编码
+- 异常值和趋势的展示 → 合适的mark类型
+
+返回标准的Vega-Lite规范JSON格式。
+"""
+    
+    def _build_vega_generation_prompt(self, user_query: str, structured_data: str) -> str:
+        """构建Vega-Lite生成提示词"""
+        return f"""
+请根据以下数据生成合适的Vega-Lite图表配置：
+
+用户查询：{user_query}
+
+数据结构：
+{structured_data}
+
+要求：
+1. 根据用户查询需求选择合适的mark类型
+2. 设计合理的encoding映射
+3. 使用适当的数据类型 (quantitative, ordinal, nominal, temporal)
+4. 添加必要的标题和说明
+5. 确保图表清晰易读
+6. 返回标准JSON格式的Vega-Lite规范
+
+Vega-Lite配置格式示例：
+{{
+  "charts": [
+    {{
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "图表标题",
+      "mark": "图形标记类型",
+      "data": {{"values": [...]}},
+      "encoding": {{
+        "x": {{"field": "字段名", "type": "数据类型", "title": "轴标题"}},
+        "y": {{"field": "字段名", "type": "数据类型", "title": "轴标题"}},
+        "color": {{"field": "分类字段", "type": "nominal"}}
+      }},
+      "width": 400,
+      "height": 300
+    }}
+  ]
+}}
+
+请确保返回的JSON格式正确，且包含完整的Vega-Lite规范参数。
+"""
     
     def parse_llm_response(self, response: str) -> Optional[Dict[str, Any]]:
         """
-        解析LLM响应，提取图表配置
+        解析LLM响应，提取Vega-Lite图表配置
         
         参数:
             response: LLM响应内容
@@ -213,18 +186,522 @@ class ChartService(BaseLLMService):
             traceback.print_exc()
             return {"charts": []}
     
-    def _generate_chart_prompt(self, user_query: str, structured_data: str) -> str:
+    def _generate_smart_vega_charts(self, structured_data: str, user_query: str) -> List[Dict[str, Any]]:
         """
-        生成图表配置的提示词
+        智能数据分析生成Vega-Lite图表
         
         参数:
+            structured_data: 结构化数据字符串
             user_query: 用户查询
-            structured_data: 结构化数据
             
         返回:
-            生成的提示词
+            Vega-Lite图表配置列表
         """
-        return CHART_GENERATION_USER_PROMPT.format(
-            user_query=user_query,
-            structured_data=structured_data
-        ) 
+        try:
+            # 解析结构化数据
+            try:
+                data = json.loads(structured_data)
+            except json.JSONDecodeError:
+                print("无法解析结构化数据为JSON")
+                return []
+            
+            # 如果数据是列表且不为空
+            if isinstance(data, list) and len(data) > 0:
+                return self._analyze_data_for_vega_charts(data, user_query)
+            
+            # 如果数据是字典且包含results
+            elif isinstance(data, dict) and 'results' in data:
+                return self._analyze_data_for_vega_charts(data['results'], user_query)
+            
+            return []
+            
+        except Exception as e:
+            print(f"智能Vega-Lite图表生成失败: {str(e)}")
+            return []
+    
+    def _analyze_data_for_vega_charts(self, data: List[Dict], user_query: str) -> List[Dict[str, Any]]:
+        """
+        分析数据生成Vega-Lite图表
+        
+        参数:
+            data: 数据列表
+            user_query: 用户查询
+            
+        返回:
+            Vega-Lite图表配置列表
+        """
+        if not data or len(data) == 0:
+            return []
+        
+        try:
+            charts = []
+            sample = data[0]
+            fields = list(sample.keys())
+            
+            # 分析字段类型
+            field_types = self._analyze_field_types_for_vega(data, fields)
+            
+            print(f"字段类型分析: {field_types}")
+            
+            # 生成时间序列图表
+            time_charts = self._generate_vega_time_series_charts(data, field_types, user_query)
+            charts.extend(time_charts)
+            
+            # 生成分类统计图表
+            category_charts = self._generate_vega_category_charts(data, field_types, user_query)
+            charts.extend(category_charts)
+            
+            # 生成分布图表
+            distribution_charts = self._generate_vega_distribution_charts(data, field_types, user_query)
+            charts.extend(distribution_charts)
+            
+            # 生成对比图表
+            comparison_charts = self._generate_vega_comparison_charts(data, field_types, user_query)
+            charts.extend(comparison_charts)
+            
+            print(f"智能生成了 {len(charts)} 个Vega-Lite图表")
+            return charts[:3]  # 限制最多3个图表
+            
+        except Exception as e:
+            print(f"分析数据生成Vega-Lite图表失败: {str(e)}")
+            return []
+    
+    def _analyze_field_types_for_vega(self, data: List[Dict], fields: List[str]) -> Dict[str, str]:
+        """
+        分析字段类型（针对Vega-Lite）
+        
+        参数:
+            data: 数据列表
+            fields: 字段列表
+            
+        返回:
+            字段类型字典 {field: vega_type}
+        """
+        field_types = {}
+        
+        for field in fields:
+            values = [item.get(field) for item in data if item.get(field) is not None]
+            
+            if not values:
+                field_types[field] = 'nominal'
+                continue
+            
+            # 判断是否为数字类型 → quantitative
+            if all(isinstance(v, (int, float)) for v in values):
+                field_types[field] = 'quantitative'
+            # 判断是否为日期类型 → temporal
+            elif all(isinstance(v, str) and self._is_date_string(v) for v in values):
+                field_types[field] = 'temporal'
+            # 判断是否为有序分类类型 → ordinal
+            elif self._is_ordinal_field(field, values):
+                field_types[field] = 'ordinal'
+            # 判断是否为无序分类类型 → nominal
+            elif len(set(str(v) for v in values)) <= min(10, len(values) * 0.5):
+                field_types[field] = 'nominal'
+            else:
+                field_types[field] = 'nominal'
+        
+        return field_types
+    
+    def _is_date_string(self, value: str) -> bool:
+        """判断字符串是否为日期格式"""
+        date_patterns = [
+            r'^\d{4}-\d{1,2}-\d{1,2}$',  # YYYY-MM-DD
+            r'^\d{4}/\d{1,2}/\d{1,2}$',  # YYYY/MM/DD
+            r'^\d{1,2}-\d{1,2}-\d{4}$',  # DD-MM-YYYY
+            r'^\d{1,2}/\d{1,2}/\d{4}$',  # DD/MM/YYYY
+            r'^\d{4}\.\d{1,2}\.\d{1,2}$' # YYYY.MM.DD
+        ]
+        return any(re.match(pattern, value) for pattern in date_patterns)
+    
+    def _is_ordinal_field(self, field: str, values: List) -> bool:
+        """判断字段是否为有序分类"""
+        ordinal_patterns = [
+            ['高', '中', '低'],
+            ['优秀', '良好', '一般', '差'],
+            ['一级', '二级', '三级', '四级'],
+            ['轻度', '中度', '重度'],
+            ['早期', '中期', '晚期']
+        ]
+        
+        unique_values = set(str(v) for v in values)
+        for pattern in ordinal_patterns:
+            if unique_values.issubset(set(pattern)):
+                return True
+        return False
+    
+    def _generate_vega_time_series_charts(self, data: List[Dict], field_types: Dict, user_query: str) -> List[Dict[str, Any]]:
+        """生成Vega-Lite时间序列图表"""
+        charts = []
+        
+        # 找到时间字段和数值字段
+        time_fields = [field for field, ftype in field_types.items() if ftype == 'temporal']
+        numeric_fields = [field for field, ftype in field_types.items() if ftype == 'quantitative']
+        
+        if time_fields and numeric_fields:
+            time_field = time_fields[0]
+            value_field = numeric_fields[0]
+            
+            # 按时间排序数据
+            sorted_data = sorted(data, key=lambda x: str(x.get(time_field, '')))
+            
+            chart = {
+                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                "title": {
+                    "text": f"{value_field}随时间变化趋势",
+                    "fontSize": 16,
+                    "fontWeight": "bold",
+                    "color": "#333"
+                },
+                "mark": {
+                    "type": "line",
+                    "point": True,
+                    "interpolate": "monotone",
+                    "strokeWidth": 2
+                },
+                "data": {"values": sorted_data},
+                "encoding": {
+                    "x": {
+                        "field": time_field,
+                        "type": "temporal",
+                        "title": time_field,
+                        "axis": {
+                            "format": "%Y-%m-%d",
+                            "labelAngle": -45
+                        }
+                    },
+                    "y": {
+                        "field": value_field,
+                        "type": "quantitative",
+                        "title": value_field,
+                        "scale": {"zero": False}
+                    },
+                    "color": {"value": "#4A90E2"},
+                    "tooltip": [
+                        {"field": time_field, "type": "temporal", "format": "%Y-%m-%d"},
+                        {"field": value_field, "type": "quantitative"}
+                    ]
+                },
+                "width": 500,
+                "height": 300
+            }
+            
+            charts.append(chart)
+        
+        return charts
+    
+    def _generate_vega_category_charts(self, data: List[Dict], field_types: Dict, user_query: str) -> List[Dict[str, Any]]:
+        """生成Vega-Lite分类统计图表"""
+        charts = []
+        
+        category_fields = [field for field, ftype in field_types.items() if ftype in ['nominal', 'ordinal']]
+        numeric_fields = [field for field, ftype in field_types.items() if ftype == 'quantitative']
+        
+        if category_fields and numeric_fields:
+            category_field = category_fields[0]
+            value_field = numeric_fields[0]
+            
+            # 统计分类数据
+            category_stats = {}
+            for item in data:
+                cat = str(item.get(category_field, '未知'))
+                val = item.get(value_field, 0)
+                
+                if cat in category_stats:
+                    category_stats[cat] += val
+                else:
+                    category_stats[cat] = val
+            
+            # 转换为图表数据
+            chart_data = [{"category": cat, "value": val} for cat, val in category_stats.items()]
+            chart_data = sorted(chart_data, key=lambda x: x["value"], reverse=True)[:10]  # 最多10个类别
+            
+            # 如果类别少于等于6个，生成饼图；否则生成柱状图
+            if len(chart_data) <= 6:
+                # 饼图
+                chart = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "title": {
+                        "text": f"{value_field}按{category_field}分布",
+                        "fontSize": 16,
+                        "fontWeight": "bold"
+                    },
+                    "mark": {"type": "arc", "innerRadius": 50, "outerRadius": 120},
+                    "data": {"values": chart_data},
+                    "encoding": {
+                        "theta": {"field": "value", "type": "quantitative"},
+                        "color": {
+                            "field": "category", 
+                            "type": "nominal",
+                            "scale": {
+                                "range": ["#4A90E2", "#7ED321", "#F5A623", "#D0021B", "#9013FE", "#50E3C2"]
+                            }
+                        },
+                        "tooltip": [
+                            {"field": "category", "type": "nominal"},
+                            {"field": "value", "type": "quantitative"}
+                        ]
+                    },
+                    "width": 300,
+                    "height": 300
+                }
+            else:
+                # 柱状图
+                chart = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "title": {
+                        "text": f"{value_field}按{category_field}统计",
+                        "fontSize": 16,
+                        "fontWeight": "bold"
+                    },
+                    "mark": {"type": "bar", "color": "#4A90E2"},
+                    "data": {"values": chart_data},
+                    "encoding": {
+                        "x": {
+                            "field": "category",
+                            "type": field_types.get(category_field, "nominal"),
+                            "title": category_field,
+                            "axis": {"labelAngle": -45}
+                        },
+                        "y": {
+                            "field": "value",
+                            "type": "quantitative",
+                            "title": value_field
+                        },
+                        "tooltip": [
+                            {"field": "category", "type": "nominal"},
+                            {"field": "value", "type": "quantitative"}
+                        ]
+                    },
+                    "width": 400,
+                    "height": 300
+                }
+            
+            charts.append(chart)
+        
+        return charts
+    
+    def _generate_vega_distribution_charts(self, data: List[Dict], field_types: Dict, user_query: str) -> List[Dict[str, Any]]:
+        """生成Vega-Lite分布图表"""
+        charts = []
+        
+        numeric_fields = [field for field, ftype in field_types.items() if ftype == 'quantitative']
+        
+        # 如果有多个数值字段，生成散点图
+        if len(numeric_fields) >= 2:
+            x_field = numeric_fields[0]
+            y_field = numeric_fields[1]
+            
+            chart = {
+                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                "title": {
+                    "text": f"{x_field} vs {y_field} 散点分布",
+                    "fontSize": 16,
+                    "fontWeight": "bold"
+                },
+                "mark": {"type": "point", "filled": True, "size": 100, "opacity": 0.7},
+                "data": {"values": data},
+                "encoding": {
+                    "x": {
+                        "field": x_field,
+                        "type": "quantitative",
+                        "title": x_field
+                    },
+                    "y": {
+                        "field": y_field,
+                        "type": "quantitative",
+                        "title": y_field
+                    },
+                    "color": {"value": "#4A90E2"},
+                    "tooltip": [
+                        {"field": x_field, "type": "quantitative"},
+                        {"field": y_field, "type": "quantitative"}
+                    ]
+                },
+                "width": 400,
+                "height": 300
+            }
+            
+            charts.append(chart)
+        
+        return charts
+    
+    def _generate_vega_comparison_charts(self, data: List[Dict], field_types: Dict, user_query: str) -> List[Dict[str, Any]]:
+        """生成Vega-Lite对比图表"""
+        charts = []
+        
+        # 如果查询中包含对比关键词
+        comparison_keywords = ['对比', '比较', '差异', 'vs', '相比']
+        if any(keyword in user_query for keyword in comparison_keywords):
+            category_fields = [field for field, ftype in field_types.items() if ftype in ['nominal', 'ordinal']]
+            numeric_fields = [field for field, ftype in field_types.items() if ftype == 'quantitative']
+            
+            if category_fields and len(numeric_fields) >= 2:
+                category_field = category_fields[0]
+                
+                # 准备多指标对比数据
+                comparison_data = []
+                categories = list(set(str(item.get(category_field, '')) for item in data))[:5]
+                
+                for category in categories:
+                    cat_items = [item for item in data if str(item.get(category_field, '')) == category]
+                    for numeric_field in numeric_fields[:3]:  # 最多3个指标
+                        values = [item.get(numeric_field, 0) for item in cat_items]
+                        avg_value = sum(values) / len(values) if values else 0
+                        comparison_data.append({
+                            "category": category,
+                            "metric": numeric_field,
+                            "value": avg_value
+                        })
+                
+                chart = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "title": {
+                        "text": "多指标对比分析",
+                        "fontSize": 16,
+                        "fontWeight": "bold"
+                    },
+                    "mark": "bar",
+                    "data": {"values": comparison_data},
+                    "encoding": {
+                        "x": {
+                            "field": "category",
+                            "type": field_types.get(category_field, "nominal"),
+                            "title": category_field,
+                            "axis": {"labelAngle": -45}
+                        },
+                        "y": {
+                            "field": "value",
+                            "type": "quantitative",
+                            "title": "数值"
+                        },
+                        "color": {
+                            "field": "metric",
+                            "type": "nominal",
+                            "title": "指标",
+                            "scale": {
+                                "range": ["#4A90E2", "#7ED321", "#F5A623"]
+                            }
+                        },
+                        "xOffset": {"field": "metric"},
+                        "tooltip": [
+                            {"field": "category", "type": "nominal"},
+                            {"field": "metric", "type": "nominal"},
+                            {"field": "value", "type": "quantitative"}
+                        ]
+                    },
+                    "width": 500,
+                    "height": 300
+                }
+                
+                charts.append(chart)
+        
+        return charts
+    
+    def _enhance_vega_configs(self, charts: List[Dict[str, Any]], user_query: str) -> List[Dict[str, Any]]:
+        """
+        增强Vega-Lite图表配置
+        
+        参数:
+            charts: 原始图表配置列表
+            user_query: 用户查询
+            
+        返回:
+            增强后的图表配置列表
+        """
+        enhanced_charts = []
+        
+        for chart in charts:
+            if not isinstance(chart, dict):
+                continue
+            
+            # 深拷贝避免修改原配置
+            enhanced = copy.deepcopy(chart)
+            
+            # 确保有schema
+            if "$schema" not in enhanced:
+                enhanced["$schema"] = "https://vega.github.io/schema/vega-lite/v5.json"
+            
+            # 增强配置项
+            enhanced = self._add_vega_medical_theme(enhanced)
+            enhanced = self._add_vega_interactions(enhanced)
+            enhanced = self._add_vega_accessibility(enhanced)
+            
+            enhanced_charts.append(enhanced)
+        
+        return enhanced_charts
+    
+    def _add_vega_medical_theme(self, chart: Dict[str, Any]) -> Dict[str, Any]:
+        """添加医疗主题"""
+        # 医疗主题配色方案
+        medical_colors = ["#4A90E2", "#7ED321", "#F5A623", "#D0021B", "#9013FE", "#50E3C2", "#B8E986", "#4A4A4A"]
+        
+        # 如果有颜色编码且没有指定颜色范围
+        if "encoding" in chart and "color" in chart["encoding"]:
+            if "scale" not in chart["encoding"]["color"]:
+                chart["encoding"]["color"]["scale"] = {"range": medical_colors}
+        
+        # 添加医疗主题配置
+        chart["config"] = {
+            "axis": {
+                "labelFontSize": 11,
+                "titleFontSize": 12,
+                "titleFontWeight": "bold"
+            },
+            "title": {
+                "fontSize": 16,
+                "fontWeight": "bold",
+                "color": "#333"
+            },
+            "legend": {
+                "labelFontSize": 11,
+                "titleFontSize": 12
+            }
+        }
+        
+        return chart
+    
+    def _add_vega_interactions(self, chart: Dict[str, Any]) -> Dict[str, Any]:
+        """添加Vega-Lite交互功能"""
+        # 添加选择交互
+        chart["params"] = [
+            {
+                "name": "hover",
+                "select": {"type": "point", "on": "mouseover"}
+            }
+        ]
+        
+        # 为mark添加交互效果
+        if isinstance(chart.get("mark"), str):
+            chart["mark"] = {
+                "type": chart["mark"],
+                "cursor": "pointer"
+            }
+        elif isinstance(chart.get("mark"), dict):
+            chart["mark"]["cursor"] = "pointer"
+        
+        return chart
+    
+    def _add_vega_accessibility(self, chart: Dict[str, Any]) -> Dict[str, Any]:
+        """添加可访问性支持"""
+        # 确保有描述
+        if "description" not in chart:
+            chart["description"] = "医疗数据可视化图表"
+        
+        # 确保有合适的宽高比
+        if "width" not in chart:
+            chart["width"] = 400
+        if "height" not in chart:
+            chart["height"] = 300
+        
+        return chart
+    
+    # 保持向后兼容的方法名
+    def extract_chart_configs(self, content: str) -> List[Dict[str, Any]]:
+        """向后兼容：从响应中提取图表配置"""
+        result = self.parse_llm_response(content)
+        return result.get('charts', []) if result else []
+    
+    def _generate_chart_prompt(self, user_query: str, structured_data: str) -> str:
+        """向后兼容：生成图表配置的提示词"""
+        return self._build_vega_generation_prompt(user_query, structured_data)

@@ -537,68 +537,119 @@ function formatMarkdown(markdown) {
 }
 
 /**
- * 渲染图表
+ * 渲染Vega-Lite图表（使用VegaChartUtils）
  * @param {string} elementId - 图表容器元素ID
- * @param {Object} chartData - 图表配置数据
+ * @param {Object} chartData - Vega-Lite规范数据
  */
 function renderChart(elementId, chartData) {
-    // 检查echarts是否可用
-    if (typeof echarts === 'undefined') {
-        console.error('echarts库未加载，无法渲染图表');
-        return;
+    // 优先使用VegaChartUtils
+    if (typeof VegaChartUtils !== 'undefined') {
+        return VegaChartUtils.render(elementId, chartData)
+            .then(result => {
+                console.log('Vega-Lite图表渲染成功:', result);
+                return result;
+            })
+            .catch(error => {
+                console.error('使用VegaChartUtils渲染图表失败:', error);
+                // 不抛出错误，让调用者处理
+                return null;
+            });
+    }
+    
+    // 备用方案：直接使用vega-embed
+    if (typeof vegaEmbed === 'undefined') {
+        console.error('VegaChartUtils和vega-embed都不可用，无法渲染图表');
+        return Promise.reject(new Error('图表渲染器不可用'));
     }
 
     const chartElement = document.getElementById(elementId);
     if (!chartElement) {
-        console.error(`未找到图表容器元素: ${elementId}`);
-        return;
+        const error = new Error(`未找到图表容器元素: ${elementId}`);
+        console.error(error.message);
+        return Promise.reject(error);
     }
 
     try {
-        // 初始化图表
-        const chart = echarts.init(chartElement);
-        
-        // 设置图表选项
-        const options = chartData;
-        
-        // 添加默认主题配置
-        if (!options.color) {
-            options.color = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+        // 确保有schema
+        if (!chartData.$schema) {
+            chartData.$schema = "https://vega.github.io/schema/vega-lite/v5.json";
         }
         
-        // 设置默认的标题样式
-        if (options.title && !options.title.textStyle) {
-            options.title.textStyle = {
-                fontWeight: 'normal',
-                fontSize: 14
-            };
-        }
-        
-        // 设置默认的工具箱
-        if (!options.toolbox) {
-            options.toolbox = {
-                show: true,
-                feature: {
-                    saveAsImage: {
-                        title: '保存为图片',
-                        name: `chart-${Date.now()}`
-                    }
+        // 添加医疗主题配置
+        if (!chartData.config) {
+            chartData.config = {
+                axis: {
+                    labelFontSize: 11,
+                    titleFontSize: 12,
+                    titleFontWeight: "bold"
+                },
+                title: {
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#333"
+                },
+                legend: {
+                    labelFontSize: 11,
+                    titleFontSize: 12
                 }
             };
         }
         
+        // Vega-Embed选项
+        const embedOptions = {
+            theme: 'quartz',
+            tooltip: {
+                theme: 'dark'
+            },
+            actions: {
+                export: true,
+                source: false,
+                compiled: false,
+                editor: false
+            }
+        };
+        
         // 渲染图表
-        chart.setOption(options);
+        return vegaEmbed(chartElement, chartData, embedOptions)
+            .then(result => {
+                console.log('Vega-Lite图表渲染成功:', result);
+                
+                // 存储视图引用以便后续操作
+                chartElement._vegaView = result.view;
+                
+                return result;
+            })
+            .catch(error => {
+                console.error('渲染Vega-Lite图表时出错:', error);
+                console.error('图表数据:', chartData);
+                
+                // 显示错误信息
+                chartElement.innerHTML = `
+                    <div class="alert alert-warning" style="margin: 10px; padding: 15px;">
+                        <h6><i class="fas fa-exclamation-triangle"></i> 图表渲染失败</h6>
+                        <small>${error.message || '未知错误'}</small>
+                    </div>
+                `;
+                
+                throw error; // 重新抛出错误让调用者处理
+            });
         
-        // 监听窗口大小变化，调整图表大小
-        window.addEventListener('resize', function() {
-            chart.resize();
-        });
-        
-        return chart;
     } catch (error) {
         console.error('渲染图表时出错:', error);
         console.error('图表数据:', chartData);
+        
+        // 显示错误信息
+        const chartElement = document.getElementById(elementId);
+        if (chartElement) {
+            chartElement.innerHTML = `
+                <div class="alert alert-danger" style="margin: 10px; padding: 15px;">
+                    <h6><i class="fas fa-times-circle"></i> 图表渲染失败</h6>
+                    <small>${error.message || '未知错误'}</small>
+                </div>
+            `;
+        }
+        
+        return Promise.reject(error);
     }
 }
 

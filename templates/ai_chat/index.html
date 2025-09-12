@@ -206,11 +206,12 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/highlight.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
 
 <!-- 检查库加载状态 -->
 <script>
@@ -218,27 +219,39 @@ console.log('=== AI聊天页面库加载状态检查 ===');
 console.log('jQuery:', typeof $ !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
 console.log('Marked:', typeof marked !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
 console.log('Highlight.js:', typeof hljs !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
-console.log('ECharts:', typeof echarts !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
+console.log('Vega:', typeof vega !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
+console.log('Vega-Lite:', typeof vegaLite !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
+console.log('Vega-Embed:', typeof vegaEmbed !== 'undefined' ? '✓ 已加载' : '✗ 未加载');
 
-// 如果marked未加载，尝试等待
-if (typeof marked === 'undefined') {
-    console.warn('Marked库未立即可用，等待加载...');
-    let attempts = 0;
-    const checkMarked = setInterval(() => {
-        attempts++;
-        if (typeof marked !== 'undefined') {
-            console.log('Marked库加载完成！');
-            clearInterval(checkMarked);
-        } else if (attempts > 20) { // 等待2秒
-            console.error('Marked库加载超时');
-            clearInterval(checkMarked);
-        }
-    }, 100);
-}
+// 如果重要库未加载，尝试等待
+const criticalLibs = [
+    { name: 'Marked', check: () => typeof marked !== 'undefined' },
+    { name: 'Vega', check: () => typeof vega !== 'undefined' },
+    { name: 'Vega-Lite', check: () => typeof vegaLite !== 'undefined' },
+    { name: 'Vega-Embed', check: () => typeof vegaEmbed !== 'undefined' }
+];
+
+criticalLibs.forEach(lib => {
+    if (!lib.check()) {
+        console.warn(`${lib.name}库未立即可用，等待加载...`);
+        let attempts = 0;
+        const checkLib = setInterval(() => {
+            attempts++;
+            if (lib.check()) {
+                console.log(`${lib.name}库加载完成！`);
+                clearInterval(checkLib);
+            } else if (attempts > 20) { // 等待2秒
+                console.error(`${lib.name}库加载超时`);
+                clearInterval(checkLib);
+            }
+        }, 100);
+    }
+});
 </script>
 
 <!-- 引入JS文件（按依赖顺序） -->
 <!-- utils.js已在base.html中引入，这里无需重复引入 -->
+<script src="{{ url_for('static', filename='js/vega-chart-utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat-utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat-upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat-api.js') }}"></script>

@@ -137,24 +137,40 @@ class SQLService(BaseLLMService):
         self._init_db()
         self._init_langchain_db()
         
+        # 智能查询代理已移除，改为使用标准LangChain Agent架构
+        
     def _init_db(self):
         """初始化数据库连接和表名映射"""
         try:
             self.query_cache = SQLQueryCache()
             self.query_optimizer = SQLQueryOptimizer(self)
             
-            # 设置中文表名到英文表名的映射
+            # 设置中文表名到英文表名的映射（基于实际数据库表结构）
             self.table_name_mapping = {
-                '门诊记录': 'outpatient_records', 
-                '医生信息': 'doctor_info',
-                '患者信息': 'patient_info',
-                '医院科室': 'hospital_departments',
-                '疾病信息': 'disease_info',
-                '处方记录': 'prescription_records',
-                '治疗方案': 'treatment_plans',
-                '检查结果': 'examination_results',
-                '手术记录': 'surgery_records',
-                '医疗费用': 'medical_expenses'
+                '门诊记录': 'visits',
+                '门诊量': 'visits', 
+                '住院记录': 'admissions',
+                '住院量': 'admissions',
+                '手术记录': 'surgeries',
+                '手术量': 'surgeries',
+                '收入记录': 'revenue',
+                '医疗收入': 'revenue',
+                '警报信息': 'alerts',
+                '科室工作量': 'department_workload',
+                '科室效率': 'department_efficiency', 
+                '科室资源': 'department_resources',
+                '科室收入': 'department_revenue',
+                '财务摘要': 'finance_summary',
+                '用户信息': 'users',
+                # 保留原有映射以防兼容性问题
+                '医生信息': 'users',
+                '患者信息': 'users', 
+                '医院科室': 'department_workload',
+                '疾病信息': 'admissions',
+                '处方记录': 'visits',
+                '治疗方案': 'visits',
+                '检查结果': 'visits',
+                '医疗费用': 'revenue'
             }
             
             # 建立反向映射
@@ -165,6 +181,27 @@ class SQLService(BaseLLMService):
         except Exception as e:
             print(f"初始化数据库连接时出错: {str(e)}")
             traceback.print_exc()
+    
+    def map_table_names_in_sql(self, sql_query: str) -> str:
+        """
+        将SQL查询中的中文表名映射为实际的英文表名
+        
+        参数:
+            sql_query: 包含中文表名的SQL查询
+            
+        返回:
+            映射后的SQL查询
+        """
+        mapped_sql = sql_query
+        for chinese_name, english_name in self.table_name_mapping.items():
+            # 使用正则表达式来精确匹配表名，避免部分匹配
+            import re
+            pattern = r'\b' + re.escape(chinese_name) + r'\b'
+            mapped_sql = re.sub(pattern, english_name, mapped_sql)
+        
+        print(f"SQL映射前: {sql_query}")
+        print(f"SQL映射后: {mapped_sql}")
+        return mapped_sql
         
     def _init_langchain_db(self):
         """初始化LangChain SQLDatabase对象"""
@@ -202,13 +239,15 @@ class SQLService(BaseLLMService):
             # 检查特定表的查询
             if "门诊量" in user_message:
                 print("检测到对门诊量表的查询")
-                sql = "SELECT * FROM 门诊量 LIMIT 10"
-                explanation = "这个查询会返回门诊量表中的前10条记录"
+                # 使用表名映射获取实际表名
+                actual_table = self.table_name_mapping.get('门诊量', 'visits')
+                sql = f"SELECT department, visit_type, DATE(visit_date) as date, COUNT(*) as count FROM {actual_table} GROUP BY department, visit_type, DATE(visit_date) LIMIT 10"
+                explanation = f"这个查询会返回{actual_table}表中按科室和日期分组的门诊量统计"
                 return {
                     'status': SQL_STATUS_CODES['success'],
                     'sql': sql,
                     'explanation': explanation,
-                    'purpose': "查询门诊量表的数据",
+                    'purpose': "查询门诊量数据统计",
                     'recommendations': []
                 }
             
@@ -388,8 +427,9 @@ SQL查询: {sql}
     def process_query(self, user_message: str) -> Optional[Dict[str, Any]]:
         """处理用户查询"""
         try:
-            # 获取create_response函数
             from app.services.query_service import create_response
+            
+            print("使用标准SQL生成方法...")
             
             # 生成SQL
             sql_result = self.generate_sql(user_message)

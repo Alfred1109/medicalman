@@ -7,7 +7,8 @@ import traceback
 import time
 from datetime import datetime
 
-from app.services.query_service import process_user_query, create_response
+from app.services.query_service import create_response
+from app.services.standard_langchain_agent import standard_agent
 from app.services.chart_service import ChartService
 from app.services.ai_chat_service import AIChatService
 from app.utils.report_generator import ReportGenerator
@@ -77,16 +78,44 @@ def process_query():
         current_app.logger.info(f"查询附件: {attachments}")
         current_app.logger.info(f"知识库设置: {knowledge_settings}")
         
-        # 处理查询
+        # 处理查询 - 使用标准LangChain Agent架构
         start_time = time.time()
-        result = process_user_query(query, knowledge_settings, attachments)
+        
+        current_app.logger.info("使用标准LangChain Agent架构处理查询")
+        
+        agent_result = standard_agent.process_query(query)
+        
+        # 转换为标准格式
+        if agent_result.get('success'):
+            result = create_response(
+                success=True,
+                message=agent_result.get('answer', ''),
+                data={
+                    'process_time': agent_result.get('process_time', ''),
+                    'architecture': 'StandardLangChain Agent ✅',
+                    'agent_type': agent_result.get('agent_type', 'StandardLangChain'),
+                    'performance': 'Fast & Reliable'
+                }
+            )
+        else:
+            # 如果标准Agent失败，返回错误信息
+            current_app.logger.error(f"标准Agent处理失败: {agent_result.get('error', '')}")
+            result = create_response(
+                success=False,
+                message=f"处理查询失败: {agent_result.get('error', '未知错误')}",
+                error=agent_result.get('error', ''),
+                data={
+                    'architecture': 'StandardLangChain Agent',
+                    'agent_type': 'StandardLangChain'
+                }
+            )
+        
         process_time = time.time() - start_time
         
         # 记录处理时间
-        current_app.logger.info(f"查询处理完成，耗时: {process_time:.2f}秒")
+        current_app.logger.info(f"标准LangChain Agent处理完成，耗时: {process_time:.2f}秒")
         
-        # 使用安全的JSON序列化，直接返回标准格式响应（无需额外转换）
-        # process_user_query已经返回标准格式响应
+        # 使用安全的JSON序列化，直接返回标准格式响应
         return safe_json_dumps(result), 200, {'Content-Type': 'application/json'}
         
     except Exception as e:

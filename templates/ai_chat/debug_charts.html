@@ -72,10 +72,12 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('页面加载完成，开始渲染图表');
+    console.log('页面加载完成，开始渲染Vega-Lite图表');
     
     // 获取图表数据
     const chartsData = {{ charts|tojson|safe }};
@@ -92,22 +94,46 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // 确保有schema
+        if (!chartConfig.$schema) {
+            chartConfig.$schema = "https://vega.github.io/schema/vega-lite/v5.json";
+        }
+        
+        // Vega-Embed选项
+        const embedOptions = {
+            theme: 'quartz',
+            tooltip: { theme: 'dark' },
+            actions: {
+                export: true,
+                source: false,
+                compiled: false,
+                editor: false
+            }
+        };
+        
         try {
-            // 初始化echarts实例
-            const chart = echarts.init(chartContainer);
-            console.log(`已初始化图表 ${index+1}`);
-            
-            // 设置图表配置
-            chart.setOption(chartConfig);
-            console.log(`图表 ${index+1} 渲染成功`);
-            
-            // 监听窗口大小变化，自动调整图表大小
-            window.addEventListener('resize', function() {
-                chart.resize();
-            });
+            // 使用Vega-Embed渲染图表
+            vegaEmbed(chartContainer, chartConfig, embedOptions)
+                .then(result => {
+                    console.log(`Vega-Lite图表 ${index+1} 渲染成功`);
+                })
+                .catch(error => {
+                    console.error(`图表 ${index+1} 渲染失败:`, error);
+                    chartContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>Vega-Lite图表渲染失败</h6>
+                            <small>${error.message}</small>
+                        </div>
+                    `;
+                });
         } catch (error) {
             console.error(`图表 ${index+1} 渲染失败:`, error);
-            chartContainer.innerHTML = `<div class="alert alert-danger">图表渲染失败: ${error.message}</div>`;
+            chartContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>图表渲染失败</h6>
+                    <small>${error.message || '未知错误'}</small>
+                </div>
+            `;
         }
     });
 });

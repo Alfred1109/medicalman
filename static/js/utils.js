@@ -546,8 +546,8 @@ const DataCache = {
 
 // ===== 增强型图表工具函数 =====
 const ChartUtils = {
-    // 存储已注册的图表
-    chartInstances: {},
+    // 存储已注册的Vega-Lite视图
+    vegaViews: {},
     
     /**
      * 注册图表实例
